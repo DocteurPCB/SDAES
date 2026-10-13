@@ -5,7 +5,8 @@
 module sdram_model #(
     parameter DW = 16,
     parameter RB = 6,        // bits de ligne conservés
-    parameter CL = 3,
+    parameter CB = 9,        // bits de colonne (9 : 256 Mbit, 10 : 512 Mbit)
+    parameter CL = 2,
     parameter real T_AC = 5.4,   // accès depuis l'horloge (ns)
     parameter real T_OH = 2.7    // maintien de la donnée (ns)
 ) (
@@ -18,7 +19,7 @@ module sdram_model #(
     inout  wire [DW-1:0]   dq
 );
     localparam NB = DW / 8;
-    reg [DW-1:0] mem [0:(1 << (RB + 2 + 9)) - 1];
+    reg [DW-1:0] mem [0:(1 << (RB + 2 + CB)) - 1];
     reg [12:0]   open_row [0:3];
     reg [3:0]    is_open = 4'b0;
     reg [DW-1:0] pipe_d [0:CL];
@@ -28,7 +29,7 @@ module sdram_model #(
     integer      refreshes = 0;
     integer      i;
 
-    initial for (i = 0; i < (1 << (RB + 2 + 9)); i = i + 1) mem[i] = {DW{1'b0}};
+    initial for (i = 0; i < (1 << (RB + 2 + CB)); i = i + 1) mem[i] = {DW{1'b0}};
 
     // sortie : l'ancienne donnée disparaît après T_OH, la nouvelle apparaît après T_AC
     reg          dq_valid = 1'b0;
@@ -42,8 +43,8 @@ module sdram_model #(
     end
     assign dq = dq_valid ? dq_val : {DW{1'bz}};
 
-    function [RB+10:0] idx(input [1:0] b, input [12:0] row, input [8:0] col);
-        idx = {row[RB-1:0], b, col};
+    function [RB+CB+1:0] idx(input [1:0] b, input [12:0] row, input [12:0] col);
+        idx = {row[RB-1:0], b, col[CB-1:0]};
     endfunction
 
     wire [3:0] cmd = {cs_n, ras_n, cas_n, we_n};
@@ -70,7 +71,7 @@ module sdram_model #(
                 $display("%t SDRAM ERREUR: READ banque %0d fermée", $time, ba);
                 errors = errors + 1;
             end
-            pipe_d[0] <= mem[idx(ba, open_row[ba], a[8:0])];
+            pipe_d[0] <= mem[idx(ba, open_row[ba], a)];
             pipe_v[0] <= 1'b1;
             if (a[10]) is_open[ba] <= 1'b0;
         end
@@ -80,7 +81,7 @@ module sdram_model #(
                 errors = errors + 1;
             end
             for (i = 0; i < NB; i = i + 1)
-                if (!dqm[i]) mem[idx(ba, open_row[ba], a[8:0])][i*8 +: 8] <= dq[i*8 +: 8];
+                if (!dqm[i]) mem[idx(ba, open_row[ba], a)][i*8 +: 8] <= dq[i*8 +: 8];
             if (a[10]) is_open[ba] <= 1'b0;
         end
         4'b0010: begin // PRECHARGE

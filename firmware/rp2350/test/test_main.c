@@ -15,12 +15,12 @@
 static uint16_t seq;
 static int failures;
 
-static uint16_t mb16(uint16_t off) { return (uint16_t)((mem_prog[SP_PROG_MAILBOX][off] << 8) | mem_prog[SP_PROG_MAILBOX][off + 1]); }
-static const char *mbstr(uint16_t off) { return (const char *)&mem_prog[SP_PROG_MAILBOX][off]; }
+static uint16_t mb16(uint16_t off) { return (uint16_t)((mem[LINK_P][SP_P_MAILBOX][off] << 8) | mem[LINK_P][SP_P_MAILBOX][off + 1]); }
+static const char *mbstr(uint16_t off) { return (const char *)&mem[LINK_P][SP_P_MAILBOX][off]; }
 
 static uint16_t send(uint16_t cmd, uint32_t arg0)
 {
-    uint8_t *m = mem_prog[SP_PROG_MAILBOX];
+    uint8_t *m = mem[LINK_P][SP_P_MAILBOX];
     seq++;
     m[0] = cmd >> 8; m[1] = (uint8_t)cmd;
     m[2] = seq >> 8; m[3] = (uint8_t)seq;
@@ -62,7 +62,7 @@ int main(void)
     expect(mb16(MB_RSP_KIND) == KIND_LIST, "nature = liste");
     printf("info  racine : %d entrées, chemin '%s'\n", mb16(MB_RSP_TOTAL), mbstr(MB_RSP_PATH));
     for (int i = 0; i < mb16(MB_RSP_COUNT); i++)
-        printf("info   [%d] %s%s\n", i, mem_prog[2][MB_RSP_ENTRIES + i * 32] ? "/" : " ",
+        printf("info   [%d] %s%s\n", i, mem[LINK_P][SP_P_MAILBOX][MB_RSP_ENTRIES + i * 32] ? "/" : " ",
                mbstr(MB_RSP_ENTRIES + i * 32 + 1));
     int d = find("Jeux");
     expect(d == 0, "dossier en tête de liste");
@@ -77,25 +77,26 @@ int main(void)
 
     expect(send(CMD_OPEN, (uint32_t)bad) == ST_ERR_FORMAT, "fichier invalide refusé");
     printf("info  message : %s\n", mbstr(MB_RSP_MSG));
-    expect(reg_prog[REG_CTRL] == 0 && reg_cha[REG_CTRL] == 0, "pas armé après échec");
+    expect(regs[LINK_P][REG_CTRL] == 0 && regs[LINK_C][REG_CTRL] == 0, "pas armé après échec");
 
     expect(send(CMD_OPEN, (uint32_t)g) == ST_OK, "chargement test.neo");
     expect(mb16(MB_RSP_KIND) == KIND_GAME_READY, "jeu prêt");
     expect(mb16(MB_RSP_PROGRESS) == 1000, "progression 100 %");
     expect(!strcmp(mbstr(MB_RSP_MSG), "SDAES TEST"), "nom du jeu renvoyé");
-    expect((reg_prog[REG_CTRL] & CTRL_ARM) && (reg_cha[REG_CTRL] & CTRL_ARM), "FPGA armés");
+    expect((regs[LINK_P][REG_CTRL] & CTRL_ARM) && (regs[LINK_V][REG_CTRL] & CTRL_ARM) &&
+           (regs[LINK_C][REG_CTRL] & CTRL_ARM) && (regs[LINK_SM][REG_CTRL] & CTRL_ARM), "4 FPGA armés");
 
     FILE *r = fopen(strcat(strcpy((char[512]){0}, getenv("SDAES_OUT")), "/regs.txt"), "w");
     fprintf(r, "prog_ctrl=%u\np_mask=%u\nv1_base=%u\nv1_mask=%u\nv2_base=%u\nv2_mask=%u\n",
-            reg_prog[REG_CTRL], reg_prog[REG_P_MASK], reg_prog[REG_V1_BASE], reg_prog[REG_V1_MASK],
-            reg_prog[REG_V2_BASE], reg_prog[REG_V2_MASK]);
+            regs[LINK_P][REG_CTRL], regs[LINK_P][REG_P_MASK], regs[LINK_V][REG_V1_BASE],
+            regs[LINK_V][REG_V1_MASK], regs[LINK_V][REG_V2_BASE], regs[LINK_V][REG_V2_MASK]);
     fprintf(r, "cha_ctrl=%u\nc_mask=%u\ns_mask=%u\nm1_mask=%u\n",
-            reg_cha[REG_CTRL], reg_cha[REG_C_MASK], reg_cha[REG_S_MASK], reg_cha[REG_M1_MASK]);
+            regs[LINK_C][REG_CTRL], regs[LINK_C][REG_C_MASK], regs[LINK_SM][REG_S_MASK], regs[LINK_SM][REG_M1_MASK]);
     fclose(r);
-    dump("prog_p.bin", mem_prog[SP_PROG_P], max_addr_prog[SP_PROG_P]);
-    dump("prog_v.bin", mem_prog[SP_PROG_V], max_addr_prog[SP_PROG_V]);
-    dump("cha_c.bin",  mem_cha[SP_CHA_C],   max_addr_cha[SP_CHA_C]);
-    dump("cha_sram.bin", mem_cha[SP_CHA_SRAM], 1u << 20);
+    dump("prog_p.bin", mem[LINK_P][SP_P_SDRAM], max_addr[LINK_P][SP_P_SDRAM]);
+    dump("prog_v.bin", mem[LINK_V][SP_V_SDRAM], max_addr[LINK_V][SP_V_SDRAM]);
+    dump("cha_c.bin",  mem[LINK_C][SP_C_SDRAM], max_addr[LINK_C][SP_C_SDRAM]);
+    dump("cha_sram.bin", mem[LINK_SM][SP_SM_SRAM], 1u << 20);
 
     expect(send(CMD_PARENT, 0) == ST_OK, "PARENT");
     send(CMD_LIST, 0);

@@ -38,9 +38,9 @@ else
 endif
 
 bram: $(BUILD)/menu_p.bin $(BUILD)/menu_s.bin $(BUILD)/menu_m1.bin | $(HDLBUILD)
-	$(NEOTOOL) bramhex16 $(BUILD)/menu_p.bin --hi $(HDLBUILD)/menu_p_hi.hex --lo $(HDLBUILD)/menu_p_lo.hex --size 32768
+	$(NEOTOOL) bramhex16 $(BUILD)/menu_p.bin --hi $(HDLBUILD)/menu_p_hi.hex --lo $(HDLBUILD)/menu_p_lo.hex --size 8192
 	$(NEOTOOL) bramhex $(BUILD)/menu_s.bin  -o $(HDLBUILD)/menu_s.hex  --size 8192
-	$(NEOTOOL) bramhex $(BUILD)/menu_m1.bin -o $(HDLBUILD)/menu_m1.hex --size 8192
+	$(NEOTOOL) bramhex $(BUILD)/menu_m1.bin -o $(HDLBUILD)/menu_m1.hex --size 2048
 
 menu.neo: $(BUILD)/menu_p.bin $(BUILD)/menu_s.bin $(BUILD)/menu_m1.bin
 	$(NEOTOOL) build -o $(BUILD)/$@ --p $(BUILD)/menu_p.bin --p-swap --s $(BUILD)/menu_s.bin \

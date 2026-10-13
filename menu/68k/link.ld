@@ -1,10 +1,10 @@
-/* Menu SDAES : ROM P en BRAM (32 Ko max), données en RAM de travail. */
+/* Menu SDAES : ROM P en BRAM (8 Ko max), données en RAM de travail. */
 OUTPUT_FORMAT("elf32-m68k")
 ENTRY(_start)
 
 MEMORY
 {
-    rom  (rx)  : ORIGIN = 0x000000, LENGTH = 32K
+    rom  (rx)  : ORIGIN = 0x000000, LENGTH = 8K
     wram (rwx) : ORIGIN = 0x100000, LENGTH = 0xF000   /* 0x10F000+ : BIOS */
 }
 

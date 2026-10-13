@@ -34,7 +34,7 @@ NEO_MAGIC = b"NEO\x01"
 
 # limites matérielles de SDAES (voir docs/03-memoire-et-timings.md)
 LIMITS = {
-    "P": 32 << 20,       # SDRAM P
+    "P": 25 << 20,       # SDRAM P : 1 Mo (banque 0) + 24 Mo (banques 1-3)
     "S": 512 << 10,      # SRAM 0x00000-0x7FFFF
     "M": 512 << 10,      # SRAM 0x80000-0xFFFFF
     "V": 32 << 20,       # SDRAM V (V1 + V2)

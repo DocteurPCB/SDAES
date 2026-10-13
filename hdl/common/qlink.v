@@ -73,10 +73,19 @@ module qlink (
     reg  [31:0] waddr = 32'h0;
     reg  [2:0]  rd_pipe = 3'b000;
     reg  [7:0]  rd_buf = 8'h00;
+    // registre de lecture recopié à chaque cycle : reg_addr est stable depuis
+    // un octet complet quand la valeur est émise (hors chemin critique)
+    reg  [31:0] rdata_q = 32'h0;
+    always @(posedge clk) rdata_q <= reg_rdata;
 
-    // octet complet reçu ce cycle ?
-    wire       byte_done = cs_act & sck_rise & nib_lo;
-    wire [7:0] byte_in   = {nib_hi, io_s2};
+    // octet complet reçu : traité au cycle suivant (étage de registre, le
+    // sur-échantillonnage laisse plusieurs cycles par quartet)
+    reg        byte_done = 1'b0;
+    reg  [7:0] byte_in = 8'h00;
+    always @(posedge clk) begin
+        byte_done <= cs_act & sck_rise & nib_lo;
+        byte_in   <= {nib_hi, io_s2};
+    end
 
     always @(posedge clk) begin
         reg_wr   <= 1'b0;
@@ -156,8 +165,8 @@ module qlink (
                     // fin de l'octet de retournement : on commence à émettre
                     io_oe <= 1'b1;
                     if (cmd == CMD_REG_RD) begin
-                        io_o    <= reg_rdata[31:28];
-                        shift_o <= {reg_rdata[27:0], 4'h0};
+                        io_o    <= rdata_q[31:28];
+                        shift_o <= {rdata_q[27:0], 4'h0};
                         reg_rd  <= 1'b1;
                         state   <= ST_IGNORE;
                     end else begin

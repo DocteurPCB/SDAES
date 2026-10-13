@@ -5,12 +5,12 @@
  * séquentielle, la plus rapide sur carte SD). Chaque bloc lu est envoyé par
  * DMA pendant que le bloc suivant est lu (double tampon).
  *
- *   P  -> PROG espace 0, adresse 0
- *   S  -> CHA  espace 1, adresse 0x00000
- *   M1 -> CHA  espace 1, adresse 0x80000
- *   V1 -> PROG espace 1, adresse 0
- *   V2 -> PROG espace 1, adresse v2_base (après V1, aligné sur 64 Ko)
- *   C  -> CHA  espace 0, adresse 0
+ *   P  -> FPGA P  (SDRAM), adresse 0
+ *   S  -> FPGA SM (SRAM),  adresse 0x00000
+ *   M1 -> FPGA SM (SRAM),  adresse 0x80000
+ *   V1 -> FPGA V  (SDRAM), adresse 0
+ *   V2 -> FPGA V  (SDRAM), adresse v2_base (après V1, aligné sur 64 Ko)
+ *   C  -> FPGA C  (SDRAM), adresse 0
  *
  * Doit rester cohérent avec tools/neotool.py (load_plan) et le FPGA.
  */
@@ -22,7 +22,7 @@
 #include "../../../protocol/sdaes_mailbox.h"
 
 #define CHUNK        (32 * 1024)
-#define LIMIT_P      (32u << 20)
+#define LIMIT_P      (25u << 20)   /* 1 Mo (banque 0) + 24 Mo (banques 1-3) */
 #define LIMIT_S      (512u << 10)
 #define LIMIT_M      (512u << 10)
 #define LIMIT_V      (32u << 20)
@@ -90,7 +90,7 @@ static int stream(xfer_t *x, link_id_t l, uint8_t space, uint32_t addr, uint32_t
         x->done += n;
         uint16_t p = (uint16_t)((uint64_t)x->done * 1000 / (x->total ? x->total : 1));
         if (x->cb && p != x->last && (p - x->last >= 5 || p == 1000)) {
-            qlink_mem_write_finish(l);      /* la boîte aux lettres passe par le lien PROG */
+            qlink_mem_write_finish(l);      /* la boîte aux lettres passe par le FPGA P */
             pending = false;
             x->last = p;
             x->cb(p);
@@ -132,40 +132,44 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     }
 
     /* désarme : les mémoires reviennent au chargeur, la console reste sur le menu */
-    qlink_reg_write(LINK_CHA, REG_CTRL, 0);
-    qlink_reg_write(LINK_PROG, REG_CTRL, 0);
+    for (int i = 0; i < 4; i++)
+        qlink_reg_write((link_id_t)i, REG_CTRL, 0);
 
     xfer_t x = { &f, 0, expected - NEO_HEADER_SIZE, cb, 0 };
     int r = 0;
-    r |= stream(&x, LINK_PROG, SP_PROG_P,   0,            h->psize);
-    r |= stream(&x, LINK_CHA,  SP_CHA_SRAM, 0,            h->ssize);
-    r |= stream(&x, LINK_CHA,  SP_CHA_SRAM, SRAM_M1_BASE, h->msize);
-    r |= stream(&x, LINK_PROG, SP_PROG_V,   0,            h->v1size);
-    r |= stream(&x, LINK_PROG, SP_PROG_V,   v2_base,      h->v2size);
-    r |= stream(&x, LINK_CHA,  SP_CHA_C,    0,            h->csize);
+    r |= stream(&x, LINK_P,  SP_P_SDRAM, 0,            h->psize);
+    r |= stream(&x, LINK_SM, SP_SM_SRAM, 0,            h->ssize);
+    r |= stream(&x, LINK_SM, SP_SM_SRAM, SRAM_M1_BASE, h->msize);
+    r |= stream(&x, LINK_V,  SP_V_SDRAM, 0,            h->v1size);
+    r |= stream(&x, LINK_V,  SP_V_SDRAM, v2_base,      h->v2size);
+    r |= stream(&x, LINK_C,  SP_C_SDRAM, 0,            h->csize);
     f_close(&f);
     if (r) {
         snprintf(msg, msglen, "ERREUR DE LECTURE SD");
         return ST_ERR_IO;
     }
-    if (!qlink_wait_idle(LINK_CHA, 500) || !qlink_wait_idle(LINK_PROG, 500)) {
+    if (!qlink_wait_idle(LINK_P, 500) || !qlink_wait_idle(LINK_V, 500) ||
+        !qlink_wait_idle(LINK_C, 500) || !qlink_wait_idle(LINK_SM, 500)) {
         snprintf(msg, msglen, "FPGA NE REPOND PAS");
         return ST_ERR_IO;
     }
 
     /* plan mémoire */
-    qlink_reg_write(LINK_PROG, REG_P_MASK,  mask_for(h->psize) >> 1);
-    qlink_reg_write(LINK_PROG, REG_V1_BASE, 0);
-    qlink_reg_write(LINK_PROG, REG_V1_MASK, mask_for(h->v1size));
-    qlink_reg_write(LINK_PROG, REG_V2_BASE, v2_base);
-    qlink_reg_write(LINK_PROG, REG_V2_MASK, mask_for(h->v2size ? h->v2size : h->v1size));
-    qlink_reg_write(LINK_CHA,  REG_C_MASK,  mask_for(h->csize) >> 2);
-    qlink_reg_write(LINK_CHA,  REG_S_MASK,  mask_for(h->ssize));
-    qlink_reg_write(LINK_CHA,  REG_M1_MASK, mask_for(h->msize));
+    qlink_reg_write(LINK_P,  REG_P_MASK,  mask_for(h->psize) >> 1);
+    qlink_reg_write(LINK_V,  REG_V1_BASE, 0);
+    qlink_reg_write(LINK_V,  REG_V1_MASK, mask_for(h->v1size));
+    qlink_reg_write(LINK_V,  REG_V2_BASE, v2_base);
+    qlink_reg_write(LINK_V,  REG_V2_MASK, mask_for(h->v2size ? h->v2size : h->v1size));
+    qlink_reg_write(LINK_C,  REG_C_MASK,  mask_for(h->csize) >> 2);
+    qlink_reg_write(LINK_SM, REG_S_MASK,  mask_for(h->ssize));
+    qlink_reg_write(LINK_SM, REG_M1_MASK, mask_for(h->msize));
 
-    /* arme les deux FPGA : la bascule effective est demandée par le menu */
-    qlink_reg_write(LINK_CHA,  REG_CTRL, CTRL_ARM);
-    qlink_reg_write(LINK_PROG, REG_CTRL, CTRL_ARM | (h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
+    /* arme les FPGA : la bascule effective est demandée par le menu (FPGA P,
+     * qui la transmet aux trois autres par la ligne MODE) */
+    qlink_reg_write(LINK_V,  REG_CTRL, CTRL_ARM);
+    qlink_reg_write(LINK_C,  REG_CTRL, CTRL_ARM);
+    qlink_reg_write(LINK_SM, REG_CTRL, CTRL_ARM);
+    qlink_reg_write(LINK_P,  REG_CTRL, CTRL_ARM | (h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
 
     snprintf(msg, msglen, "%s", h->name[0] ? h->name : "JEU");
     return ST_OK;

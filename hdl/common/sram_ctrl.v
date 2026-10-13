@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // SRAM asynchrone 8 bits (ex. IS61WV10248, 10 ns) partagée entre 3 clients :
 //   0 : couche fixe (S)   1 : Z80 (M1)   2 : écritures du chargeur
-// Priorité fixe 0 > 1 > 2. Lecture = 3 cycles (22,5 ns à 133 MHz),
+// Priorité fixe 0 > 1 > 2. Lecture = 3 cycles (30 ns à 100 MHz),
 // écriture = 4 cycles.
 // -----------------------------------------------------------------------------
 module sram_ctrl #(

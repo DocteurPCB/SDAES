@@ -6,18 +6,22 @@
 #include "qlink.h"
 #include "fakes.h"
 
-uint8_t *mem_prog[4], *mem_cha[4];
-uint32_t reg_prog[256], reg_cha[256];
-uint32_t max_addr_prog[4], max_addr_cha[4];
-static const uint32_t sizes_prog[4] = { 32u << 20, 32u << 20, 4096, 32768 };
-static const uint32_t sizes_cha[4]  = { 64u << 20, 1u << 20, 8192, 8192 };
+/* mémoire [FPGA][espace], registres [FPGA][registre] */
+uint8_t *mem[4][4];
+uint32_t regs[4][256];
+uint32_t max_addr[4][4];
+static const uint32_t sizes[4][4] = {
+    [LINK_P]  = { 25u << 20, 0, 4096, 8192 },
+    [LINK_V]  = { 32u << 20, 0, 0, 0 },
+    [LINK_C]  = { 64u << 20, 0, 0, 0 },
+    [LINK_SM] = { 1u << 20,  0, 8192, 2048 },
+};
 
 void fakes_init(void)
 {
-    for (int i = 0; i < 4; i++) {
-        mem_prog[i] = calloc(1, sizes_prog[i]);
-        mem_cha[i]  = calloc(1, sizes_cha[i]);
-    }
+    for (int f = 0; f < 4; f++)
+        for (int sp = 0; sp < 4; sp++)
+            mem[f][sp] = sizes[f][sp] ? calloc(1, sizes[f][sp]) : NULL;
 }
 
 /* ---- FatFs ---- */
@@ -70,31 +74,26 @@ FRESULT f_closedir(DIR *d) { closedir(d->d); return FR_OK; }
 /* ---- liaison FPGA ---- */
 void qlink_init(void) {}
 
-void qlink_reg_write(link_id_t l, uint8_t reg, uint32_t val)
-{
-    if (l == LINK_PROG) reg_prog[reg] = val; else reg_cha[reg] = val;
-}
+void qlink_reg_write(link_id_t l, uint8_t reg, uint32_t val) { regs[l][reg] = val; }
 
 uint32_t qlink_reg_read(link_id_t l, uint8_t reg)
 {
-    if (reg == REG_STATUS)            /* SDRAM prêtes, chargeur au repos */
-        return l == LINK_PROG ? (PROG_ST_SDRAM_OK | PROG_ST_IDLE | 1) : (ST_SDRAM_OK | CHA_ST_IDLE);
-    if (reg == REG_ID) return l == LINK_PROG ? ID_PROG : ID_CHA;
-    return l == LINK_PROG ? reg_prog[reg] : reg_cha[reg];
+    static const uint32_t ids[4] = { ID_P, ID_V, ID_C, ID_SM };
+    if (reg == REG_STATUS)            /* mémoire prête, chargeur au repos */
+        return ST_MEM_OK | (l == LINK_P ? P_ST_IDLE : VCS_ST_IDLE);
+    if (reg == REG_ID) return ids[l];
+    return regs[l][reg];
 }
 
 static int pending_l = -1;
 static void mem_store(link_id_t l, uint8_t space, uint32_t addr, const void *buf, size_t len)
 {
-    const uint32_t *sz = l == LINK_PROG ? sizes_prog : sizes_cha;
-    uint8_t *m = (l == LINK_PROG ? mem_prog : mem_cha)[space];
-    uint32_t *mx = l == LINK_PROG ? max_addr_prog : max_addr_cha;
-    if (space > 3 || addr + len > sz[space]) {
-        fprintf(stderr, "ECHEC écriture hors limites lien %d espace %d adr %x len %zu\n", l, space, addr, len);
+    if (space > 3 || !mem[l][space] || addr + len > sizes[l][space]) {
+        fprintf(stderr, "ECHEC écriture hors limites FPGA %d espace %d adr %x len %zu\n", l, space, addr, len);
         exit(1);
     }
-    memcpy(m + addr, buf, len);
-    if (addr + len > mx[space]) mx[space] = (uint32_t)(addr + len);
+    memcpy(mem[l][space] + addr, buf, len);
+    if (addr + len > max_addr[l][space]) max_addr[l][space] = (uint32_t)(addr + len);
 }
 void qlink_mem_write(link_id_t l, uint8_t space, uint32_t addr, const void *buf, size_t len)
 {
@@ -115,6 +114,6 @@ void qlink_mem_write_finish(link_id_t l)
 void qlink_mem_read(link_id_t l, uint8_t space, uint32_t addr, void *buf, size_t len)
 {
     if (pending_l >= 0) { fprintf(stderr, "ECHEC lecture pendant un DMA\n"); exit(1); }
-    memcpy(buf, (l == LINK_PROG ? mem_prog : mem_cha)[space] + addr, len);
+    memcpy(buf, mem[l][space] + addr, len);
 }
 bool qlink_wait_idle(link_id_t l, uint32_t t) { (void)l; (void)t; return pending_l < 0; }

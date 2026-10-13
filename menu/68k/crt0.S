@@ -33,7 +33,7 @@
         .ascii  "NEO-GEO"
         .byte   0x00                    /* 0x107 */
         .word   0x0FFE                  /* 0x108 : numéro NGH du menu */
-        .long   0x00008000              /* 0x10A : taille du programme */
+        .long   0x00002000              /* 0x10A : taille du programme */
         .long   0x0010E000              /* 0x10E : sauvegarde (inutilisée) */
         .word   0x0000                  /* 0x112 : taille sauvegarde */
         .byte   0x02                    /* 0x114 : pas d'animation d'intro */

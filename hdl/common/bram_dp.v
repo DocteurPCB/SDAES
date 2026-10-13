@@ -1,5 +1,5 @@
-// BRAM double port : port A lecture/écriture (liaison), port B lecture (console).
-// Latence de lecture : 1 cycle sur chaque port.
+// BRAM simple double port (iCE40 SB_RAM40_4K) : port A écriture (liaison ou
+// 68000), port B lecture. Latence de lecture : 1 cycle.
 module bram_dp #(
     parameter DW   = 8,
     parameter AW   = 13,
@@ -9,7 +9,6 @@ module bram_dp #(
     input  wire          a_we,
     input  wire [AW-1:0] a_addr,
     input  wire [DW-1:0] a_wdata,
-    output reg  [DW-1:0] a_rdata,
     input  wire [AW-1:0] b_addr,
     output reg  [DW-1:0] b_rdata
 );
@@ -19,7 +18,6 @@ module bram_dp #(
     end
     always @(posedge clk) begin
         if (a_we) mem[a_addr] <= a_wdata;
-        a_rdata <= mem[a_addr];
         b_rdata <= mem[b_addr];
     end
 endmodule

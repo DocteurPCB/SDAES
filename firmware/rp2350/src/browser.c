@@ -33,7 +33,7 @@ static uint16_t cur_seq;
 static void mb_w16(uint16_t off, uint16_t v)
 {
     uint8_t b[2] = { (uint8_t)(v >> 8), (uint8_t)v };
-    qlink_mem_write(LINK_PROG, SP_PROG_MAILBOX, off, b, 2);
+    qlink_mem_write(LINK_P, SP_P_MAILBOX, off, b, 2);
 }
 
 static void mb_wstr(uint16_t off, const char *s, int max)
@@ -45,7 +45,7 @@ static void mb_wstr(uint16_t off, const char *s, int max)
         b[n++] = (c >= 0x20 && c < 0x7F) ? (uint8_t)c : '?';
     }
     b[n++] = 0;
-    qlink_mem_write(LINK_PROG, SP_PROG_MAILBOX, off, b, n);
+    qlink_mem_write(LINK_P, SP_P_MAILBOX, off, b, n);
 }
 
 static void respond(uint16_t status, uint16_t kind, const char *msg)
@@ -140,7 +140,7 @@ static void cmd_list(uint32_t first)
             e[1 + k] = (c >= 0x20 && c < 0x7F) ? (uint8_t)c : '?';
         }
     }
-    qlink_mem_write(LINK_PROG, SP_PROG_MAILBOX, MB_RSP_ENTRIES, page, sizeof(page));
+    qlink_mem_write(LINK_P, SP_P_MAILBOX, MB_RSP_ENTRIES, page, sizeof(page));
     mb_w16(MB_RSP_COUNT, count);
     mb_w16(MB_RSP_TOTAL, n_entries);
     write_path();
@@ -225,8 +225,8 @@ void browser_init(int sd_ok)
 void browser_handle_command(void)
 {
     uint8_t c[12];
-    qlink_mem_read(LINK_PROG, SP_PROG_MAILBOX, MB_CMD_ID, c, sizeof(c));
-    qlink_reg_write(LINK_PROG, REG_IRQ_ACK, 0);
+    qlink_mem_read(LINK_P, SP_P_MAILBOX, MB_CMD_ID, c, sizeof(c));
+    qlink_reg_write(LINK_P, REG_IRQ_ACK, 0);
 
     uint16_t cmd  = (uint16_t)((c[0] << 8) | c[1]);
     uint32_t arg0 = ((uint32_t)c[4] << 24) | ((uint32_t)c[5] << 16) | ((uint32_t)c[6] << 8) | c[7];

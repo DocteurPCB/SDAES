@@ -1,5 +1,6 @@
 // Tâches "maître RP2350" pour la liaison 4 bits (inclus dans les bancs de test).
-// Nécessite : reg lk_sck, lk_cs_n ; reg [3:0] lk_drv ; reg lk_drv_en ;
+// Nécessite : reg lk_sck ; reg lk_cs0, lk_cs1 (deux FPGA sur le même bus) ;
+//             reg lk_sel (FPGA visé) ; reg [3:0] lk_drv ; reg lk_drv_en ;
 //             wire [3:0] lk_io (bus partagé) ; real LK_HALF (demi-période, ns)
 
 task lk_nib_out(input [3:0] n);
@@ -27,8 +28,8 @@ task lk_byte_in(output [7:0] b);
     end
 endtask
 
-task lk_begin; begin lk_cs_n = 1'b0; #(LK_HALF); end endtask
-task lk_end;   begin lk_drv_en = 1'b0; #(LK_HALF) lk_cs_n = 1'b1; #(4*LK_HALF); end endtask
+task lk_begin; begin if (lk_sel) lk_cs1 = 1'b0; else lk_cs0 = 1'b0; #(LK_HALF); end endtask
+task lk_end;   begin lk_drv_en = 1'b0; #(LK_HALF) lk_cs0 = 1'b1; lk_cs1 = 1'b1; #(4*LK_HALF); end endtask
 
 task lk_reg_wr(input [7:0] r, input [31:0] v);
     begin

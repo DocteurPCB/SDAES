@@ -5,83 +5,83 @@
 > NEO-PCM2, ROM). Les **numéros de contacts** du connecteur AES ne sont pas
 > reproduits ici : ils doivent être relevés sur une cartouche réelle et
 > recoupés avec le wiki neogeodev (pages « Cartridge pinout » AES PROG/CHA)
-> avant de dessiner le circuit imprimé. Les fichiers de contraintes
-> `hardware/*_pins.lpf` contiennent les noms de signaux, pas encore les sites.
+> avant de dessiner le circuit imprimé. Les fichiers `hardware/*.pcf`
+> contiennent les noms de signaux, pas encore les numéros de broches FPGA.
 
 Chaque carte se connecte à la console par un connecteur de bord (contacts
 dorés, chanfreinés). Alimentation : +5 V et masse par le connecteur.
 
 ## Carte PROG
 
-| Signal (nom FPGA) | Sens | Rôle |
-|---|---|---|
-| `A[19:1]` | console → cartouche | adresse 68000 (mots) |
-| `D[15:0]` | bidirectionnel | données 68000 ; la cartouche pilote en lecture |
-| `ROMOE_N` | → | lecture zone 0x000000-0x0FFFFF (P1) |
-| `PORTOE_N` | → | lecture zone 0x200000-0x2FFFFF (P2 / banques) |
-| `PORTWEL_N`, `PORTWEU_N` | → | écriture octet bas / haut en zone 0x2xxxxx |
-| `SDRAD[7:0]` | bidirectionnel | ADPCM-A : adresse multiplexée puis donnée |
-| `SDRA_L[9:8]`, `SDRA_U[23:20]` | → | ADPCM-A : adresse (8-9 multiplexés) |
-| `SDRMPX`, `SDROE_N` | → | ADPCM-A : strobe de multiplexage, lecture |
-| `SDPAD[7:0]` | bidirectionnel | ADPCM-B : adresse multiplexée puis donnée |
-| `SDPA[11:8]` | → | ADPCM-B : adresse (multiplexée) |
-| `SDPMPX`, `SDPOE_N` | → | ADPCM-B : strobe, lecture |
+| Signal (nom FPGA) | FPGA | Sens | Rôle |
+|---|---|---|---|
+| `A[19:1]` | P | console → cartouche | adresse 68000 (mots) |
+| `D[15:0]` | P | bidirectionnel | données 68000 ; la cartouche pilote en lecture |
+| `ROMOE_N` | P | → | lecture zone 0x000000-0x0FFFFF (P1) |
+| `PORTOE_N` | P | → | lecture zone 0x200000-0x2FFFFF (P2 / banques) |
+| `PORTWEL_N`, `PORTWEU_N` | P | → | écriture octet bas / haut en zone 0x2xxxxx |
+| `SDRAD[7:0]` | V | bidirectionnel | ADPCM-A : adresse multiplexée puis donnée |
+| `SDRA_L[9:8]`, `SDRA_U[23:20]` | V | → | ADPCM-A : adresse (8-9 multiplexés) |
+| `SDRMPX`, `SDROE_N` | V | → | ADPCM-A : strobe de multiplexage, lecture |
+| `SDPAD[7:0]` | V | bidirectionnel | ADPCM-B : adresse multiplexée puis donnée |
+| `SDPA[11:8]` | V | → | ADPCM-B : adresse (multiplexée) |
+| `SDPMPX`, `SDPOE_N` | V | → | ADPCM-B : strobe, lecture |
 
-Translateurs (74LVC16T245, côté A = 3,3 V FPGA, côté B = 5 V console) :
+Translateurs (74LVC16T245, TSSOP-48 ; côté A = 3,3 V FPGA, côté B = 5 V) :
 
 | Groupe | Canaux | DIR | /OE |
 |---|---|---|---|
-| U1-U3 entrées | A1-A19, ROMOE, PORTOE, PORTWEL/U, signaux YM (37) | fixe B→A | `XLAT_EN_N` |
-| U4 bus D | D0-D15 | `D_DIR` (1 = FPGA → console en lecture) | `XLAT_EN_N` |
-| U5 bus ADPCM | SDRAD0-7 (moitié 1), SDPAD0-7 (moitié 2) | `RAD_DIR`, `PAD_DIR` | `XLAT_EN_N` |
-
-`D_DIR`, `RAD_DIR`, `PAD_DIR` sont calculés **en combinatoire** à partir de
-/ROMOE, /PORTOE, /SDROE, /SDPOE : la cartouche libère le bus quelques
-nanosecondes après la fin du cycle de lecture.
+| U1-U2 entrées FPGA P | A1-A19, ROMOE, PORTOE, PORTWEL/U (23) | fixe B→A | `XLAT_EN_N` (P) |
+| U3 bus D | D0-D15 | `D_DIR` (1 = FPGA → console) | `XLAT_EN_N` (P) |
+| U4 entrées FPGA V | SDRA8-9, 20-23, SDRMPX, SDROE, SDPA8-11, SDPMPX, SDPOE (14) | fixe B→A | `XLAT_EN_N` (P) |
+| U5 bus ADPCM | SDRAD0-7 (moitié 1), SDPAD0-7 (moitié 2) | `RAD_DIR`, `PAD_DIR` | `XLAT_EN_N` (P) |
 
 ## Carte CHA
 
-| Signal (nom FPGA) | Sens | Rôle |
-|---|---|---|
-| `P[23:0]` | → | bus P du LSPC (adresses sprites/fixe multiplexées) |
-| `PCK1B`, `PCK2B` | → | verrouillage de l'adresse C / S (front montant) |
-| `CA4` | → | demi-tuile C (colonnes 0-7 / 8-15) |
-| `S2H1` | → | sélection d'octet de la couche fixe |
-| `CLK_12M`, `EVEN`, `LOAD`, `H` | → | horloge et commandes du sérialiseur ZMC2 |
-| `GAD[3:0]`, `GBD[3:0]` | cartouche → console | pixels de sprites (2 par cycle 12 MHz) |
-| `DOTA`, `DOTB` | ← | pixel opaque A / B |
-| `FIXD[7:0]` | ← | donnée de la couche fixe |
-| `SDA[15:0]` | → | adresse Z80 |
-| `SDMRD_N`, `SDROM_N` | → | lecture mémoire Z80, sélection ROM M1 |
-| `SDRD0_N` | → | lecture des ports 0x08-0x0B (banques M1) |
-| `SDD[7:0]` | ← | donnée Z80 (pilotée seulement en lecture M1) |
+| Signal (nom FPGA) | FPGA | Sens | Rôle |
+|---|---|---|---|
+| `P[23:0]` | C (et `P[15:0]` vers SM) | → | bus P du LSPC (adresses sprites/fixe) |
+| `PCK1B` | C | → | verrouillage de l'adresse C (front montant) |
+| `CA4` | C | → | demi-tuile C |
+| `CLK_12M`, `EVEN`, `LOAD`, `H` | C | → | horloge et commandes du sérialiseur ZMC2 |
+| `GAD[3:0]`, `GBD[3:0]`, `DOTA`, `DOTB` | C | cartouche → console | pixels de sprites |
+| `PCK2B`, `S2H1` | SM | → | verrou de l'adresse S, sélection d'octet |
+| `FIXD[7:0]` | SM | ← | donnée de la couche fixe |
+| `SDA[15:0]` | SM | → | adresse Z80 |
+| `SDMRD_N`, `SDROM_N`, `SDRD0_N` | SM | → | lecture mémoire, sélection M1, ports de banques |
+| `SDD[7:0]` | SM | ← | donnée Z80 (pilotée seulement en lecture M1) |
 
 Translateurs :
 
 | Groupe | Canaux | DIR | /OE |
 |---|---|---|---|
-| U1-U4 entrées | P0-23, PCK1B/2B, CA4, S2H1, 12M, EVEN, LOAD, H, SDA0-15, SDMRD, SDROM, SDRD0 (51) | fixe B→A | `XLAT_EN_N` |
-| U5-U6 sorties | GAD, GBD, DOTA, DOTB, FIXD (18) | fixe A→B | `XLAT_EN_N` |
-| U7 SDD (74LVC8T245) | SDD0-7 | fixe A→B | `SDD_OE_N` (combinatoire) |
+| U1-U4 entrées | P0-23, PCK1B/2B, CA4, S2H1, 12M, EVEN, LOAD, H, SDA0-15, SDMRD, SDROM, SDRD0 (51) | fixe B→A | `XLAT_EN_N` (C) |
+| U5-U6 sorties | GAD, GBD, DOTA, DOTB, FIXD (18) | fixe A→B | `XLAT_EN_N` (C) |
+| U7 SDD (74LVC8T245) | SDD0-7 | fixe A→B | `SDD_OE_N` (SM, combinatoire) |
+
+Les sorties des translateurs d'entrée U1-U4 alimentent les deux FPGA (P0-15
+vers C et SM).
 
 ## Câble inter-cartes (12 contacts)
 
 | Contact | Signal | Sens |
 |---|---|---|
-| 1 | `PROG_SCK` | RP2350 → FPGA PROG |
-| 2-5 | `PROG_IO0..3` | bidirectionnel |
-| 6 | `PROG_CS_N` | RP2350 → PROG |
-| 7 | `LK_IRQ` | PROG → RP2350 |
-| 8 | `MODE` | FPGA PROG → FPGA CHA |
-| 9 | `PROG_DONE` | PROG → RP2350 |
-| 10-12 | GND | |
+| 1 | `PROG_SCK` | RP2350 → FPGA P et V |
+| 2-5 | `PROG_IO0..3` | bidirectionnel (bus partagé P/V) |
+| 6 | `CS_P` | RP2350 → P |
+| 7 | `CS_V` | RP2350 → V |
+| 8 | `LK_IRQ` | P → RP2350 |
+| 9 | `MODE` | FPGA P → FPGA C et SM |
+| 10 | `CDONE_PROG` | CDONE de P et V (drain ouvert, ET câblé) |
+| 11-12 | GND | |
 
 Longueur courte (< 10 cm) ; résistances série de 33 Ω côté émetteur sur
 SCK et IO. Chaque carte est alimentée par son propre connecteur.
 
 ## Mise sous tension
 
-`XLAT_EN_N` est tiré à 3,3 V par une résistance de 10 kΩ : tant que le FPGA
-n'est pas configuré (≈ 30 ms depuis la flash SPI), **tous les translateurs
-sont en haute impédance** et la cartouche est électriquement absente du bus.
-Le FPGA force `XLAT_EN_N` à 0 une fois la PLL verrouillée.
+`XLAT_EN_N` est tiré à 3,3 V par une résistance de 10 kΩ : tant que les
+FPGA ne sont pas configurés (quelques dizaines de ms depuis la flash SPI), **tous les
+translateurs sont en haute impédance** et la cartouche est électriquement
+absente du bus. Le FPGA P (resp. C) force `XLAT_EN_N` à 0 une fois sa PLL
+verrouillée.

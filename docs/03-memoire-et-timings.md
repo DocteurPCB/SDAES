@@ -2,17 +2,15 @@
 
 ## Plan mémoire
 
-| Contenu | Composant | Adresse | Taille max |
+| Contenu | FPGA | Composant | Taille max |
 |---|---|---|---|
-| P | SDRAM P (W9825G6KH, x16) | mots 0.. | 32 Mo |
-| V1 (ADPCM-A) | SDRAM V (x16) | octet 0 | 32 Mo au total |
-| V2 (ADPCM-B) | SDRAM V | après V1, aligné sur 64 Ko | (V1 + V2) |
-| C | 2 x SDRAM en parallèle (32 bits) | mots 0.. | 64 Mo |
-| S | SRAM 1 Mo | 0x00000 | 512 Ko |
-| M1 | SRAM 1 Mo | 0x80000 | 512 Ko |
-| menu P | BRAM PROG | — | 32 Ko |
-| boîte aux lettres | BRAM PROG | 0x200000 (68000) | 4 Ko |
-| menu S / M1 | BRAM CHA | — | 8 Ko + 8 Ko |
+| P | P | SDRAM 256 Mbit x16 (W9825G6KH-6) | 25 Mo (1 Mo + 24 Mo) |
+| V1 (ADPCM-A) + V2 (ADPCM-B) | V | SDRAM 256 Mbit x16 | 32 Mo au total |
+| C | C | SDRAM 512 Mbit x16 (AS4C32M16SB-6) | 64 Mo |
+| S | SM | SRAM 1 Mo x 8, 0x00000 | 512 Ko |
+| M1 | SM | SRAM, 0x80000 | 512 Ko |
+| menu P (8 Ko) + boîte aux lettres (4 Ko) | P | BRAM | — |
+| police S (8 Ko) + pilote Z80 (2 Ko) | SM | BRAM | — |
 
 Chaque région a un **masque d'adresse** (puissance de 2 supérieure − 1) :
 les jeux dont la taille n'est pas une puissance de 2 sont répliqués comme
@@ -20,20 +18,24 @@ sur une vraie cartouche.
 
 ## Correspondances d'adresses
 
-Elles sont regroupées dans la section « CARTOGRAPHIE » de
-`hdl/cha/cha_core.v` et dans `p_word()` de `hdl/prog/prog_core.v`, pour
-pouvoir être corrigées en un seul endroit lors de la validation.
+Les points issus de la rétro-ingénierie publique sont regroupés dans les
+sections « CARTOGRAPHIE » de `hdl/cha/cha_c_core.v` et
+`hdl/cha/cha_sm_core.v`, pour être corrigés en un seul endroit.
 
 * **P** : 0x000000-0x0FFFFF → mots 0x000000-0x07FFFF ; 0x200000-0x2FFFFF →
-  mots 0x080000 + banque × 0x80000. Une écriture dans 0x2FFFF0-0x2FFFFF
-  choisit la banque (schéma standard, activé si P > 2 Mo).
-* **C** : mot de 32 bits = `{tuile[19:0], CA4, ligne[3:0]}`, avec
-  tuile[15:0] = P[15:0], ligne = P[19:16], tuile[19:16] = P[23:20] (verrou
-  PCK1B). Les deux moitiés (CA4 = 0/1) sont lues en une seule activation.
+  mots 0x080000 + banque × 0x80000. Écriture dans 0x2FFFF0-0x2FFFFF = choix
+  de banque (schéma standard, actif si P > 2 Mo).
+  **Placement SDRAM** : P1 seul dans la banque SDRAM 0, la zone banquée dans
+  les banques 1-3. Les deux candidats d'une adresse 68000 (P1 ou P2) sont
+  ainsi dans deux banques différentes et se lisent en parallèle.
+* **C** : mot de 32 bits = `{tuile[19:0], CA4, ligne[3:0]}` avec tuile[15:0]
+  = P[15:0], ligne = P[19:16], tuile[19:16] = P[23:20] (verrou PCK1B). En
+  SDRAM x16, les deux moitiés (CA4 = 0/1) sont 4 mots de 16 bits de la même
+  ligne, lus en une seule activation.
 * **Bus CR du ZMC2** : CR[7:0] = plan 0, CR[15:8] = plan 1 (ROM C impaire),
   CR[23:16] = plan 2, CR[31:24] = plan 3 (ROM C paire). Le `.neo` stocke
-  c1/c2 entrelacés octet par octet ; le FPGA réordonne
-  `{v3,v2,v1,v0}` → `{v3,v1,v2,v0}`.
+  c1/c2 entrelacés octet par octet ; le FPGA réordonne `{v3,v2,v1,v0}` →
+  `{v3,v1,v2,v0}`.
 * **S** : octet = `{tuile[11:0], P3, 2H1, ligne[2:0]}` (verrou PCK2B).
 * **M1** : fenêtres Z80 0x0000-0x7FFF fixe, 0x8000/16 Ko, 0xC000/8 Ko,
   0xE000/4 Ko, 0xF000/2 Ko ; banque = registre B lors d'un `IN (C)` sur les
@@ -41,32 +43,55 @@ pouvoir être corrigées en un seul endroit lors de la validation.
 * **ADPCM** : front montant de *MPX = partie basse de l'adresse, front
   descendant = partie haute (rôle du NEO-PCM2).
 
-## Budgets de temps (simulation)
+## Lecture anticipée du programme (FPGA P)
 
-Horloge système 133 MHz, SDRAM CL3, horloge SDRAM = horloge système
-inversée, données lues capturées sur le front descendant.
+À 100 MHz, une lecture SDRAM classique déclenchée par /ROMOE prendrait
+~110 ns, trop près de la limite. Le FPGA P lance donc la lecture **dès que
+l'adresse 68000 change** (le 68000 la pose ~40-70 ns avant /ROMOE), et lit
+**les deux candidats en parallèle** (zone P1 et zone banquée P2, dans deux
+banques SDRAM). Quand /ROMOE ou /PORTOE arrive, la donnée est en général
+déjà prête. Le rafraîchissement SDRAM n'est déclenché que juste après une
+lecture terminée (le cycle 68000 suivant est loin).
+
+## Budgets de temps
+
+Horloge système 100 MHz, SDRAM CL2, horloge SDRAM = horloge système
+inversée, donnée lue capturée sur le front descendant. Résultats de
+**simulation** (`make -C hdl sim`, modèle SDRAM tAC 5,4 ns / tOH 2,7 ns) :
 
 | Accès | Contrainte (estimée) | SDAES, simulé |
 |---|---|---|
-| 68000 : /ROMOE → donnée | ~140 ns | **≤ 89 ns**, y compris pendant les rafraîchissements |
-| PCK1B → mot C prêt (deux moitiés) | avant le LOAD suivant (~300 ns) | **86 ns** |
-| PCK2B → octets S prêts (deux) | ~300 ns | **95 ns** |
-| Z80 : lecture M1 | ~300 ns | **53 ns** |
-| ADPCM : /SDROE → donnée | plusieurs centaines de ns | **81 ns** |
+| 68000 : /OE → donnée, code (adresse 40 ns avant /OE) | ~125-150 ns | **79 ns** (100 % d'anticipations réussies, rafraîchissements compris) |
+| 68000 : alternance code P1 / données P2 | idem | **88 ns** |
+| 68000 : pire cas (adresse en même temps que /OE) | idem | **126 ns** |
+| PCK1B → deux mots C prêts | avant le LOAD suivant (~300 ns) | **125 ns** |
+| PCK2B → deux octets S prêts | ~300 ns | **120 ns** |
+| Z80 : lecture M1 | ~300 ns | **70 ns** |
+| ADPCM : /SDROE → donnée | plusieurs centaines de ns | **98 ns** |
 
-Le rafraîchissement SDRAM n'est jamais placé devant une lecture critique :
-sur PROG il est déclenché juste après une lecture 68000 (le cycle suivant
-arrive au plus tôt ~250 ns plus tard) ; sur CHA juste après la lecture C.
+S'y ajoutent les délais des translateurs (~4-6 ns par traversée) et des
+pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 
-Ces chiffres sont des résultats de **simulation** avec un modèle SDRAM
-(tAC 5,4 ns, tOH 2,7 ns). Les délais réels des translateurs (~4-6 ns), des
-pistes et de l'horloge SDRAM devront être vérifiés à l'analyseur logique ;
-`RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
+## Placement-routage (nextpnr, broches non affectées)
+
+| FPGA | Cellules logiques | BRAM | E/S | Fréquence max |
+|---|---|---|---|---|
+| P | 2 317 | 26 / 32 | 90 | 105 MHz |
+| V | 1 881 | 0 | 80 | 102 MHz |
+| C | 1 790 | 0 | 89 | 106 MHz |
+| SM | 1 337 | 20 / 32 | 92 | 105 MHz |
+
+La marge à 100 MHz est faible (2 à 6 %) et dépend de la graine de
+placement ; l'affectation réelle des broches la fera varier. Si besoin, la
+PLL peut être réglée à 90 MHz : les latences augmentent d'environ 10 % et
+restent dans les budgets ci-dessus, sauf le pire cas 68000 (~140 ns), qui
+devient limite.
 
 ## Points à valider en priorité sur matériel
 
 1. Ordre exact des bits de P lors de PCK1B/PCK2B (adresses C et S).
 2. Sens du sérialiseur ZMC2 (ordre des pixels, rôle de EVEN et H).
 3. Fronts de démultiplexage ADPCM.
-4. Marge réelle entre PCK1B et LOAD.
-5. Réinitialisation par le chien de garde sur AES.
+4. Délai réel entre l'adresse 68000 et /ROMOE (efficacité de l'anticipation).
+5. Marge réelle entre PCK1B et LOAD.
+6. Réinitialisation par le chien de garde sur AES.

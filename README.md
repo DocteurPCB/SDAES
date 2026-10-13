@@ -3,7 +3,8 @@
 Cartouche ouverte pour Neo Geo **AES** qui charge les jeux depuis une carte
 microSD, dans l'esprit de la NeoSD : un menu s'affiche sur la console, on
 choisit un fichier `.neo`, la cartouche le charge en mémoire et la console
-redémarre dessus.
+redémarre dessus. **Tous les composants se soudent au fer** : aucun BGA ni
+QFN.
 
 > **État : conception + logiciel vérifiés en simulation, pas encore de
 > prototype matériel.** Le code FPGA, le menu, le firmware et les outils sont
@@ -14,40 +15,43 @@ redémarre dessus.
 
 ## Principe
 
-* **2 FPGA Lattice ECP5** (un par carte, comme les cartes PROG et CHA d'une
-  cartouche d'origine) répondent aux bus de la console en temps réel et
+* **4 FPGA Lattice iCE40 en TQFP-144** (un par bus de la console : programme
+  68000, son ADPCM, sprites, couche fixe + Z80) répondent en temps réel et
   remplacent les ROM et les puces de cartouche (NEO-273, NEO-ZMC2,
-  NEO-PCM2, banques P et Z80).
-* **4 SDRAM de 32 Mo + 1 SRAM** contiennent le jeu (jusqu'à 32 Mo de P,
+  NEO-PCM2, banques P et Z80). Chaîne de développement libre (Yosys,
+  nextpnr).
+* **3 SDRAM + 1 SRAM en TSOP** contiennent le jeu (jusqu'à 25 Mo de P,
   32 Mo de V, 64 Mo de C : tous les jeux commerciaux standards).
 * Un **Raspberry Pi Pico 2 (RP2350, ~5 €)** lit la carte SD et charge les
-  jeux (~9 Mo/s par liaison). Un Raspberry Pi « Linux » ne convient pas pour
-  le bus lui-même (trop peu de GPIO, latence) : voir `docs/01-architecture.md`.
-* Coût matière estimé : **≈ 75-115 € par cartouche** en petite série.
+  jeux (~9 Mo/s). Un Raspberry Pi « Linux » ne convient pas pour le bus
+  lui-même (trop peu de GPIO, latence) : voir `docs/01-architecture.md`.
+* Coût matière estimé : **≈ 70-95 € par cartouche** en petite série,
+  montage à la main.
 
 ## Organisation du dépôt
 
 | Dossier | Contenu |
 |---|---|
 | `docs/` | architecture, signaux, timings, liaison, menu/firmware, nomenclature, validation |
-| `hdl/` | Verilog des FPGA (`cha/`, `prog/`, `common/`) + bancs de test (`sim/`) |
+| `hdl/` | Verilog des 4 FPGA (`prog/` : P et V, `cha/` : C et SM, `common/`) + bancs de test (`sim/`) |
 | `menu/` | menu Neo Geo : programme 68000 (`68k/`) et pilote Z80 (`z80/`) |
 | `firmware/rp2350/` | firmware du Pico 2 (SDK Pico + FatFs SDIO) et test sur PC |
 | `protocol/` | protocole menu ↔ RP2350, partagé |
 | `tools/` | `neotool.py` (.neo, police, BRAM, code de sécurité), tests |
-| `hardware/` | gabarits de contraintes FPGA, futurs projets KiCad |
+| `hardware/` | gabarits de contraintes FPGA (`.pcf`), futurs projets KiCad |
 
 ## Construire et tester
 
 Dépendances (Ubuntu/Debian) : `iverilog`, `gcc-m68k-linux-gnu`, `z80asm`,
-`console-setup-linux` (police), Python 3 ; facultatif : `yosys` (ou
-`pip install yowasp-yosys`), `pip install machine68k` (émulation du menu).
+`console-setup-linux` (police), Python 3 ; facultatif : `yosys` +
+`nextpnr-ice40` (ou `pip install yowasp-yosys yowasp-nextpnr-ice40`),
+`pip install machine68k` (émulation du menu).
 
 ```
 make                               # menu + fichiers d'init BRAM (hdl/build/*.hex)
 make SECURITY_FROM=un_jeu.neo      # idem, avec le code de sécurité requis par le BIOS
 make test                          # tous les tests (Python + simulations HDL)
-make -C hdl lint YOSYS=yowasp-yosys   # synthèse ECP5 des deux FPGA
+make -C hdl lint pnr YOSYS=yowasp-yosys NEXTPNR=yowasp-nextpnr-ice40   # synthèse + placement-routage des 4 FPGA
 python3 tools/neotool.py info jeu.neo
 ```
 
@@ -55,8 +59,10 @@ Résultats actuels de `make test` :
 
 * 14 tests Python : outils, firmware sur PC (chargement complet d'un `.neo`
   et comparaison des images mémoire), menu 68000 exécuté dans un émulateur ;
-* simulations HDL : `tb_cha` et `tb_prog` en SUCCÈS, avec latences
-  simulées de 53 à 95 ns pour des contraintes de ~140 à 300 ns.
+* simulations HDL au niveau carte : `tb_prog` (FPGA P + V) et `tb_cha`
+  (FPGA C + SM) en SUCCÈS ; lecture du programme 68000 en 79 ns (126 ns au
+  pire cas) pour une limite estimée à ~125-150 ns ;
+* placement-routage des 4 FPGA à 102-106 MHz pour 100 MHz visés.
 
 ## Documentation
 

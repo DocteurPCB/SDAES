@@ -1,7 +1,7 @@
 /*
  * Firmware SDAES pour Raspberry Pi Pico 2 (RP2350).
  *
- * 1. attend la configuration des deux FPGA et l'initialisation des SDRAM
+ * 1. attend la configuration des quatre FPGA et l'initialisation des SDRAM
  * 2. monte la carte SD (FatFs, SDIO 4 bits)
  * 3. répond aux commandes du menu 68000 (sonnette LK_IRQ)
  * 4. bouton : désarme les FPGA -> la console redémarre sur le menu
@@ -25,11 +25,12 @@ static void blink(int n)
 
 static bool fpga_ready(void)
 {
-    if (!gpio_get(PIN_CHA_DONE) || !gpio_get(PIN_PROG_DONE)) return false;
-    if (qlink_reg_read(LINK_CHA, REG_ID) != ID_CHA) return false;
-    if (qlink_reg_read(LINK_PROG, REG_ID) != ID_PROG) return false;
-    if (!(qlink_reg_read(LINK_CHA, REG_STATUS) & ST_SDRAM_OK)) return false;
-    if (!(qlink_reg_read(LINK_PROG, REG_STATUS) & PROG_ST_SDRAM_OK)) return false;
+    static const uint32_t ids[4] = { ID_P, ID_V, ID_C, ID_SM };
+    if (!gpio_get(PIN_CDONE)) return false;
+    for (int i = 0; i < 4; i++) {
+        if (qlink_reg_read((link_id_t)i, REG_ID) != ids[i]) return false;
+        if (!(qlink_reg_read((link_id_t)i, REG_STATUS) & ST_MEM_OK)) return false;
+    }
     return true;
 }
 
@@ -39,8 +40,7 @@ int main(void)
 
     gpio_init(PIN_LED);       gpio_set_dir(PIN_LED, GPIO_OUT);
     gpio_init(PIN_PROG_IRQ);  gpio_set_dir(PIN_PROG_IRQ, GPIO_IN);  gpio_pull_down(PIN_PROG_IRQ);
-    gpio_init(PIN_CHA_DONE);  gpio_set_dir(PIN_CHA_DONE, GPIO_IN);
-    gpio_init(PIN_PROG_DONE); gpio_set_dir(PIN_PROG_DONE, GPIO_IN);
+    gpio_init(PIN_CDONE);     gpio_set_dir(PIN_CDONE, GPIO_IN);     gpio_pull_up(PIN_CDONE);
     gpio_init(PIN_BUTTON);    gpio_set_dir(PIN_BUTTON, GPIO_IN);    gpio_pull_up(PIN_BUTTON);
 
     qlink_init();
@@ -68,8 +68,8 @@ int main(void)
         if (!gpio_get(PIN_BUTTON)) {
             /* retour au menu : les ROM du menu réapparaissent, le jeu plante
              * et le chien de garde de la console la redémarre sur le menu */
-            qlink_reg_write(LINK_CHA, REG_CTRL, 0);
-            qlink_reg_write(LINK_PROG, REG_CTRL, 0);
+            for (int i = 0; i < 4; i++)
+                qlink_reg_write((link_id_t)i, REG_CTRL, 0);
             blink(2);
             while (!gpio_get(PIN_BUTTON)) sleep_ms(10);
         }
