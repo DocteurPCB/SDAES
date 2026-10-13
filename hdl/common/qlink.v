@@ -34,7 +34,7 @@ module qlink (
 
     // Mémoire
     output reg  [7:0]  mem_space,
-    output reg  [31:0] mem_addr,
+    output wire [31:0] mem_addr,     // 26 bits utiles (64 Mo)
     output reg         mem_wr,      // impulsion, un octet
     output reg  [7:0]  mem_wdata,
     output reg         mem_rd,      // impulsion ; mem_rdata valide 2 cycles après
@@ -70,7 +70,9 @@ module qlink (
     reg  [2:0]  cnt = 3'd0;
     reg  [31:0] shift_o = 32'h0;
     reg  [3:0]  onib_cnt = 4'd0;   // quartets restants à émettre
-    reg  [31:0] waddr = 32'h0;
+    reg  [25:0] waddr = 26'h0;
+    reg  [25:0] mem_addr_r = 26'h0;
+    assign mem_addr = {6'd0, mem_addr_r};
     reg  [2:0]  rd_pipe = 3'b000;
     reg  [7:0]  rd_buf = 8'h00;
     // registre de lecture recopié à chaque cycle : reg_addr est stable depuis
@@ -141,25 +143,25 @@ module qlink (
                     state     <= ST_ADDR;
                 end
                 ST_ADDR: begin
-                    waddr <= {waddr[23:0], byte_in};
+                    waddr <= {waddr[17:0], byte_in};
                     cnt   <= cnt + 3'd1;
                     if (cnt == 3'd3) begin
                         if (cmd == CMD_MEM_WR) begin
                             state <= ST_WDATA;
                         end else begin
                             // lance la lecture du premier octet pendant le dummy
-                            mem_addr <= {waddr[23:0], byte_in};
-                            waddr    <= {waddr[23:0], byte_in} + 32'd1;
+                            mem_addr_r <= {waddr[17:0], byte_in};
+                            waddr    <= {waddr[17:0], byte_in} + 26'd1;
                             mem_rd   <= 1'b1;
                             state    <= ST_TURN;
                         end
                     end
                 end
                 ST_WDATA: begin
-                    mem_addr  <= waddr;
+                    mem_addr_r <= waddr;
                     mem_wdata <= byte_in;
                     mem_wr    <= 1'b1;
-                    waddr     <= waddr + 32'd1;
+                    waddr     <= waddr + 26'd1;
                 end
                 ST_TURN: begin
                     // fin de l'octet de retournement : on commence à émettre
@@ -172,8 +174,8 @@ module qlink (
                     end else begin
                         io_o     <= rd_buf[7:4];
                         shift_o  <= {rd_buf[3:0], 28'h0};
-                        mem_addr <= waddr;
-                        waddr    <= waddr + 32'd1;
+                        mem_addr_r <= waddr;
+                        waddr    <= waddr + 26'd1;
                         mem_rd   <= 1'b1;
                         state    <= ST_RDATA;
                     end
@@ -182,8 +184,8 @@ module qlink (
                     // l'octet précédent vient d'être émis entièrement
                     io_o     <= rd_buf[7:4];
                     shift_o  <= {rd_buf[3:0], 28'h0};
-                    mem_addr <= waddr;
-                    waddr    <= waddr + 32'd1;
+                    mem_addr_r <= waddr;
+                    waddr    <= waddr + 26'd1;
                     mem_rd   <= 1'b1;
                 end
                 default: ;

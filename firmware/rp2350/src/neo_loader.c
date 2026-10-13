@@ -18,11 +18,14 @@
 #include <stdio.h>
 #include "ff.h"
 #include "neo_loader.h"
+#include "mapper.h"
 #include "qlink.h"
 #include "../../../protocol/sdaes_mailbox.h"
 
 #define CHUNK        (32 * 1024)
-#define LIMIT_P      (25u << 20)   /* 1 Mo (banque 0) + 24 Mo (banques 1-3) */
+#define LIMIT_P      (24u << 20)   /* SDRAM P : 25 Mo moins la RAM PVC */
+#define PVC_RAM_BYTE 0x18FE000u    /* RAM de protection PVC (8 Ko), cf. prog_p_core.v */
+#define MAP_TEXT_MAX (16 * 1024)
 #define LIMIT_S      (512u << 10)
 #define LIMIT_M      (512u << 10)
 #define LIMIT_V      (32u << 20)
@@ -100,8 +103,62 @@ static int stream(xfer_t *x, link_id_t l, uint8_t space, uint32_t addr, uint32_t
     return 0;
 }
 
+static char map_text[MAP_TEXT_MAX + 1];
+
+static bool read_text(const char *path)
+{
+    FIL f;
+    UINT got = 0;
+    if (f_open(&f, path, FA_READ) != FR_OK) return false;
+    f_read(&f, map_text, MAP_TEXT_MAX, &got);
+    f_close(&f);
+    map_text[got] = 0;
+    return true;
+}
+
+/* jeux SMA connus : leur table de banques doit venir d'un fichier .map */
+static bool is_sma_ngh(uint32_t ngh)
+{
+    static const uint32_t sma[] = { 0x251, 0x253, 0x256, 0x257, 251, 253, 256, 257 };
+    for (unsigned i = 0; i < sizeof(sma) / sizeof(sma[0]); i++) if (ngh == sma[i]) return true;
+    return false;
+}
+
+/* Choisit la description de protection du jeu (voir mapper.h). */
+static uint16_t find_mapper(const char *path, const neo_header_t *h, mapper_t *m, char *msg, int msglen)
+{
+    char side[260], base[64], err[48];
+    const char *slash = strrchr(path, '/');
+    snprintf(base, sizeof(base), "%s", slash ? slash + 1 : path);
+    char *dot = strrchr(base, '.');
+    if (dot) *dot = 0;
+
+    snprintf(side, sizeof(side), "%s", path);
+    dot = strrchr(side, '.');
+    if (dot && strlen(dot) == 4) strcpy(dot, ".map");
+    if (dot && read_text(side)) {
+        if (!mapper_parse(map_text, base, h->ngh, true, m, err, sizeof(err))) {
+            snprintf(msg, msglen, ".MAP: %s", err);
+            return ST_ERR_FORMAT;
+        }
+        return ST_OK;
+    }
+    if (read_text("0:/SDAES/MAPPERS.TXT")) {
+        if (mapper_parse(map_text, base, h->ngh, false, m, err, sizeof(err))) return ST_OK;
+        if (err[0]) { snprintf(msg, msglen, "MAPPERS.TXT: %s", err); return ST_ERR_FORMAT; }
+    }
+    if (mapper_builtin(h->ngh, m)) return ST_OK;
+    if (is_sma_ngh(h->ngh)) {
+        snprintf(msg, msglen, "PROTECTION SMA: FICHIER .MAP REQUIS");
+        return ST_ERR_UNSUPPORTED;
+    }
+    mapper_default(m);
+    return ST_OK;
+}
+
 uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *msg, int msglen)
 {
+    static mapper_t m;
     FIL f;
     UINT got;
     msg[0] = 0;
@@ -124,6 +181,17 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
         snprintf(msg, msglen, "JEU TROP GROS POUR SDAES");
         return ST_ERR_TOO_BIG;
     }
+    uint16_t mst = find_mapper(path, h, &m, msg, msglen);
+    if (mst != ST_OK) {
+        f_close(&f);
+        return mst;
+    }
+    if (m.mode == MAP_SMA && m.bank_count == 0) {
+        f_close(&f);
+        snprintf(msg, msglen, "TABLE DE BANQUES SMA ABSENTE");
+        return ST_ERR_FORMAT;
+    }
+
     uint32_t expected = NEO_HEADER_SIZE + h->psize + h->ssize + h->msize + h->v1size + h->v2size + h->csize;
     if (f_size(&f) < expected) {
         f_close(&f);
@@ -148,6 +216,25 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
         snprintf(msg, msglen, "ERREUR DE LECTURE SD");
         return ST_ERR_IO;
     }
+
+    /* protections : RAM PVC à zéro, table SMA, registres du FPGA P */
+    if (m.mode == MAP_PVC) {
+        memset(buf[0], 0, 8192);
+        qlink_mem_write(LINK_P, SP_P_SDRAM, PVC_RAM_BYTE, buf[0], 8192);
+    }
+    if (m.mode == MAP_SMA) {
+        uint8_t *t = buf[0];
+        for (int i = 0; i < 64; i++) {
+            uint32_t o = i < m.bank_count ? m.bank_table[i] : 0;
+            t[4 * i] = (uint8_t)(o >> 24); t[4 * i + 1] = (uint8_t)(o >> 16);
+            t[4 * i + 2] = (uint8_t)(o >> 8); t[4 * i + 3] = (uint8_t)o;
+        }
+        qlink_mem_write(LINK_P, SP_P_SMA_TABLE, 0, t, 256);
+    }
+    mapper_reg_t regs[16];
+    int nregs = mapper_registers(&m, regs, 16);
+    for (int i = 0; i < nregs; i++)
+        qlink_reg_write(LINK_P, regs[i].reg, regs[i].val);
     if (!qlink_wait_idle(LINK_P, 500) || !qlink_wait_idle(LINK_V, 500) ||
         !qlink_wait_idle(LINK_C, 500) || !qlink_wait_idle(LINK_SM, 500)) {
         snprintf(msg, msglen, "FPGA NE REPOND PAS");
@@ -169,8 +256,10 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     qlink_reg_write(LINK_V,  REG_CTRL, CTRL_ARM);
     qlink_reg_write(LINK_C,  REG_CTRL, CTRL_ARM);
     qlink_reg_write(LINK_SM, REG_CTRL, CTRL_ARM);
-    qlink_reg_write(LINK_P,  REG_CTRL, CTRL_ARM | (h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
+    qlink_reg_write(LINK_P,  REG_CTRL, CTRL_ARM |
+                    (m.mode == MAP_STD && h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
 
-    snprintf(msg, msglen, "%s", h->name[0] ? h->name : "JEU");
+    static const char *const kind[] = { "", " (SMA)", " (PVC)" };
+    snprintf(msg, msglen, "%.40s%s", h->name[0] ? h->name : "JEU", kind[m.mode]);
     return ST_OK;
 }

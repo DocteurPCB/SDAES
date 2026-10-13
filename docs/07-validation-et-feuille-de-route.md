@@ -42,9 +42,9 @@
 
 ## Limitations connues / à faire
 
-* Jeux protégés nécessitant une émulation de puce supplémentaire :
-  **SMA** (KOF 99, Garou, Metal Slug 3, KOF 2000), **PVC** (Metal Slug 5,
-  SVC Chaos, KOF 2003), banques de couche fixe 512 Ko des cartes **CMC50**.
+* Protections : SMA, PVC et superposition KOF 98 sont intégrées (voir
+  `docs/08-cartouches-protegees.md`) ; restent les **banques de couche fixe**
+  des cartes CMC (ROM S de 512 Ko), PRO-CT0 et Metal Slug X.
 * Pas de retour au menu sans le bouton de la cartouche.
 * Mise à jour des bitstreams depuis la carte SD (le RP2350 peut écrire les
   flash SPI des FPGA) : à ajouter.

@@ -20,6 +20,7 @@ add_executable(sdaes_fw
     src/main.c
     src/qlink.c
     src/neo_loader.c
+    src/mapper.c
     src/browser.c
     src/hw_config.c
 )

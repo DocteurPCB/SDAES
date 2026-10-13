@@ -4,7 +4,7 @@
 
 | Contenu | FPGA | Composant | Taille max |
 |---|---|---|---|
-| P | P | SDRAM 256 Mbit x16 (W9825G6KH-6) | 25 Mo (1 Mo + 24 Mo) |
+| P | P | SDRAM 256 Mbit x16 (W9825G6KH-6) | 24 Mo (+ 8 Ko de RAM PVC) |
 | V1 (ADPCM-A) + V2 (ADPCM-B) | V | SDRAM 256 Mbit x16 | 32 Mo au total |
 | C | C | SDRAM 512 Mbit x16 (AS4C32M16SB-6) | 64 Mo |
 | S | SM | SRAM 1 Mo x 8, 0x00000 | 512 Ko |
@@ -23,8 +23,10 @@ sections « CARTOGRAPHIE » de `hdl/cha/cha_c_core.v` et
 `hdl/cha/cha_sm_core.v`, pour être corrigés en un seul endroit.
 
 * **P** : 0x000000-0x0FFFFF → mots 0x000000-0x07FFFF ; 0x200000-0x2FFFFF →
-  mots 0x080000 + banque × 0x80000. Écriture dans 0x2FFFF0-0x2FFFFF = choix
-  de banque (schéma standard, actif si P > 2 Mo).
+  mots `base P2` + A. La base P2 vaut 0x100000 octets au départ et change
+  selon le schéma de la cartouche : banques de 1 Mo (standard, écriture dans
+  0x2FFFF0-0x2FFFFF), table SMA ou registre PVC, voir
+  `docs/08-cartouches-protegees.md`.
   **Placement SDRAM** : P1 seul dans la banque SDRAM 0, la zone banquée dans
   les banques 1-3. Les deux candidats d'une adresse 68000 (P1 ou P2) sont
   ainsi dans deux banques différentes et se lisent en parallèle.

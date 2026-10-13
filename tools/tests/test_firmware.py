@@ -46,13 +46,43 @@ class FirmwareHostTest(unittest.TestCase):
                 "--v1", files["v1"], "--v2", files["v2"], "--c", files["c1"], files["c2"],
                 "--name", "SDAES TEST", "--ngh", "0x999"]), 0)
 
+            # jeux protégés (contenu minimal)
+            def small_neo(name, ngh, folder="Jeux"):
+                pth = os.path.join(sd, folder, name + ".neo")
+                with open(os.path.join(d, "p_small"), "wb") as f:
+                    f.write(bytes(range(256)) * 16)
+                self.assertEqual(neotool.main(["build", "-o", pth, "--p", os.path.join(d, "p_small"),
+                                               "--name", name.upper(), "--ngh", hex(ngh)]), 0)
+            small_neo("kof99", 0x251)
+            small_neo("kof99b", 0x251)
+            small_neo("garou", 0x253)
+            small_neo("roi98", 0x242)
+            small_neo("mslug5", 0x268)
+            with open(os.path.join(sd, "Jeux", "kof99b.map"), "w") as f:
+                f.write("# description de test\n"
+                        "mapper = sma\n"
+                        "bank_addr = 0x2ffff0\n"
+                        "bank_bits = 14 6 8 10 12 5\n"
+                        "bank_table = 0x000000 0x100000 0x200000\n"
+                        "             0x300000 0x3cc000\n"
+                        "prot = 0x2fe446 0x9a37\n"
+                        "rng = 0x2ffff8 0x2ffffa\n")
+            os.makedirs(os.path.join(sd, "SDAES"), exist_ok=True)
+            with open(os.path.join(sd, "SDAES", "MAPPERS.TXT"), "w") as f:
+                f.write("[kof98]\nngh = 0x242\n"
+                        "overlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd\n"
+                        "[garou]\nngh = 0x253\nmapper = sma\nbank_addr = 0x2fffc0\n"
+                        "bank_bits = 5 9 7 6 14 12\nbank_table = 0x000000 0x100000\n"
+                        "prot = 0x2fe446 0x9a37\nrng = 0x2fffcc 0x2ffff0\n")
+
             exe = os.path.join(d, "fwtest")
             src = os.path.join(FW, "src")
             tst = os.path.join(FW, "test")
             subprocess.run(["gcc", "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-O1",
                             "-I", tst, "-I", src, "-o", exe,
                             os.path.join(tst, "test_main.c"), os.path.join(tst, "fakes.c"),
-                            os.path.join(src, "browser.c"), os.path.join(src, "neo_loader.c")],
+                            os.path.join(src, "browser.c"), os.path.join(src, "neo_loader.c"),
+                            os.path.join(src, "mapper.c")],
                            check=True)
             env = dict(os.environ, SDAES_SD=sd, SDAES_OUT=out)
             r = subprocess.run([exe], env=env, capture_output=True, text=True)

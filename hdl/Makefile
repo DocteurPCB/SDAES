@@ -12,7 +12,7 @@ BUILD    ?= build
 
 COMMON = common/sync2.v common/qlink.v common/sdram.v common/wr_packer.v \
          common/bram_dp.v common/sram_ctrl.v common/ice40_prims.v
-SRC_prog_p_top = prog/prog_p_core.v prog/prog_p_top.v
+SRC_prog_p_top = prog/p_mapper.v prog/prog_p_core.v prog/prog_p_top.v
 SRC_prog_v_top = prog/prog_v_core.v prog/prog_v_top.v
 SRC_cha_c_top  = cha/zmc2_dot.v cha/cha_c_core.v cha/cha_c_top.v
 SRC_cha_sm_top = cha/cha_sm_core.v cha/cha_sm_top.v
@@ -39,7 +39,8 @@ sim: $(BUILD)/tb_cha.vvp $(BUILD)/tb_prog.vvp
 $(HEX): | $(BUILD)
 	[ -f $@ ] || : > $@
 
-$(BUILD)/%.json: $(HEX)
+.SECONDEXPANSION:
+$(BUILD)/%.json: $(HEX) $(COMMON) $$(SRC_$$*)
 	cd $(BUILD) && $(YOSYS) -q -p "read_verilog $(addprefix ../,$(COMMON) $(SRC_$*)); synth_ice40 -top $* -json $*.json; tee -q -o $*_stat.txt stat" > $*_synth.log
 
 lint: $(addprefix $(BUILD)/,$(addsuffix .json,$(TOPS)))

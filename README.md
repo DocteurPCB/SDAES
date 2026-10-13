@@ -20,7 +20,7 @@ QFN.
   remplacent les ROM et les puces de cartouche (NEO-273, NEO-ZMC2,
   NEO-PCM2, banques P et Z80). Chaîne de développement libre (Yosys,
   nextpnr).
-* **3 SDRAM + 1 SRAM en TSOP** contiennent le jeu (jusqu'à 25 Mo de P,
+* **3 SDRAM + 1 SRAM en TSOP** contiennent le jeu (jusqu'à 24 Mo de P,
   32 Mo de V, 64 Mo de C : tous les jeux commerciaux standards).
 * Un **Raspberry Pi Pico 2 (RP2350, ~5 €)** lit la carte SD et charge les
   jeux (~9 Mo/s). Un Raspberry Pi « Linux » ne convient pas pour le bus
@@ -57,7 +57,7 @@ python3 tools/neotool.py info jeu.neo
 
 Résultats actuels de `make test` :
 
-* 14 tests Python : outils, firmware sur PC (chargement complet d'un `.neo`
+* 18 tests Python : outils (dont descriptions de protections), firmware sur PC (chargement complet d'un `.neo`
   et comparaison des images mémoire), menu 68000 exécuté dans un émulateur ;
 * simulations HDL au niveau carte : `tb_prog` (FPGA P + V) et `tb_cha`
   (FPGA C + SM) en SUCCÈS ; lecture du programme 68000 en 79 ns (126 ns au
@@ -73,10 +73,14 @@ Résultats actuels de `make test` :
 5. [Menu et firmware](docs/05-menu-et-firmware.md)
 6. [Matériel et nomenclature](docs/06-materiel-nomenclature.md)
 7. [Validation et feuille de route](docs/07-validation-et-feuille-de-route.md)
+8. [Cartouches protégées](docs/08-cartouches-protegees.md)
 
 ## Avertissements
 
 * Aucun BIOS, ROM ou code SNK n'est inclus. Le code de sécurité exigé par le
   BIOS est recopié, à la construction, depuis un jeu que vous possédez.
-* Les jeux à protection matérielle spécifique (SMA, PVC, banques de fixe
-  CMC50) ne sont pas encore pris en charge.
+* Protections : SMA (KOF 99, Garou, Metal Slug 3, KOF 2000), PVC (Metal
+  Slug 5, SVC Chaos, KOF 2003) et KOF 98 sont prises en charge
+  ([détails](docs/08-cartouches-protegees.md)) ; les tables SMA s'extraient
+  du source de MAME avec `neotool.py sma-from-mame`. Les banques de couche
+  fixe des cartes CMC restent à faire.

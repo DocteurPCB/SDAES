@@ -158,3 +158,102 @@ class SecurityAndHexTests(TmpDir):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+MAME_SNIPPET_A = """
+void sma_prot_device::kof99_bankswitch_w(uint16_t data)
+{
+	int bankaddress;
+	static const int bankoffset[64] =
+	{
+		0x000000, 0x100000, 0x200000, 0x300000,
+		0x3cc000, /* commentaire 0x999999 */ 0x4cc000,
+	};
+
+	/* unscramble bank number */
+	data =
+		(((data>>14)&1)<<0)+
+		(((data>> 6)&1)<<1)+
+		(((data>> 8)&1)<<2)+
+		(((data>>10)&1)<<3)+
+		(((data>>12)&1)<<4)+
+		(((data>> 5)&1)<<5);
+
+	bankaddress = 0x100000 + bankoffset[data];
+}
+
+void sma_prot_device::kof99_install_protection(cpu_device* maincpu, neogeo_banked_cart_device* bankdev)
+{
+	maincpu->space(AS_PROGRAM).install_write_handler(0x2ffff0, 0x2ffff1, write16_delegate(*this, FUNC(sma_prot_device::kof99_bankswitch_w)));
+	maincpu->space(AS_PROGRAM).install_read_handler(0x2fe446, 0x2fe447, read16_delegate(*this, FUNC(sma_prot_device::prot_9a37_r)));
+	maincpu->space(AS_PROGRAM).install_read_handler(0x2ffff8, 0x2ffff9, read16_delegate(*this, FUNC(sma_prot_device::sma_random_r)));
+	maincpu->space(AS_PROGRAM).install_read_handler(0x2ffffa, 0x2ffffb, read16_delegate(*this, FUNC(sma_prot_device::sma_random_r)));
+}
+"""
+
+MAME_SNIPPET_B = """
+void sma_prot_device::garou_bankswitch_w(uint16_t data)
+{
+	static const int bankoffset[64] =
+	{
+		0x000000, 0x100000, 0x200000,
+	};
+	data = bitswap<6>(data, 12, 14, 6, 7, 9, 5);
+	m_bank = 0x100000 + bankoffset[data];
+}
+
+void sma_prot_device::garou_install_protection(cpu_device* maincpu, neogeo_banked_cart_device* bankdev)
+{
+	maincpu->space(AS_PROGRAM).install_write_handler(0x2fffc0, 0x2fffc1, write16_delegate(*this, FUNC(sma_prot_device::garou_bankswitch_w)));
+	maincpu->space(AS_PROGRAM).install_read_handler(0x2fffcc, 0x2fffcd, read16_delegate(*this, FUNC(sma_prot_device::sma_random_r)));
+}
+"""
+
+
+class MapperTests(TmpDir):
+    def test_parse_and_registers(self):
+        text = ("[kof98]\nngh = 0x242\noverlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd\n"
+                "[jeu]\nmapper = sma\nbank_addr = 0x2ffff0\nbank_bits = 14 6 8 10 12 5\n"
+                "bank_table = 0x0 0x100000\n  0x3cc000\nprot = 0x2fe446 0x9a37\nrng = 0x2ffff8 0x2ffffa\n")
+        maps = {m["name"]: m for m in neotool.parse_mappers(text)}
+        self.assertEqual(maps["jeu"]["bank_table"], [0, 0x100000, 0x3CC000])
+        regs = dict(neotool.mapper_registers(maps["jeu"]))
+        self.assertEqual(regs[0x0A], 1)
+        self.assertEqual(regs[0x0B], 0x7FFF8)
+        self.assertEqual(regs[0x0C], 0x5CA86E)
+        self.assertEqual(regs[0x0D], 0x80000000 | 0x7F223)
+        self.assertEqual(regs[0x15], 0x80000000 | 0x7FFFD)
+        ovl = dict(neotool.mapper_registers(maps["kof98"]))
+        self.assertEqual((ovl[0x0A], ovl[0x17], ovl[0x18], ovl[0x19], ovl[0x1A]),
+                         (0x100, 0x5555, 0x009000F0, 0x80, 0x00C200FD))
+
+    def test_parse_errors(self):
+        with self.assertRaises(ValueError):
+            neotool.parse_mappers("[x]\nmapper = sma\n")            # table manquante
+        with self.assertRaises(ValueError):
+            neotool.parse_mappers("[x]\nbank_bits = 1 2 3\n")
+        with self.assertRaises(ValueError):
+            neotool.parse_mappers("[x]\ncle = 1\n")
+
+    def test_extract_sma(self):
+        text = neotool.extract_sma(MAME_SNIPPET_A + MAME_SNIPPET_B)
+        maps = {m["name"]: m for m in neotool.parse_mappers(text)}
+        k = maps["kof99"]
+        self.assertEqual(k["ngh"], 0x251)
+        self.assertEqual(k["bank_addr"], 0x2FFFF0)
+        self.assertEqual(k["bank_bits"], [14, 6, 8, 10, 12, 5])
+        self.assertEqual(k["bank_table"], [0, 0x100000, 0x200000, 0x300000, 0x3CC000, 0x4CC000])
+        self.assertEqual(k["prot"], (0x2FE446, 0x9A37))
+        self.assertEqual(k["rng"], [0x2FFFF8, 0x2FFFFA])
+        g = maps["garou"]
+        self.assertEqual(g["bank_bits"], [5, 9, 7, 6, 14, 12])   # bitswap : poids fort d'abord
+        self.assertEqual(g["bank_addr"], 0x2FFFC0)
+        self.assertEqual(g["rng"], [0x2FFFCC])
+
+    def test_cli(self):
+        src = self.path("prot_sma.cpp", (MAME_SNIPPET_A + MAME_SNIPPET_B).encode())
+        out = self.path("MAPPERS.TXT")
+        self.assertEqual(neotool.main(["sma-from-mame", src, "-o", out]), 0)
+        self.assertEqual(neotool.main(["mapper", out, "--ngh", "0x251"]), 0)
+        mp = self.path("jeu.map", b"mapper = pvc\n")
+        self.assertEqual(neotool.main(["mapper", mp]), 0)

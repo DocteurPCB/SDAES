@@ -9,6 +9,10 @@ Commandes :
   security  MENU.bin JEU.neo -o MENU.bin    recopie le code de sécurité d'un jeu
   bramhex   FICHIER.bin -o X.hex --size N   fichier $readmemh 8 bits
   bramhex16 MENU.bin --hi H.hex --lo L.hex  sépare un binaire 68000 en octets pairs/impairs
+  mapper    FICHIER.map|MAPPERS.TXT [--game NOM] [--ngh N]
+                                            vérifie une description de protection
+                                            et affiche les registres du FPGA P
+  sma-from-mame SOURCE.cpp -o MAPPERS.TXT  extrait les tables SMA du source MAME
 
 Conventions de stockage (identiques au firmware et au FPGA) :
   P  : mots de 16 bits petit-boutistes (ordre des fichiers .p1 de MAME)
@@ -34,7 +38,7 @@ NEO_MAGIC = b"NEO\x01"
 
 # limites matérielles de SDAES (voir docs/03-memoire-et-timings.md)
 LIMITS = {
-    "P": 25 << 20,       # SDRAM P : 1 Mo (banque 0) + 24 Mo (banques 1-3)
+    "P": 24 << 20,       # SDRAM P : 25 Mo moins la RAM de protection PVC
     "S": 512 << 10,      # SRAM 0x00000-0x7FFFF
     "M": 512 << 10,      # SRAM 0x80000-0xFFFFF
     "V": 32 << 20,       # SDRAM V (V1 + V2)
@@ -301,6 +305,205 @@ def cmd_bramhex16(args):
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Protections (format .map / MAPPERS.TXT, cf. firmware/rp2350/src/mapper.c)
+# ---------------------------------------------------------------------------
+PORT_BASE = 0x200000
+MAP_MODES = {"std": 0, "sma": 1, "pvc": 2}
+
+
+def _nums(text):
+    out = []
+    for tok in text.replace(",", " ").split():
+        try:
+            out.append(int(tok, 0))
+        except ValueError:
+            raise ValueError(f"nombre invalide : {tok}")
+    return out
+
+
+def default_mapper(name=""):
+    return {"name": name, "ngh": 0, "mode": 0, "bank_addr": 0, "bank_bits": list(range(6)),
+            "bank_table": [], "prot": None, "rng": [], "rng_seed": 0x2345, "overlay": None}
+
+
+def parse_mappers(text, whole_file=False, name=""):
+    """Retourne la liste des descriptions (une seule si whole_file)."""
+    sections, cur, in_table = [], (default_mapper(name) if whole_file else None), False
+    for raw in text.splitlines():
+        line = raw.split("#")[0].split(";")[0].strip()
+        if not line:
+            continue
+        if line.startswith("["):
+            if whole_file:
+                raise ValueError("section interdite dans un fichier .map")
+            if cur:
+                sections.append(cur)
+            cur = default_mapper(line.strip("[]").strip())
+            in_table = False
+            continue
+        if cur is None:
+            raise ValueError("clé hors section")
+        if "=" not in line:
+            if in_table:
+                cur["bank_table"] += _nums(line)
+                continue
+            raise ValueError(f"ligne invalide : {line}")
+        key, val = (x.strip() for x in line.split("=", 1))
+        in_table = False
+        v = _nums(val) if key not in ("mapper",) else None
+        if key == "ngh":
+            cur["ngh"] = v[0]
+        elif key == "mapper":
+            if val not in MAP_MODES:
+                raise ValueError(f"mapper inconnu : {val}")
+            cur["mode"] = MAP_MODES[val]
+        elif key == "bank_addr":
+            cur["bank_addr"] = v[0]
+        elif key == "bank_bits":
+            if len(v) != 6 or max(v) > 15:
+                raise ValueError("bank_bits : 6 numéros de bit (0-15)")
+            cur["bank_bits"] = v
+        elif key == "bank_table":
+            cur["bank_table"] = v
+            in_table = True
+        elif key == "prot":
+            cur["prot"] = (v[0], v[1])
+        elif key == "rng":
+            cur["rng"] = v[:2]
+        elif key == "rng_seed":
+            cur["rng_seed"] = v[0]
+        elif key == "overlay":
+            if len(v) != 6:
+                raise ValueError("overlay : 6 valeurs")
+            cur["overlay"] = v
+        else:
+            raise ValueError(f"clé inconnue : {key}")
+    if cur:
+        sections.append(cur)
+    for m in sections:
+        if len(m["bank_table"]) > 64:
+            raise ValueError(f"{m['name']} : plus de 64 entrées dans bank_table")
+        if m["mode"] == 1 and not m["bank_table"]:
+            raise ValueError(f"{m['name']} : bank_table manquante")
+    return sections
+
+
+def mapper_registers(m):
+    """Registres du FPGA P, identiques à mapper_registers() du firmware."""
+    def idx(a):
+        return ((a - PORT_BASE) >> 1) & 0x7FFFF
+    regs = [(0x0A, m["mode"] | (0x100 if m["overlay"] else 0))]
+    if m["mode"] == 1:
+        perm = sum((b & 0xF) << (4 * i) for i, b in enumerate(m["bank_bits"]))
+        regs += [(0x0B, idx(m["bank_addr"])), (0x0C, perm),
+                 (0x0D, (0x80000000 | idx(m["prot"][0])) if m["prot"] else 0),
+                 (0x0E, (m["prot"][1] if m["prot"] else 0) & 0xFFFF)]
+        rng = m["rng"] + [0, 0]
+        regs += [(0x0F, (0x80000000 | idx(rng[0])) if rng[0] else 0),
+                 (0x15, (0x80000000 | idx(rng[1])) if rng[1] else 0),
+                 (0x16, m["rng_seed"])]
+    if m["overlay"]:
+        t, on, off, addr, v0, v1 = m["overlay"]
+        regs += [(0x17, idx(t)), (0x18, ((on & 0xFFFF) << 16) | (off & 0xFFFF)),
+                 (0x19, (addr >> 1) & 0x7FFFF), (0x1A, ((v0 & 0xFFFF) << 16) | (v1 & 0xFFFF))]
+    return regs
+
+
+def cmd_mapper(args):
+    text = readb(args.file).decode("latin-1")
+    whole = not args.file.upper().endswith(".TXT")
+    maps = parse_mappers(text, whole_file=whole, name=args.game or "")
+    if args.game or args.ngh is not None:
+        sel = [m for m in maps if args.game and m["name"].lower() == args.game.lower()]
+        sel = sel or [m for m in maps if args.ngh is not None and m["ngh"] == args.ngh]
+        maps = sel[:1]
+    if not maps:
+        print("aucune description correspondante")
+        return 1
+    for m in maps:
+        kind = [k for k, v in MAP_MODES.items() if v == m["mode"]][0]
+        print(f"[{m['name']}] ngh=0x{m['ngh']:X} mapper={kind} "
+              f"table={len(m['bank_table'])} superposition={'oui' if m['overlay'] else 'non'}")
+        for reg, val in mapper_registers(m):
+            print(f"   reg 0x{reg:02X} = 0x{val:08X}")
+    return 0
+
+
+# Jeux SMA connus : nom de fonction MAME -> NGH (à vérifier sur votre .neo)
+SMA_NGH = {"kof99": 0x251, "garou": 0x253, "garouh": 0x253, "mslug3": 0x256, "kof2000": 0x257}
+
+
+def extract_sma(src):
+    """
+    Extrait du source MAME de la protection SMA (prot_sma.cpp ou sma_prot.cpp)
+    les tables de banques, la permutation des bits et les adresses installées.
+    Reconnaît les deux écritures de la permutation utilisées par MAME :
+    (((data>>N)&1)<<M) et bitswap<6>(data, b5, b4, b3, b2, b1, b0).
+    """
+    import re
+    games = {}
+    for fm in re.finditer(r"(\w+)_bankswitch_w\s*\([^)]*\)\s*\{(.*?)\n\}", src, re.S):
+        name, body = fm.group(1), fm.group(2)
+        tm = re.search(r"bankoffset\s*\[\s*\d*\s*\]\s*=\s*\{(.*?)\}", body, re.S)
+        if not tm:
+            continue
+        table = [int(x, 16) for x in re.findall(r"0x[0-9a-fA-F]+", re.sub(r"/\*.*?\*/", "", tm.group(1), flags=re.S))]
+        bits = [None] * 6
+        bs = re.search(r"bitswap\s*<\s*6\s*>\s*\(\s*data\s*,([^)]*)\)", body)
+        if bs:
+            lst = [int(x) for x in bs.group(1).split(",")]
+            for i in range(6):
+                bits[i] = lst[5 - i]
+        else:
+            for srcbit, dst in re.findall(r"\(\s*\(\s*data\s*>>\s*(\d+)\s*\)\s*&\s*1\s*\)\s*<<\s*(\d+)", body):
+                bits[int(dst)] = int(srcbit)
+        if None in bits:
+            raise ValueError(f"{name} : permutation des bits non reconnue")
+        games[name] = {"table": table, "bits": bits, "bank_addr": None, "prot": None, "rng": []}
+    for im in re.finditer(r"(\w+)_install_protection\s*\([^)]*\)\s*\{(.*?)\n\}", src, re.S):
+        name, body = im.group(1), im.group(2)
+        if name not in games:
+            continue
+        g = games[name]
+        for hm in re.finditer(r"install_(read|write)_handler\s*\(\s*(0x[0-9a-fA-F]+)[^;]*?(\w+)\s*\)+\s*;", body, re.S):
+            addr, func = int(hm.group(2), 16), hm.group(3)
+            if "bankswitch" in func:
+                g["bank_addr"] = addr
+            elif "9a37" in func:
+                g["prot"] = (addr, 0x9A37)
+            elif "random" in func:
+                g["rng"].append(addr)
+    out = []
+    for name, g in games.items():
+        if g["bank_addr"] is None:
+            raise ValueError(f"{name} : adresse du registre de banque introuvable")
+        lines = [f"[{name}]"]
+        if name in SMA_NGH:
+            lines.append(f"ngh = 0x{SMA_NGH[name]:X}")
+        lines += ["mapper = sma", f"bank_addr = 0x{g['bank_addr']:06x}",
+                  "bank_bits = " + " ".join(str(b) for b in g["bits"])]
+        tbl = [f"0x{v:06x}" for v in g["table"]]
+        lines.append("bank_table = " + " ".join(tbl[:8]))
+        for i in range(8, len(tbl), 8):
+            lines.append("             " + " ".join(tbl[i:i + 8]))
+        if g["prot"]:
+            lines.append(f"prot = 0x{g['prot'][0]:06x} 0x{g['prot'][1]:04x}")
+        if g["rng"]:
+            lines.append("rng = " + " ".join(f"0x{a:06x}" for a in g["rng"][:2]))
+        out.append("\n".join(lines))
+    return "# Généré par tools/neotool.py sma-from-mame\n\n" + "\n\n".join(out) + "\n"
+
+
+def cmd_sma_from_mame(args):
+    text = extract_sma(readb(args.source).decode("latin-1"))
+    parse_mappers(text)          # vérification
+    with open(args.output, "w") as f:
+        f.write(text)
+    print(f"{args.output} : {text.count('[')} jeu(x)")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -348,6 +551,17 @@ def main(argv=None):
     s.add_argument("--lo", required=True)
     s.add_argument("--size", type=lambda x: int(x, 0), default=32768)
     s.set_defaults(fn=cmd_bramhex16)
+
+    s = sub.add_parser("mapper")
+    s.add_argument("file")
+    s.add_argument("--game")
+    s.add_argument("--ngh", type=lambda x: int(x, 0))
+    s.set_defaults(fn=cmd_mapper)
+
+    s = sub.add_parser("sma-from-mame")
+    s.add_argument("source")
+    s.add_argument("-o", "--output", required=True)
+    s.set_defaults(fn=cmd_sma_from_mame)
 
     args = ap.parse_args(argv)
     try:

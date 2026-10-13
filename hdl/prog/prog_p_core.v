@@ -75,10 +75,11 @@ module prog_p_core #(
     reg        game_mode = 1'b0;
     reg        irq = 1'b0;
     reg [23:0] p_mask = 24'h07FFFF;      // en mots
-    reg [31:0] dbg_addr = 32'h0, dbg_data = 32'h0;
+    reg [23:0] dbg_addr = 24'h0;
+    reg [15:0] dbg_data = 16'h0;
     reg        dbg_req = 1'b0, dbg_busy = 1'b0;
-    reg [31:0] cnt_romoe = 0, cnt_portoe = 0, cnt_spec_hit = 0;
-    reg [7:0]  p_bank = 8'h00;
+    reg [15:0] cnt_romoe = 0, cnt_portoe = 0, cnt_spec_hit = 0;
+    wire [31:0] map_rdata;
 
     wire sd_init_done, sd_idle, pk_empty, pk_ovf;
 
@@ -89,7 +90,7 @@ module prog_p_core #(
             case (reg_addr)
             8'h01: begin ctrl_arm <= reg_wdata[0]; ctrl_bank_en <= reg_wdata[3]; end
             8'h03: p_mask   <= reg_wdata[23:0];
-            8'h10: dbg_addr <= reg_wdata;
+            8'h10: dbg_addr <= reg_wdata[23:0];
             default: ;
             endcase
         end
@@ -101,13 +102,13 @@ module prog_p_core #(
         8'h01: reg_rdata = {28'd0, ctrl_bank_en, 2'b00, ctrl_arm};
         8'h02: reg_rdata = {25'd0, pk_ovf, dbg_busy, irq, game_mode, pk_empty & sd_idle, sd_init_done, sd_init_done};
         8'h03: reg_rdata = {8'd0, p_mask};
-        8'h08: reg_rdata = {24'd0, p_bank};
+        8'h08, 8'h0A, 8'h0C: reg_rdata = map_rdata;
         8'h09: reg_rdata = {31'd0, irq};
-        8'h10: reg_rdata = dbg_addr;
-        8'h11: reg_rdata = dbg_data;
-        8'h12: reg_rdata = cnt_romoe;
-        8'h13: reg_rdata = cnt_portoe;
-        8'h14: reg_rdata = cnt_spec_hit;
+        8'h10: reg_rdata = {8'd0, dbg_addr};
+        8'h11: reg_rdata = {16'd0, dbg_data};
+        8'h12: reg_rdata = {16'd0, cnt_romoe};
+        8'h13: reg_rdata = {16'd0, cnt_portoe};
+        8'h14: reg_rdata = {16'd0, cnt_spec_hit};
         default: reg_rdata = 32'hDEADBEEF;
         endcase
     end
@@ -142,19 +143,14 @@ module prog_p_core #(
 
     // décodage des adresses spéciales, registré (l'adresse est stable bien
     // avant l'événement de lecture/écriture correspondant)
-    reg a_is_ctl = 1'b0, a_is_bank = 1'b0;      // 0x2FFFE0-0x2FFFEF / 0x2FFFF0-0x2FFFFF
-    always @(posedge clk) begin
-        a_is_ctl  <= (a_s[18:3] == 16'hFFFE);
-        a_is_bank <= (a_s[18:3] == 16'hFFFF);
-    end
+    reg a_is_ctl = 1'b0;                        // 0x2FFFE0-0x2FFFEF (mode menu)
+    always @(posedge clk) a_is_ctl <= (a_s[18:3] == 16'hFFFE);
 
     // adresse SDRAM en mots
-    //   0x000000-0x0FFFFF -> 0x000000 + A
-    //   0x200000-0x2FFFFF -> 0x080000 + banque * 0x80000 + A
-    function [23:0] p_word(input port, input [18:0] aa, input [7:0] bank);
-        if (!port) p_word = {5'd0, aa};
-        else       p_word = {5'd0, aa} + 24'h080000 + {bank, 19'd0};
-    endfunction
+    //   0x000000-0x0FFFFF -> A
+    //   0x200000-0x2FFFFF -> p2_base_w + A  (fenêtre P2, fixée par le mapper)
+    //   RAM PVC (0x2FE000-0x2FFFDF) -> PVC_RAM_W + index, hors masque
+    localparam [23:0] PVC_RAM_W = 24'hC7F000;   // 8 derniers Ko de la banque SDRAM 3
 
     // =========================================================================
     // BRAM : programme du menu et boîte aux lettres
@@ -234,8 +230,7 @@ module prog_p_core #(
     reg  [1:0]  spec_has = 2'b00;      // candidat demandé
     reg  [15:0] spec_d1, spec_d2;
     reg         want = 1'b0;           // le 68000 attend un candidat en cours de lecture
-    reg         bank_chg = 1'b0;
-    reg  [1:0]  bank_cnt = 2'd3;
+    wire        bank_chg = (bank_hold != 3'd0);
     reg         want_port;
     reg         real_pend = 1'b0;
     reg         real_port;
@@ -245,7 +240,7 @@ module prog_p_core #(
     // chargeur
     wire        pk_valid;  wire [23:0] pk_addr; wire [15:0] pk_data; wire [1:0] pk_mask;
     reg         pk_take;
-    wr_packer #(.AW(24)) u_pack (
+    wr_packer #(.AW(24), .DEPTH(2)) u_pack (
         .clk(clk), .rst(rst),
         .in_stb(mem_wr && mem_space == 8'd0 && !game_mode), .in_addr(mem_addr), .in_data(mem_wdata),
         .flush(xfer_end),
@@ -262,20 +257,48 @@ module prog_p_core #(
     wire        oe_active = ~c_s[0] | ~c_s[1] | ~c_d[0] | ~c_d[1];
 
     // adresses physiques des deux candidats, calculées en pipeline (2 cycles)
-    reg  [7:0]  bank_p1 = 8'd1;
+    wire [22:0] p2_base_w;
+    wire        pvc_mode;
     reg  [23:0] wp1_r, wp2_r, ph1_r, ph2_r;
-    reg         p2hi_r;
+    reg         p2hi_r, pvc_r = 1'b0;
     always @(posedge clk) begin
-        bank_p1 <= p_bank + 8'd1;
         wp1_r   <= {5'd0, a_s} & p_mask;
-        wp2_r   <= ({5'd0, a_s} + {bank_p1, 19'd0}) & p_mask;
+        wp2_r   <= ({5'd0, a_s} + {1'b0, p2_base_w}) & p_mask;
+        pvc_r   <= pvc_mode && a_s[18:12] == 7'h7F;
         ph1_r   <= p_phys(wp1_r);
-        ph2_r   <= p_phys(wp2_r);
-        p2hi_r  <= (wp2_r >= 24'h080000);
+        ph2_r   <= p_phys(pvc_r ? PVC_RAM_W + {12'd0, a_d[11:0]} : wp2_r);
+        p2hi_r  <= pvc_r || (wp2_r >= 24'h080000);
     end
     // ph*_r viennent de a_s deux cycles plus tôt ; same_r garantit qu'elle
     // n'a pas changé au cycle suivant (un changement ultérieur annule spec_cur)
     wire pipe_ok = same_r;
+
+    // ----- protections / banques -----
+    reg  game_d = 1'b0;
+    always @(posedge clk) game_d <= game_mode;
+    wire        game_start = game_mode & ~game_d;
+    wire        wr_go = game_mode && bus_st == 3'd5;
+    wire        base_chg, sp_rom_hit, sp_port_hit, gw_req;
+    wire [15:0] sp_data, gw_data;
+    wire [11:0] gw_word;
+    wire [1:0]  gw_mask;
+    p_mapper u_map (
+        .clk(clk), .rst(rst), .game_start(game_start), .bank_en(ctrl_bank_en),
+        .reg_wr(reg_wr), .reg_addr(reg_addr), .reg_wdata(reg_wdata),
+        .tbl_wr(mem_wr && mem_space == 8'd4), .tbl_addr(mem_addr[7:0]), .tbl_data(mem_wdata),
+        .cfg_rdata(map_rdata),
+        .a(a_s), .d(d_s), .wr_go(wr_go), .wr_be({~c_s[3], ~c_s[2]}), .port_rd_ev(port_rd_ev),
+        .p2_base_w(p2_base_w), .base_chg(base_chg), .pvc_mode(pvc_mode),
+        .sp_rom_hit(sp_rom_hit), .sp_port_hit(sp_port_hit), .sp_data(sp_data),
+        .gw_req(gw_req), .gw_word(gw_word), .gw_data(gw_data), .gw_mask(gw_mask));
+
+    // écriture du jeu en SDRAM (RAM PVC) en attente
+    reg         gw_pend = 1'b0;
+    reg  [23:0] gw_addr;
+    reg  [15:0] gw_d;
+    reg  [1:0]  gw_m;
+    reg  [2:0]  bank_hold = 3'd0;     // délai de traversée du pipeline d'adresses
+    reg         inval;
     // conditions d'une nouvelle anticipation, registrées (chemin critique)
     reg  spec_go = 1'b0;
     wire hit     = spec_cur && spec_has[port_rd_ev];
@@ -294,13 +317,16 @@ module prog_p_core #(
         if (reg_wr && reg_addr == 8'h10) begin dbg_req <= 1'b1; dbg_busy <= 1'b1; end
 
         if (rst) begin
-            op <= OP_NONE; sq_req <= 1'b0; game_mode <= 1'b0; irq <= 1'b0; p_bank <= 8'd0;
-            spec_cur <= 1'b0; want <= 1'b0; real_pend <= 1'b0; bus_st <= 3'd0; bank_chg <= 1'b0;
+            op <= OP_NONE; sq_req <= 1'b0; game_mode <= 1'b0; irq <= 1'b0; gw_pend <= 1'b0;
+            spec_cur <= 1'b0; want <= 1'b0; real_pend <= 1'b0; bus_st <= 3'd0; bank_hold <= 3'd0;
             dbg_req <= 1'b0; dbg_busy <= 1'b0;
         end else begin
+            inval = 1'b0;
             // ----- lecture 68000 en mode jeu -----
             if (game_mode && oe_ev) begin
-                if (hit) begin
+                if ((port_rd_ev && sp_port_hit) || (rom_rd_ev && sp_rom_hit)) begin
+                    p_dout <= sp_data;           // protection, générateur, registres PVC...
+                end else if (hit) begin
                     cnt_spec_hit <= cnt_spec_hit + 1;
                     if (spec_ok[port_rd_ev])
                         p_dout <= port_rd_ev ? spec_d2 : spec_d1;
@@ -334,11 +360,7 @@ module prog_p_core #(
             3'd4: begin p_dout <= {mrh_rd, mrl_rd}; bus_st <= 3'd0; end
             3'd5: begin       // écriture (D stabilisée un cycle de plus)
                 if (game_mode) begin
-                    if (a_is_bank && ctrl_bank_en && !c_s[2]) begin
-                        p_bank    <= d_s[7:0];
-                        spec_cur  <= 1'b0;          // la banque change : anticipation caduque
-                        bank_chg  <= 1'b1;
-                    end
+                    inval = 1'b1;                   // traité par p_mapper (wr_go)
                 end else if (a_is_ctl) begin
                     case (a_s[2:0])
                     3'd0: irq <= 1'b1;
@@ -360,11 +382,15 @@ module prog_p_core #(
             // ----- client SDRAM -----
             case (op)
             OP_NONE: begin
-                if (game_mode && real_pend && pipe_ok && !bank_chg) begin
+                if (game_mode && gw_pend) begin
+                    gw_pend <= 1'b0;
+                    sq_req <= 1'b1; sq_we <= 1'b1; sq_nrd <= 2'd0; sq_addr <= gw_addr;
+                    sq_wdata <= gw_d; sq_wmask <= gw_m; op <= OP_WR;
+                end else if (game_mode && real_pend && pipe_ok && !bank_chg) begin
                     real_pend <= 1'b0;
                     sq_req <= 1'b1; sq_we <= 1'b0; sq_nrd <= 2'd0;
                     sq_addr <= real_port ? ph2_r : ph1_r; op <= OP_REAL;
-                end else if (spec_go && !oe_ev && !spec_cur) begin
+                end else if (spec_go && !oe_ev && !spec_cur && !inval && !gw_req) begin
                     // nouvelle adresse stable : lit les deux candidats en parallèle
                     spec_cur <= 1'b1;
                     spec_ok  <= 2'b00;
@@ -401,7 +427,7 @@ module prog_p_core #(
                     since_rd <= 8'd0;
                     op <= OP_NONE;
                     if (op == OP_REAL) p_dout <= sq_rdata;
-                    else begin dbg_data <= {16'd0, sq_rdata}; dbg_busy <= 1'b0; end
+                    else begin dbg_data <= sq_rdata; dbg_busy <= 1'b0; end
                 end
             end
             OP_WR: if (sq_ack) begin sq_req <= 1'b0; op <= OP_NONE; end
@@ -418,13 +444,20 @@ module prog_p_core #(
             // même instant de décision que same_r (comparaison a_s == a_d),
             // mais calculé un cycle plus tôt et registré
             spec_go <= game_mode && !oe_active && (a_s == a_d) && (!spec_cur || !same_r)
-                       && !want && !bank_chg && !(op == OP_NONE && spec_go && !oe_ev);
+                       && !want && !bank_chg && !gw_pend && !(op == OP_NONE && spec_go && !oe_ev);
 
-            // l'adresse a changé : l'anticipation en cours ne la concerne plus
-            if (!same_r) spec_cur <= 1'b0;
-            // la nouvelle banque met 2 cycles à traverser le pipeline d'adresses
-            if (bank_chg && !(a_is_bank && bus_st == 3'd5)) bank_chg <= (bank_cnt != 2'd0);
-            bank_cnt <= bank_chg ? bank_cnt - 2'd1 : 2'd3;
+            // l'adresse a changé, ou le jeu a écrit (banque, RAM PVC) :
+            // l'anticipation en cours n'est plus valable
+            if (!same_r || inval || base_chg) spec_cur <= 1'b0;
+            // une nouvelle banque met plusieurs cycles à traverser le pipeline
+            if (inval || base_chg) bank_hold <= 3'd7;
+            else if (bank_hold != 3'd0) bank_hold <= bank_hold - 3'd1;
+            if (gw_req) begin
+                gw_pend <= 1'b1;
+                gw_addr <= p_phys(PVC_RAM_W + {12'd0, gw_word});
+                gw_d    <= gw_data;
+                gw_m    <= gw_mask;
+            end
 
             if (!game_mode) begin spec_cur <= 1'b0; want <= 1'b0; real_pend <= 1'b0; end
         end
@@ -435,7 +468,7 @@ module prog_p_core #(
         .req(sq_req), .we(sq_we), .addr(sq_addr), .nrd(sq_nrd), .col2(9'd0), .addr2(sq_addr2),
         .wdata(sq_wdata), .wmask(sq_wmask), .ack(sq_ack),
         .rvalid(sq_rvalid), .ridx(sq_ridx), .rdata(sq_rdata),
-        .refresh_hold(game_mode && (sq_req || real_pend || want || !ref_ok)),
+        .refresh_hold(game_mode && (sq_req || real_pend || want || gw_pend || !ref_ok)),
         .init_done(sd_init_done), .idle(sd_idle),
         .sd_cke(sd_cke), .sd_cs_n(sd_cs_n), .sd_ras_n(sd_ras_n), .sd_cas_n(sd_cas_n), .sd_we_n(sd_we_n),
         .sd_ba(sd_ba), .sd_a(sd_a), .sd_dqm(sd_dqm), .sd_dq_o(sd_dq_o), .sd_dq_oe(sd_dq_oe), .sd_dq_i(sd_dq_i));

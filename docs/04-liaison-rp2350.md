@@ -30,6 +30,7 @@ regroupés en mots de 16 bits (octet d'adresse paire en bits 7:0) puis
 | 0 | SDRAM P (mots petit-boutistes) | SDRAM V (octets) | SDRAM C | SRAM : S en 0x00000, M1 en 0x80000 |
 | 2 | boîte aux lettres (ordre 68000) | — | — | BRAM police du menu |
 | 3 | BRAM programme du menu (ordre 68000) | — | — | BRAM pilote Z80 du menu |
+| 4 | table SMA (64 x 4 octets, grand-boutiste) | — | — | — |
 
 ## Registres
 
@@ -44,9 +45,14 @@ Communs aux 4 FPGA :
 | 0x11 | L | donnée de diagnostic |
 | 0x12-0x14 | L | compteurs d'activité (P : /ROMOE, /PORTOE, anticipations réussies ; V : ADPCM-A, ADPCM-B ; C : PCK1B ; SM : PCK2B, Z80) |
 
-Spécifiques : P : 0x03 masque P (mots), 0x08 banque courante, 0x09
-acquittement de `LK_IRQ`. V : 0x04/0x05 base/masque V1, 0x06/0x07
-base/masque V2. C : 0x03 masque C (mots de 32 bits). SM : 0x04 masque S,
+Spécifiques : P : 0x03 masque P (mots), 0x08 base P2 courante (mots), 0x09
+acquittement de `LK_IRQ` ; protections (`hdl/prog/p_mapper.v`) : 0x0A mode
+(bits 1:0 : 0 std, 1 SMA, 2 PVC ; bit 8 superposition), 0x0B registre de
+banque SMA, 0x0C permutation des bits, 0x0D/0x0E adresse (bit 31 = actif) et
+valeur de protection, 0x0F/0x15 adresses du générateur, 0x16 graine, 0x17
+déclencheur, 0x18 codes {activation, retrait}, 0x19 adresse et 0x1A valeurs
+de la superposition. Les adresses sont des index de mot A[19:1].
+V : 0x04/0x05 base/masque V1, 0x06/0x07 base/masque V2. C : 0x03 masque C (mots de 32 bits). SM : 0x04 masque S,
 0x05 masque M1.
 
 ## Débit

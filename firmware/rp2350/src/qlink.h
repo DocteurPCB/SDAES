@@ -15,6 +15,7 @@ typedef enum { LINK_P = 0, LINK_V = 1, LINK_C = 2, LINK_SM = 3 } link_id_t;
 #define SP_P_SDRAM       0
 #define SP_P_MAILBOX     2
 #define SP_P_MENU        3
+#define SP_P_SMA_TABLE   4       /* 64 décalages de 4 octets (grand-boutiste) */
 #define SP_V_SDRAM       0
 #define SP_C_SDRAM       0
 #define SP_SM_SRAM       0       /* S en 0x00000, M1 en 0x80000 */

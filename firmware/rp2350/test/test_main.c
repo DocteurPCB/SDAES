@@ -104,6 +104,53 @@ int main(void)
     expect(send(CMD_RELOAD_LAST, 0) == ST_OK && mb16(MB_RSP_KIND) == KIND_GAME_READY, "rechargement du dernier jeu");
     expect(send(0x77, 0) == ST_ERR_ARG, "commande inconnue refusée");
 
+    /* ===== cartouches protégées ===== */
+    send(CMD_LIST, 0);
+    expect(send(CMD_OPEN, (uint32_t)find("Jeux")) == ST_OK, "retour dans Jeux");
+    send(CMD_LIST, 0);
+
+    /* SMA sans fichier .map : refusé avec un message clair */
+    expect(send(CMD_OPEN, (uint32_t)find("kof99")) == ST_ERR_UNSUPPORTED, "SMA sans .map refuse");
+    printf("info  message : %s\n", mbstr(MB_RSP_MSG));
+
+    /* SMA avec fichier .map à côté du jeu */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("kof99b")) == ST_OK, "SMA avec .map charge");
+    printf("info  message : %s\n", mbstr(MB_RSP_MSG));
+    expect(regs[LINK_P][0x0A] == 1, "SMA : mode");
+    expect(regs[LINK_P][0x0B] == 0x7FFF8, "SMA : registre de banque 0x2FFFF0");
+    expect(regs[LINK_P][0x0C] == 0x5CA86E, "SMA : permutation des bits");
+    expect(regs[LINK_P][0x0D] == (0x80000000u | 0x7F223), "SMA : adresse de protection");
+    expect(regs[LINK_P][0x0E] == 0x9A37, "SMA : valeur de protection");
+    expect(regs[LINK_P][0x0F] == (0x80000000u | 0x7FFFC) && regs[LINK_P][0x15] == (0x80000000u | 0x7FFFD),
+           "SMA : generateurs");
+    expect(sma_table[16] == 0x00 && sma_table[17] == 0x3C && sma_table[18] == 0xC0 && sma_table[19] == 0x00,
+           "SMA : entree 4 de la table = 0x3CC000");
+    expect(sma_table[20] == 0 && sma_table[23] == 0, "SMA : entrees absentes a zero");
+    expect((regs[LINK_P][REG_CTRL] & CTRL_BANK_EN) == 0, "SMA : banque standard desactivee");
+
+    /* SMA décrit dans MAPPERS.TXT (trouvé par le nom) */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("garou")) == ST_OK, "SMA via MAPPERS.TXT");
+    expect(regs[LINK_P][0x0B] == 0x7FFE0, "SMA garou : banque 0x2FFFC0");
+
+    /* superposition KOF 98 décrite dans MAPPERS.TXT (trouvée par le NGH) */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("roi98")) == ST_OK, "superposition via NGH");
+    expect(regs[LINK_P][0x0A] == 0x100, "superposition : mode");
+    expect(regs[LINK_P][0x17] == 0x5555 && regs[LINK_P][0x18] == 0x009000F0 &&
+           regs[LINK_P][0x19] == 0x80 && regs[LINK_P][0x1A] == 0x00C200FD, "superposition : registres");
+
+    /* PVC reconnu par son NGH sans fichier */
+    memset(regs, 0, sizeof(regs));
+    memset(mem[LINK_P][SP_P_SDRAM] + 0x18FE000, 0xAA, 8192);
+    expect(send(CMD_OPEN, (uint32_t)find("mslug5")) == ST_OK, "PVC interne");
+    printf("info  message : %s\n", mbstr(MB_RSP_MSG));
+    expect(regs[LINK_P][0x0A] == 2, "PVC : mode");
+    int zero = 1;
+    for (int i = 0; i < 8192; i++) if (mem[LINK_P][SP_P_SDRAM][0x18FE000 + i]) zero = 0;
+    expect(zero, "PVC : RAM de protection remise a zero");
+
     printf("RESULTAT firmware : %s\n", failures ? "ECHEC" : "SUCCES");
     return failures ? 1 : 0;
 }

@@ -146,6 +146,7 @@ module tb_prog;
     reg [15:0] w;
     reg [7:0]  b;
     reg [31:0] ba;
+    reg [15:0] rng_v;
 
     task load_pwords(input [31:0] wordaddr, input integer n);
         integer k;
@@ -252,7 +253,7 @@ module tb_prog;
         $display("info  68000 /OE -> donnee, max sur la rafale (adresse 40 ns avant /OE) : %0.1f ns (%0d rafraichissements)",
                  worst, u_p.refreshes - v);
         lk_reg_rd(8'h14, v);
-        $display("info  anticipations reussies : %0d / 100", v - hits);
+        $display("info  anticipations reussies : %0d / 100", (v - hits) & 16'hFFFF);
         if (worst > 100.0) begin $display("ECHEC latence 68000 trop elevee avec anticipation"); errors = errors + 1; end
 
         // alternance code (P1) / données (P2), adresse 40 ns avant /OE
@@ -280,7 +281,7 @@ module tb_prog;
 
         m68k_write(24'h2FFFF0, 16'h0001);
         m68k_read(24'h200080, w); check("P2 banque1 [200080]", w, pword(32'h100040));
-        lk_reg_rd(8'h08, v); check("registre de banque", v, 1);
+        lk_reg_rd(8'h08, v); check("base P2 (mots) apres banque 1", v, 32'h100000);
 
         adpcm_a_read(24'h012346, b); check("ADPCM-A [012346]", b, vbyte(32'h012346));
         adpcm_a_read(24'h012345, b); check("ADPCM-A [012345]", b, vbyte(32'h012345));
@@ -290,6 +291,80 @@ module tb_prog;
         lk_sel = P; lk_reg_wr(8'h01, 32'h0);
         #100 check("retour menu", mode, 0);
         m68k_read(24'h000100, w); check("menu P apres retour", w, 16'h4E45);
+
+        // ================= PROTECTIONS =================
+        // ---- SMA (table de banques, protection, générateur) + superposition KOF98
+        $display("--- SMA + superposition");
+        lk_sel = P;
+        load_pwords(32'h080000 + 32'h3CC000/2 + 32'h40, 1);   // banque SMA choisie, 0x200080
+        lk_reg_wr(8'h03, 32'h007FFFFF);         // P = 16 Mo
+        lk_reg_wr(8'h0A, 32'h101);              // mode SMA + superposition
+        lk_reg_wr(8'h0B, 32'h7FFF8);            // registre de banque en 0x2FFFF0
+        lk_reg_wr(8'h0C, 32'h5CA86E);           // bits 14,6,8,10,12,5 -> numéro 0..5
+        lk_reg_wr(8'h0D, 32'h80000000 | 32'h7F223);   // protection en 0x2FE446
+        lk_reg_wr(8'h0E, 32'h9A37);
+        lk_reg_wr(8'h0F, 32'h80000000 | 32'h7FFFC);   // générateur en 0x2FFFF8
+        lk_reg_wr(8'h15, 32'h80000000 | 32'h7FFFD);   // et 0x2FFFFA
+        lk_reg_wr(8'h16, 32'h2345);
+        lk_reg_wr(8'h17, 32'h5555);             // déclencheur en 0x20AAAA
+        lk_reg_wr(8'h18, 32'h009000F0);
+        lk_reg_wr(8'h19, 32'h80);               // mots 0x000100 et 0x000102
+        lk_reg_wr(8'h1A, 32'h00C200FD);
+        // table : entrée i = i * 0x10000, sauf l'entrée 0x2B = 0x3CC000
+        lk_mem_wr_begin(8'd4, 32'h0);
+        for (i = 0; i < 64; i = i + 1) begin
+            ba = (i == 8'h2B) ? 32'h3CC000 : i * 32'h10000;
+            lk_byte_out(ba[31:24]); lk_byte_out(ba[23:16]); lk_byte_out(ba[15:8]); lk_byte_out(ba[7:0]);
+        end
+        lk_end;
+        lk_reg_wr(8'h01, 32'h1);
+        m68k_write(24'h2FFFE2, 16'h5A5A);
+        check("mode jeu SMA", mode, 1);
+        m68k_read(24'h2FE446, w); check("SMA lecture de protection", w, 16'h9A37);
+        rng_v = 16'h2345;
+        for (i = 0; i < 6; i = i + 1) begin
+            m68k_read((i & 1) ? 24'h2FFFFA : 24'h2FFFF8, w);
+            if (w !== rng_v) begin $display("ECHEC generateur SMA %0d : %h attendu %h", i, w, rng_v); errors = errors + 1; end
+            rng_v = {rng_v[14:0], rng_v[2] ^ rng_v[3] ^ rng_v[5] ^ rng_v[6] ^ rng_v[7] ^ rng_v[11] ^ rng_v[12] ^ rng_v[15]};
+        end
+        $display("ok    generateur SMA (6 lectures)");
+        m68k_write(24'h2FFFF0, 16'h4460);       // bits 14,6,10,5 -> numéro 0x2B
+        m68k_read(24'h200080, w); check("SMA banque 0x2B [200080]", w, pword(32'h080000 + 32'h3CC000/2 + 32'h40));
+        m68k_read(24'h000100, w); check("superposition inactive", w, pword(32'h80));
+        m68k_write(24'h20AAAA, 16'h0090);
+        m68k_read(24'h000100, w); check("superposition [000100]", w, 16'h00C2);
+        m68k_read(24'h000102, w); check("superposition [000102]", w, 16'h00FD);
+        m68k_write(24'h20AAAA, 16'h00F0);
+        m68k_read(24'h000100, w); check("superposition retiree", w, pword(32'h80));
+        lk_reg_wr(8'h01, 32'h0);
+        #100;
+
+        // ---- PVC
+        $display("--- PVC");
+        load_pwords(32'h080000 + 32'h012340/2 + 32'h40, 1);
+        lk_reg_wr(8'h0A, 32'h2);
+        lk_reg_wr(8'h01, 32'h1);
+        m68k_write(24'h2FFFE2, 16'h5A5A);
+        check("mode jeu PVC", mode, 1);
+        m68k_write(24'h2FFFE0, 16'hABCD);      // décompactage
+        m68k_read(24'h2FFFE2, w); check("PVC decompactage vert/bleu", w, 16'h191A);   // g={C,b13=1} b={D,b12=0}
+        m68k_read(24'h2FFFE4, w); check("PVC decompactage sombre/rouge", w, 16'h0116); // s=1 r={B,b14=0}
+        m68k_write(24'h2FFFE8, 16'h1E1F);      // gb
+        m68k_write(24'h2FFFEA, 16'h011E);      // sr
+        m68k_read(24'h2FFFEC, w);
+        check("PVC compactage", w, {1'b1, 1'b0, 1'b0, 1'b1, 4'hF, 4'hF, 4'hF});
+        m68k_write(24'h2FFFF2, 16'h0123);      // octets hauts de l'adresse de banque
+        m68k_write(24'h2FFFF0, 16'h40FF);      // octet bas -> banque 0x100000 + 0x012340
+        m68k_read(24'h200080, w); check("PVC banque [200080]", w, pword(32'h080000 + 32'h012340/2 + 32'h40));
+        m68k_read(24'h2FFFF0, w); check("PVC registre FF8 apres banque", w, 16'hA0FE);
+        m68k_read(24'h2FFFF2, w); check("PVC registre FF9 apres banque", w, 16'h0123);
+        m68k_write(24'h2FE100, 16'h1357);      // RAM de protection (SDRAM)
+        m68k_write(24'h2FE102, 16'h2468);
+        m68k_read(24'h2FE100, w); check("PVC RAM [2FE100]", w, 16'h1357);
+        m68k_read(24'h2FE102, w); check("PVC RAM [2FE102]", w, 16'h2468);
+        m68k_write(24'h2FE100, 16'hBEEF);      // relecture immédiate après écriture
+        m68k_read(24'h2FE100, w); check("PVC RAM reecrite", w, 16'hBEEF);
+        lk_reg_wr(8'h01, 32'h0);
 
         errors = errors + u_p.errors + u_v.errors;
         if (errors == 0) $display("RESULTAT tb_prog : SUCCES");

@@ -11,11 +11,14 @@ uint8_t *mem[4][4];
 uint32_t regs[4][256];
 uint32_t max_addr[4][4];
 static const uint32_t sizes[4][4] = {
-    [LINK_P]  = { 25u << 20, 0, 4096, 8192 },
+    [LINK_P]  = { 25u << 20, 0, 4096, 8192 },   /* + espace 4 : table SMA */
     [LINK_V]  = { 32u << 20, 0, 0, 0 },
     [LINK_C]  = { 64u << 20, 0, 0, 0 },
     [LINK_SM] = { 1u << 20,  0, 8192, 2048 },
 };
+
+uint8_t sma_table[256];
+int     sma_table_writes;
 
 void fakes_init(void)
 {
@@ -88,6 +91,12 @@ uint32_t qlink_reg_read(link_id_t l, uint8_t reg)
 static int pending_l = -1;
 static void mem_store(link_id_t l, uint8_t space, uint32_t addr, const void *buf, size_t len)
 {
+    if (l == LINK_P && space == SP_P_SMA_TABLE) {
+        if (addr + len > 256) { fprintf(stderr, "ECHEC table SMA hors limites\n"); exit(1); }
+        memcpy(sma_table + addr, buf, len);
+        sma_table_writes++;
+        return;
+    }
     if (space > 3 || !mem[l][space] || addr + len > sizes[l][space]) {
         fprintf(stderr, "ECHEC écriture hors limites FPGA %d espace %d adr %x len %zu\n", l, space, addr, len);
         exit(1);
