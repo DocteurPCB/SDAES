@@ -21,9 +21,12 @@ technique « drag soldering ». Aucun BGA ni QFN.
 | Alimentation par carte | régulateur 5 V → 3,3 V 1 A (buck ou LDO SOT-223) ; LDO 1,2 V (cœurs iCE40) | SOT-223 / SOT-23-5 | 2 + 2 |
 
 Remarques :
-* La puce de l'iCE40HX4K-TQ144 est celle du HX8K ; la chaîne libre peut
-  utiliser 7 680 cellules, mais SDAES n'en utilise que 2 317 au plus, donc
-  la capacité officielle (3 520) suffit.
+* La puce de l'iCE40HX4K-TQ144 est celle du HX8K ; la chaîne libre
+  (Yosys + nextpnr + IceStorm) en exploite les 7 680 cellules. Les FPGA V, C
+  et SM restent sous la capacité officielle du HX4K (3 520 cellules) ; le
+  FPGA P, avec les protections, en utilise 3 608 : il **nécessite la chaîne
+  libre** (l'outil Lattice iCEcube2 le refuserait). Piste de repli : retirer
+  les compteurs de diagnostic ou la superposition KOF 98.
 * L'iCE40 HX a besoin de 1,2 V (cœur), 3,3 V (E/S) et d'une tension VPP
   (2,5-3,3 V) ; un seul LDO 1,2 V par carte alimente ses deux FPGA.
 * Le module Pico 2 évite de router la flash, le quartz et l'USB du RP2350.

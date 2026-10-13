@@ -62,7 +62,7 @@ Résultats actuels de `make test` :
 * simulations HDL au niveau carte : `tb_prog` (FPGA P + V) et `tb_cha`
   (FPGA C + SM) en SUCCÈS ; lecture du programme 68000 en 79 ns (126 ns au
   pire cas) pour une limite estimée à ~125-150 ns ;
-* placement-routage des 4 FPGA à 102-106 MHz pour 100 MHz visés.
+* placement-routage des 4 FPGA à 100,5-115 MHz pour 100 MHz visés.
 
 ## Documentation
 
