@@ -390,7 +390,8 @@ module prog_p_core #(
                     real_pend <= 1'b0;
                     sq_req <= 1'b1; sq_we <= 1'b0; sq_nrd <= 2'd0;
                     sq_addr <= real_port ? ph2_r : ph1_r; op <= OP_REAL;
-                end else if (spec_go && !oe_ev && !spec_cur && !inval && !gw_req) begin
+                end else if (spec_go && !oe_ev && !spec_cur && bus_st < 3'd5) begin
+                    // (pas pendant un cycle d'écriture : l'écriture invalide l'anticipation)
                     // nouvelle adresse stable : lit les deux candidats en parallèle
                     spec_cur <= 1'b1;
                     spec_ok  <= 2'b00;
