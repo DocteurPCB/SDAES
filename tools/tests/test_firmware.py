@@ -1,0 +1,95 @@
+"""
+Test de bout en bout du firmware RP2350 sur PC : compile src/browser.c et
+src/neo_loader.c avec des imitations de FatFs et de la liaison FPGA, charge un
+.neo produit par neotool et vérifie les images mémoire et les registres.
+"""
+import os
+import random
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+FW = os.path.join(ROOT, "firmware", "rp2350")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import neotool  # noqa: E402
+
+
+@unittest.skipUnless(shutil.which("gcc"), "gcc absent")
+class FirmwareHostTest(unittest.TestCase):
+    def test_load_neo(self):
+        rnd = random.Random(1234)
+        with tempfile.TemporaryDirectory() as d:
+            sd = os.path.join(d, "sd")
+            out = os.path.join(d, "out")
+            os.makedirs(os.path.join(sd, "Jeux"))
+            os.makedirs(out)
+            with open(os.path.join(sd, "readme.txt"), "w") as f:
+                f.write("x")
+            with open(os.path.join(sd, "Jeux", "casse.neo"), "wb") as f:
+                f.write(b"PAS UN NEO" + bytes(5000))
+
+            def blob(n):
+                return bytes(rnd.getrandbits(8) for _ in range(n))
+            files = {}
+            for name, n in (("p1", 3 << 20), ("s1", 128 << 10), ("m1", 64 << 10),
+                            ("v1", 0x123457), ("v2", 0x40000), ("c1", 0x8000), ("c2", 0x8000)):
+                files[name] = os.path.join(d, name)
+                with open(files[name], "wb") as f:
+                    f.write(blob(n))
+            neo = os.path.join(sd, "Jeux", "test.neo")
+            self.assertEqual(neotool.main([
+                "build", "-o", neo, "--p", files["p1"], "--s", files["s1"], "--m", files["m1"],
+                "--v1", files["v1"], "--v2", files["v2"], "--c", files["c1"], files["c2"],
+                "--name", "SDAES TEST", "--ngh", "0x999"]), 0)
+
+            exe = os.path.join(d, "fwtest")
+            src = os.path.join(FW, "src")
+            tst = os.path.join(FW, "test")
+            subprocess.run(["gcc", "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-O1",
+                            "-I", tst, "-I", src, "-o", exe,
+                            os.path.join(tst, "test_main.c"), os.path.join(tst, "fakes.c"),
+                            os.path.join(src, "browser.c"), os.path.join(src, "neo_loader.c")],
+                           check=True)
+            env = dict(os.environ, SDAES_SD=sd, SDAES_OUT=out)
+            r = subprocess.run([exe], env=env, capture_output=True, text=True)
+            print(r.stdout, r.stderr)
+            self.assertEqual(r.returncode, 0)
+            self.assertIn("RESULTAT firmware : SUCCES", r.stdout)
+
+            def rd(name):
+                with open(os.path.join(out, name), "rb") as f:
+                    return f.read()
+            with open(neo, "rb") as f:
+                data = f.read()
+            h = neotool.NeoHeader.unpack(data)
+            reg = {n: data[o:o + s] for n, o, s in h.regions()}
+            plan = neotool.load_plan(h)
+
+            self.assertEqual(rd("prog_p.bin"), reg["P"])
+            v = rd("prog_v.bin")
+            self.assertEqual(v[:len(reg["V1"])], reg["V1"])
+            self.assertEqual(v[plan["v2_base"]:plan["v2_base"] + len(reg["V2"])], reg["V2"])
+            self.assertEqual(rd("cha_c.bin"), reg["C"])
+            sram = rd("cha_sram.bin")
+            self.assertEqual(sram[:len(reg["S"])], reg["S"])
+            self.assertEqual(sram[0x80000:0x80000 + len(reg["M"])], reg["M"])
+
+            regs = dict(line.split("=") for line in rd("regs.txt").decode().split())
+            regs = {k: int(x) for k, x in regs.items()}
+            self.assertEqual(regs["p_mask"], plan["p_mask_words"])
+            self.assertEqual(regs["v2_base"], plan["v2_base"])
+            self.assertEqual(regs["v1_mask"], plan["v1_mask"])
+            self.assertEqual(regs["v2_mask"], plan["v2_mask"])
+            self.assertEqual(regs["c_mask"], plan["c_mask_words"])
+            self.assertEqual(regs["s_mask"], plan["s_mask"])
+            self.assertEqual(regs["m1_mask"], plan["m1_mask"])
+            self.assertEqual(regs["prog_ctrl"], 1 | 8)       # armé + banques (P > 2 Mo)
+            self.assertEqual(regs["cha_ctrl"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

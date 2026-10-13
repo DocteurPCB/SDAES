@@ -1,0 +1,12 @@
+; Liaison 4 bits RP2350 -> FPGA, émission en rafale (DMA).
+; Un quartet par période : la donnée change SCK bas, le FPGA échantillonne
+; sur le front montant. Avec un DMA 8 bits, l'octet est répliqué sur les
+; 32 bits du FIFO ; décalage à gauche + autopull à 8 bits => quartet fort
+; d'abord. Quand le FIFO est vide, l'instruction "out" bloque avec SCK = 0.
+
+.program qlink_tx
+.side_set 1
+.wrap_target
+    out pins, 4     side 0
+    nop             side 1
+.wrap
