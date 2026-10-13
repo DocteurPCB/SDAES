@@ -31,14 +31,18 @@ sections « CARTOGRAPHIE » de `hdl/cha/cha_c_core.v` et
   les banques 1-3. Les deux candidats d'une adresse 68000 (P1 ou P2) sont
   ainsi dans deux banques différentes et se lisent en parallèle.
 * **C** : mot de 32 bits = `{tuile[19:0], CA4, ligne[3:0]}` avec tuile[15:0]
-  = P[15:0], ligne = P[19:16], tuile[19:16] = P[23:20] (verrou PCK1B). En
+  = P[15:0], ligne = P[19:16], tuile[19:16] = P[23:20] (verrou PCK1B, front
+  montant). Confirmé par le wiki neogeodev : CA4 = bit A4 de la ROM C,
+  hors bus P. **À vérifier** : l'ordre des bits P lui-même, les pages
+  « NEO-273 » et « P bus » du wiki ne concordant pas. En
   SDRAM x16, les deux moitiés (CA4 = 0/1) sont 4 mots de 16 bits de la même
   ligne, lus en une seule activation.
 * **Bus CR du ZMC2** : CR[7:0] = plan 0, CR[15:8] = plan 1 (ROM C impaire),
   CR[23:16] = plan 2, CR[31:24] = plan 3 (ROM C paire). Le `.neo` stocke
   c1/c2 entrelacés octet par octet ; le FPGA réordonne `{v3,v2,v1,v0}` →
   `{v3,v1,v2,v0}`.
-* **S** : octet = `{tuile[11:0], P3, 2H1, ligne[2:0]}` (verrou PCK2B).
+* **S** : octet = `{tuile[11:0], P3, 2H1, ligne[2:0]}` (verrou PCK2B, front
+  montant ; 2H1 = bit A3 de la ROM S, confirmé par le wiki).
 * **M1** : fenêtres Z80 0x0000-0x7FFF fixe, 0x8000/16 Ko, 0xC000/8 Ko,
   0xE000/4 Ko, 0xF000/2 Ko ; banque = registre B lors d'un `IN (C)` sur les
   ports 0x0B/0x0A/0x09/0x08. Valeurs initiales 2/6/0x0E/0x1E (identité).

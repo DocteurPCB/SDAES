@@ -9,7 +9,11 @@
 > contiennent les noms de signaux, pas encore les numéros de broches FPGA.
 
 Chaque carte se connecte à la console par un connecteur de bord (contacts
-dorés, chanfreinés). Alimentation : +5 V et masse par le connecteur.
+dorés, chanfreinés) : **2 x 50 contacts au pas de 2,54 mm** (100 par carte,
+200 pour la cartouche, certains inutilisés), d'après le wiki neogeodev
+(« AES cartridge pinout »). Alimentation : +5 V et masse par le connecteur.
+Attention : plusieurs brochages publiés ailleurs inversent /ROMOE et 4MB
+(erreur signalée par le wiki pour le MVS).
 
 ## Carte PROG
 
