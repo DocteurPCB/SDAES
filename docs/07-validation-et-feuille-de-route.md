@@ -5,7 +5,7 @@
 | Élément | Vérification |
 |---|---|
 | HDL des 4 FPGA | simulation Icarus au niveau carte (`make -C hdl sim`) : P+V et C+SM sur leurs bus de liaison partagés ; chargement, menu, bascule, lectures P anticipées avec banques, C (ZMC2, avec et sans retournement), S, M1 avec banques, ADPCM A/B, diagnostics |
-| Synthèse et placement-routage | Yosys + nextpnr iCE40 HX8K/TQ144 (`make -C hdl lint pnr`) : 1 621 à 3 653 cellules, 101 à 114 MHz pour 100 MHz visés (broches non affectées) |
+| Synthèse et placement-routage | Yosys + nextpnr iCE40 HX8K/TQ144 (`make -C hdl lint pnr`) : 1 621 à 3 751 cellules, 101 à 114 MHz pour 100 MHz visés (broches non affectées) |
 | Menu 68000 | compilé ; exécuté dans un émulateur 68000 face à une Neo Geo simulée (`tools/tests/test_menu_emu.py`) : écran, navigation, chargement, séquence de bascule depuis la RAM |
 | Pilote Z80 | assemblé (vecteurs 0x38 / 0x66 vérifiés) |
 | Firmware RP2350 | logique (navigation, protocole, chargement `.neo` vers les 4 FPGA, plan mémoire, registres, descriptions de protections) testée sur PC avec imitations de FatFs et de la liaison (`tools/tests/test_firmware.py`) |
