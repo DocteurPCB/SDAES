@@ -250,6 +250,8 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     qlink_reg_write(LINK_C,  REG_C_MASK,  mask_for(h->csize) >> 2);
     qlink_reg_write(LINK_SM, REG_S_MASK,  mask_for(h->ssize));
     qlink_reg_write(LINK_SM, REG_M1_MASK, mask_for(h->msize));
+    qlink_reg_write(LINK_SM, REG_SM_FIX_BANK,
+                    m.fix_bank == FIX_BANK_AUTO ? mapper_fix_bank(h->ngh) : m.fix_bank);
 
     /* arme les FPGA : la bascule effective est demandée par le menu (FPGA P,
      * qui la transmet aux trois autres par la ligne MODE) */

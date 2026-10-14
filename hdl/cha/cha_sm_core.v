@@ -58,6 +58,7 @@ module cha_sm_core #(
     reg        ctrl_arm = 1'b0, ctrl_force = 1'b0;
     reg [18:0] s_mask  = 19'h1FFFF;
     reg [18:0] m1_mask = 19'h1FFFF;
+    reg [1:0]  cmc_mode = 2'd0;          // banques de couche fixe NEO-CMC (cmc_fix.v)
     reg [31:0] dbg_addr = 32'h0, dbg_data = 32'h0;
     reg        dbg_req = 1'b0, dbg_busy = 1'b0;
     reg [31:0] cnt_pck2b = 0, cnt_z80 = 0;
@@ -88,6 +89,7 @@ module cha_sm_core #(
             8'h01: begin ctrl_arm <= reg_wdata[0]; ctrl_force <= reg_wdata[1]; end
             8'h04: s_mask   <= reg_wdata[18:0];
             8'h05: m1_mask  <= reg_wdata[18:0];
+            8'h06: cmc_mode <= reg_wdata[1:0];
             8'h10: dbg_addr <= reg_wdata;
             default: ;
             endcase
@@ -105,6 +107,7 @@ module cha_sm_core #(
         8'h02: reg_rdata = {26'd0, dbg_busy, sw_ovf, mode_s, game_mode, sw_empty, 1'b1};
         8'h04: reg_rdata = {13'd0, s_mask};
         8'h05: reg_rdata = {13'd0, m1_mask};
+        8'h06: reg_rdata = {18'd0, fix_col, 6'd0, cmc_mode};
         8'h10: reg_rdata = dbg_addr;
         8'h11: reg_rdata = dbg_data;
         8'h12: reg_rdata = cnt_pck2b;
@@ -184,29 +187,40 @@ module cha_sm_core #(
     always @(posedge clk) pck_d <= pck_s;
     wire pck2_ev = pck_s & ~pck_d;
 
+    // banque de couche fixe (cartes NEO-CMC), prête 2 cycles après pck2_ev
+    wire [1:0] fix_bank;
+    wire [5:0] fix_col;
+    reg  [1:0] pck2_dly = 2'b00;
+    always @(posedge clk) pck2_dly <= {pck2_dly[0], pck2_ev};
+    wire pck2_go = pck2_dly[1];
+    cmc_fix u_cmc (.clk(clk), .rst(rst), .mode(game_mode ? cmc_mode : 2'd0),
+                   .ev(pck2_ev), .p(s_latch), .bank(fix_bank), .col_dbg(fix_col));
+
     reg [7:0]  fix0 = 8'h00, fix1 = 8'h00;
     reg [2:0]  s_st = 3'd0;
     reg        s_pend = 1'b0;
     reg [15:0] s_lat_q;
     reg [16:0] s_ba;
+    reg [1:0]  s_bk = 2'd0;
 
     always @(posedge clk) begin
-        if (pck2_ev) begin s_pend <= 1'b1; cnt_pck2b <= cnt_pck2b + 1; end
+        if (pck2_go) begin s_pend <= 1'b1; cnt_pck2b <= cnt_pck2b + 1; end
         if (rst) begin s_st <= 3'd0; s_req <= 1'b0; s_pend <= 1'b0; end
         else case (s_st)
-        3'd0: if (s_pend || pck2_ev) begin
+        3'd0: if (s_pend || pck2_go) begin
                   s_pend  <= 1'b0;
                   s_lat_q <= s_latch;
                   s_st    <= game_mode ? 3'd1 : 3'd4;
                   s_ba     = s_byte_addr(s_latch, 1'b0);
-                  s_sa    <= {3'b000, s_ba} & {1'b0, s_mask};
+                  s_bk    <= fix_bank;
+                  s_sa    <= {1'b0, fix_bank, s_ba} & {1'b0, s_mask};
                   s_req   <= game_mode;
                   ms_b_addr <= s_ba[12:0];
               end
         3'd1: if (s_ack) begin
                   fix0  <= sram_rdata;
                   s_ba   = s_byte_addr(s_lat_q, 1'b1);
-                  s_sa  <= {3'b000, s_ba} & {1'b0, s_mask};
+                  s_sa  <= {1'b0, s_bk, s_ba} & {1'b0, s_mask};
                   s_st  <= 3'd2;
               end
         3'd2: s_st <= 3'd3;

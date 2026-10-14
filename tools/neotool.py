@@ -325,7 +325,7 @@ def _nums(text):
 def default_mapper(name=""):
     return {"name": name, "ngh": 0, "mode": 0, "bank_addr": 0, "bank_bits": list(range(6)),
             "bank_table": [], "prot": None, "rng": [], "rng_seed": 0x2345, "overlay": None,
-            "wait": (0, 0)}
+            "wait": (0, 0), "fix_bank": None}
 
 
 def parse_mappers(text, whole_file=False, name=""):
@@ -378,6 +378,10 @@ def parse_mappers(text, whole_file=False, name=""):
             if len(v) != 6:
                 raise ValueError("overlay : 6 valeurs")
             cur["overlay"] = v
+        elif key == "fix_bank":
+            if len(v) != 1 or v[0] > 2:
+                raise ValueError("fix_bank : 0, 1 (type Garou) ou 2 (type KOF 2000)")
+            cur["fix_bank"] = v[0]
         elif key == "wait":
             if len(v) != 2 or v[0] > 1 or v[1] > 2:
                 raise ValueError("wait : attente zone ROM (0-1) et zone PORT (0-2)")
@@ -432,7 +436,8 @@ def cmd_mapper(args):
     for m in maps:
         kind = [k for k, v in MAP_MODES.items() if v == m["mode"]][0]
         print(f"[{m['name']}] ngh=0x{m['ngh']:X} mapper={kind} "
-              f"table={len(m['bank_table'])} superposition={'oui' if m['overlay'] else 'non'}")
+              f"table={len(m['bank_table'])} superposition={'oui' if m['overlay'] else 'non'} "
+              f"couche_fixe={'auto' if m['fix_bank'] is None else m['fix_bank']}")
         for reg, val in mapper_registers(m):
             print(f"   reg 0x{reg:02X} = 0x{val:08X}")
     return 0

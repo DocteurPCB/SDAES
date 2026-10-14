@@ -54,7 +54,7 @@ valeur de protection, 0x0F/0x15 adresses du générateur, 0x16 graine, 0x17
 déclencheur, 0x18 codes {activation, retrait}, 0x19 adresse et 0x1A valeurs
 de la superposition. Les adresses sont des index de mot A[19:1].
 V : 0x04/0x05 base/masque V1, 0x06/0x07 base/masque V2. C : 0x03 masque C (mots de 32 bits). SM : 0x04 masque S,
-0x05 masque M1.
+0x05 masque M1, 0x06 banques de couche fixe NEO-CMC (bits 1-0 : 0, 1, 2 ; lecture bits 13-8 : dernière colonne reconnue).
 
 ## Débit
 

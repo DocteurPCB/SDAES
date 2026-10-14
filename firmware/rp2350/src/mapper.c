@@ -10,12 +10,33 @@
 
 #define PORT_BASE 0x200000u
 
+static bool ngh_match(uint32_t want, uint32_t have);
+
 void mapper_default(mapper_t *m)
 {
     memset(m, 0, sizeof(*m));
     m->mode = MAP_STD;
     for (int i = 0; i < 6; i++) m->bank_bits[i] = (uint8_t)i;
     m->rng_seed = 0x2345;
+    m->fix_bank = FIX_BANK_AUTO;
+}
+
+/* Jeux NEO-CMC dont la ROM S fait 512 Ko (wiki neogeodev « Fix bankswitching »,
+ * MAME neogeo_spr.cpp). Sans effet si la ROM S fait 128 Ko (masque). */
+uint8_t mapper_fix_bank(uint32_t ngh)
+{
+    static const struct { uint16_t ngh; uint8_t type; } t[] = {
+        { 0x253, 1 },   /* Garou */
+        { 0x256, 1 },   /* Metal Slug 3 */
+        { 0x263, 1 },   /* Metal Slug 4 */
+        { 0x257, 2 },   /* KOF 2000 */
+        { 0x266, 2 },   /* Matrimelee */
+        { 0x269, 2 },   /* SVC Chaos */
+        { 0x271, 2 },   /* KOF 2003 */
+    };
+    for (unsigned i = 0; i < sizeof(t) / sizeof(t[0]); i++)
+        if (ngh_match(t[i].ngh, ngh)) return t[i].type;
+    return 0;
 }
 
 bool mapper_builtin(uint32_t ngh, mapper_t *out)
@@ -108,6 +129,10 @@ static bool apply_key(sect_t *st, const char *key, const char *val, char *err, i
         m->ovl = true;
         m->ovl_trig = v[0]; m->ovl_on = v[1]; m->ovl_off = v[2];
         m->ovl_addr = v[3]; m->ovl_v0 = v[4]; m->ovl_v1 = v[5];
+    } else if (ieq(key, "fix_bank")) {
+        /* banques de couche fixe NEO-CMC : 0, 1 (Garou) ou 2 (KOF 2000) */
+        if (parse_nums(val, v, 1) != 1 || v[0] > 2) goto bad;
+        m->fix_bank = (uint8_t)v[0];
     } else if (ieq(key, "wait")) {
         /* cycles d'attente : zone ROM (0-1), zone PORT (0-2) */
         if (parse_nums(val, v, 2) != 2 || v[0] > 1 || v[1] > 2) goto bad;

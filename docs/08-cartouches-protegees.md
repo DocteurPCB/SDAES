@@ -16,12 +16,10 @@ D'autres agissent pendant le jeu (puce sur la cartouche qui répond au
 | **SMA** : banques brouillées, lecture de protection, générateur aléatoire | KOF 99, Garou, Metal Slug 3, KOF 2000 | ✅ intégré, **table par jeu à fournir** (voir plus bas) |
 | **PVC** : RAM de protection, (dé)compactage de couleurs, banques à décalage libre | Metal Slug 5, SVC Chaos, KOF 2003 | ✅ intégré, reconnu automatiquement (NGH 0x268, 0x269, 0x271) |
 | **Superposition KOF 98** : un code écrit en 0x20AAAA remplace deux mots en 0x000100 | KOF 98 | ✅ intégré, paramètres dans un fichier `.map` |
-| **Banques de couche fixe** (ROM S de 512 Ko, puces CMC) | Garou, Metal Slug 3, KOF 2000-2003, Metal Slug 4-5, SVC... | ❌ **à faire** (voir plus bas) |
+| **Banques de couche fixe**, type 2 (ROM S de 512 Ko, CMC50) | KOF 2000, SVC Chaos, KOF 2003 (Matrimelee) | ✅ intégré (FPGA SM), reconnu par le NGH |
+| **Banques de couche fixe**, type 1 (CMC42/50) | Metal Slug 3, Metal Slug 4 ; Garou | ✅ banque constante ; ⚠️ **approché** pour Garou (voir plus bas) |
 | PRO-CT0 (Fatal Fury 2, Super Sidekicks), protection de Metal Slug X | — | ❌ non traité |
 
-Conséquence de la ligne « banques de couche fixe » : les jeux CMC dont la
-ROM S fait plus de 128 Ko démarrent, mais le texte de la couche fixe (score,
-crédits, messages) risque d'être faux tant que ce point n'est pas réglé.
 
 ## Fichiers de description (`.map` et `MAPPERS.TXT`)
 
@@ -56,6 +54,8 @@ overlay    = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd
 wait       = 0 0              ; cycles d'attente 68000 : zone ROM (0-1), zone PORT (0-2)
              ; 0 0 = pleine vitesse (défaut). Pour les jeux qui espacent leurs
              ; accès VRAM grâce à l'attente de leur cartouche d'origine.
+fix_bank   = 2                ; banques de couche fixe NEO-CMC : 0, 1 (Garou), 2 (KOF 2000)
+             ; par défaut : d'après le NGH
 ```
 
 Le décalage de la table est ajouté à 0x100000 : la fenêtre 0x200000-0x2FFFFF
@@ -126,21 +126,48 @@ overlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd
 Ces comportements suivent l'émulation de MAME ; ils sont vérifiés en
 simulation (`hdl/sim/tb_prog.v`), pas encore sur cartouche.
 
-## À faire : banques de couche fixe
+## Banques de couche fixe (cartes NEO-CMC)
 
-Sur les cartouches CMC dont la ROM S dépasse 128 Ko, la puce CMC choisit la
-banque de 128 Ko de la couche fixe d'après des valeurs que le jeu écrit dans
-des colonnes cachées de la table de la couche fixe (VRAM 0x7500-0x75FF).
-MAME l'émule au niveau de l'image (deux variantes : Garou/Metal Slug 3 d'un
-côté, KOF 2000 et suivants de l'autre).
+Sur les cartouches CMC dont la ROM S fait 512 Ko, la puce CMC ajoute deux
+bits (A18-A17) à l'adresse S, d'après des valeurs que le jeu écrit dans les
+colonnes cachées 40 à 47 de la carte de la couche fixe (VRAM 0x7500-0x75FF,
+page « Fix bankswitching » du wiki neogeodev, MAME `neogeo_spr.cpp`).
 
-Sur le bus de la cartouche, seule la ROM S voit passer ces informations, au
-moment où le LSPC lit les colonnes cachées. Pour reproduire la puce CMC dans
-le FPGA SM, il faut d'abord savoir exactement ce que le LSPC présente sur le
-bus P lors de ces lectures. Plan proposé :
+**Ce que voit la cartouche.** Le LSPC lit ces colonnes à chaque ligne,
+pendant le retour de ligne, et les présente sur le bus P comme des numéros
+de tuile (P[11:0]) au verrou PCK2B. D'après le LSPC du cœur MiSTer NeoGeo
+(reconstitué depuis le silicium), l'ordre des lectures d'une ligne est :
+colonne 63, puis colonnes 0 à 46, deux impulsions PCK2B par colonne
+(P15 = demi-tuile), soit 96 impulsions. Le numéro de ligne dans la tuile
+(P[14:12] ; P12 change à chaque ligne) change à la lecture de la colonne 63 :
+le FPGA SM retrouve ainsi la colonne de chaque impulsion
+(`hdl/cha/cmc_fix.v`).
 
-1. sur une console, avec une cartouche d'origine concernée, capturer à
-   l'analyseur logique le bus P au front de PCK2B pendant une ligne entière ;
-2. identifier les cycles des colonnes cachées et le format des valeurs ;
-3. ajouter au FPGA SM un registre de banque par ligne (bits hauts de
-   l'adresse S), alimenté par ces cycles, sur le modèle de MAME.
+* **Type 2** (KOF 2000, SVC Chaos, KOF 2003, Matrimelee) : le mot de la
+  colonne 40 + n (n = 0..6) donne 2 bits inversés pour chacune des tuiles
+  6n à 6n+5. Il est capturé à la dernière ligne (7) d'une rangée, après ses
+  colonnes visibles, et s'applique à la rangée suivante : c'est le
+  décalage « y − 1 » de MAME. Reproduction complète.
+* **Type 1** (Garou, Metal Slug 3 et 4) : un drapeau 0x0200 en colonne 40
+  ou 41 et une banque (0xFFxx, bits 1-0 inversés) en colonne 44 ou 45 de la
+  même rangée. MAME répartit ces valeurs sur les rangées de l'écran à partir
+  de la rangée 2, ce qui exige de connaître le numéro de rangée à l'écran :
+  **la cartouche ne le voit pas** (le LSPC lit la couche fixe en continu, y
+  compris pendant le retour de trame, et aucun signal de synchronisation
+  verticale n'arrive au connecteur). SDAES applique donc la dernière banque
+  signalée jusqu'au changement suivant, et la banque 3 par défaut (comme
+  MAME sans drapeau). C'est exact pour Metal Slug 3 et 4, qui n'utilisent
+  en pratique qu'une banque ; pour Garou, les écrans qui changent de banque
+  d'une rangée à l'autre peuvent afficher du texte faux. La vraie puce CMC42
+  a forcément un moyen de se synchroniser sur la trame : il reste à le
+  trouver (analyseur logique sur une cartouche Garou d'origine).
+
+Le type est choisi d'après le NGH (table de `firmware/rp2350/src/mapper.c`)
+ou par la clé `fix_bank = 0|1|2` d'un fichier `.map` / `MAPPERS.TXT`. Il est
+sans effet si la ROM S fait 128 Ko. Registre 0x06 du FPGA SM ; le registre
+0x06 renvoie aussi (bits 13-8) la dernière colonne reconnue, utile pour
+vérifier le repérage sur console.
+
+**À valider sur matériel** : le repérage par changement de P[14:12] repose
+sur le LSPC du cœur MiSTer ; la simulation (`hdl/sim/tb_cha.v`) rejoue cette
+séquence.

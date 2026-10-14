@@ -62,7 +62,7 @@ Résultats actuels de `make test` :
 * simulations HDL au niveau carte : `tb_prog` (FPGA P + V) et `tb_cha`
   (FPGA C + SM) en SUCCÈS ; lecture du programme 68000 en 79 ns (126 ns au
   pire cas) pour une limite estimée à ~125-150 ns ;
-* placement-routage des 4 FPGA à 101-118 MHz pour 100 MHz visés.
+* placement-routage des 4 FPGA à 101-114 MHz pour 100 MHz visés.
 
 ## Documentation
 
@@ -82,5 +82,5 @@ Résultats actuels de `make test` :
 * Protections : SMA (KOF 99, Garou, Metal Slug 3, KOF 2000), PVC (Metal
   Slug 5, SVC Chaos, KOF 2003) et KOF 98 sont prises en charge
   ([détails](docs/08-cartouches-protegees.md)) ; les tables SMA s'extraient
-  du source de MAME avec `neotool.py sma-from-mame`. Les banques de couche
-  fixe des cartes CMC restent à faire.
+  du source de MAME avec `neotool.py sma-from-mame`. Banques de couche fixe
+  NEO-CMC : KOF 2000, SVC, KOF 2003, Metal Slug 3/4 ; approchées pour Garou.

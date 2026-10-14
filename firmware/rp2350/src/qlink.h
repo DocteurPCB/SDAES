@@ -43,6 +43,7 @@ typedef enum { LINK_P = 0, LINK_V = 1, LINK_C = 2, LINK_SM = 3 } link_id_t;
 /* FPGA SM */
 #define REG_S_MASK       0x04
 #define REG_M1_MASK      0x05
+#define REG_SM_FIX_BANK  0x06   /* banques de couche fixe NEO-CMC (0, 1, 2) */
 
 #define CTRL_ARM         (1u << 0)
 #define CTRL_FORCE       (1u << 1)

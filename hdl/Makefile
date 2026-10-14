@@ -15,7 +15,7 @@ COMMON = common/sync2.v common/qlink.v common/sdram.v common/wr_packer.v \
 SRC_prog_p_top = prog/p_mapper.v prog/prog_p_core.v prog/prog_p_top.v
 SRC_prog_v_top = prog/prog_v_core.v prog/prog_v_top.v
 SRC_cha_c_top  = cha/zmc2_dot.v cha/cha_c_core.v cha/cha_c_top.v
-SRC_cha_sm_top = cha/cha_sm_core.v cha/cha_sm_top.v
+SRC_cha_sm_top = cha/cmc_fix.v cha/cha_sm_core.v cha/cha_sm_top.v
 TOPS = prog_p_top prog_v_top cha_c_top cha_sm_top
 HEX  = $(BUILD)/menu_s.hex $(BUILD)/menu_m1.hex $(BUILD)/menu_p_hi.hex $(BUILD)/menu_p_lo.hex
 

@@ -72,6 +72,7 @@ class FirmwareHostTest(unittest.TestCase):
                 f.write("[kof98]\nngh = 0x242\n"
                         "overlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd\n"
                         "wait = 1 2\n"
+                        "fix_bank = 2\n"
                         "[garou]\nngh = 0x253\nmapper = sma\nbank_addr = 0x2fffc0\n"
                         "bank_bits = 5 9 7 6 14 12\nbank_table = 0x000000 0x100000\n"
                         "prot = 0x2fe446 0x9a37\nrng = 0x2fffcc 0x2ffff0\n")

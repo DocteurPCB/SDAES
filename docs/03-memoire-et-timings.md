@@ -47,6 +47,11 @@ sections « CARTOGRAPHIE » de `hdl/cha/cha_c_core.v` et
   wiki).
 * **ZMC2** : LOAD verrouille le mot C au front descendant de 12M, les pixels
   changent aussi au front descendant (page « NEO-ZMC2 »).
+* **Recoupements avec du Verilog existant** : le NEO-273 de SNKVerilog
+  (Furrtek, dépôt neogeodev) donne exactement les correspondances C et S
+  ci-dessus ; le sérialiseur ZMC2 du cœur MiSTer NeoGeo (Kyuusaku) est
+  identique à `hdl/cha/zmc2_dot.v` (décalages, table EVEN/H) et cadencé au
+  front descendant de 12M.
 * **M1** : fenêtres Z80 0x0000-0x7FFF fixe, 0x8000/16 Ko, 0xC000/8 Ko,
   0xE000/4 Ko, 0xF000/2 Ko ; banque = registre B lors d'un `IN (C)` sur les
   ports 0x0B/0x0A/0x09/0x08. Valeurs initiales 2/6/0x0E/0x1E (identité).
@@ -75,7 +80,7 @@ inversée, donnée lue capturée sur le front descendant. Résultats de
 | 68000 : alternance code P1 / données P2 | idem | **88 ns** |
 | 68000 : pire cas (adresse en même temps que /OE) | idem | **126 ns** |
 | PCK1B → deux mots C prêts | avant le LOAD suivant (~300 ns) | **125 ns** |
-| PCK2B → deux octets S prêts | ~300 ns | **120 ns** |
+| PCK2B → deux octets S prêts | ~300 ns | **140 ns** (dont 20 ns pour la banque CMC) |
 | Z80 : lecture M1 | ~300 ns | **70 ns** |
 | ADPCM : /SDROE → donnée | plusieurs centaines de ns | **98 ns** |
 
@@ -89,7 +94,7 @@ pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 | P (avec protections) | 3 653 | 28 / 32 | 94 | 103 MHz |
 | V | 1 881 | 0 | 80 | 101 MHz |
 | C | 1 785 | 0 | 89 | 107 MHz |
-| SM | 1 327 | 20 / 32 | 92 | 118 MHz |
+| SM (avec banques CMC) | 1 621 | 20 / 32 | 92 | 114 MHz |
 
 La marge à 100 MHz est faible (1 à 18 %) et dépend de la graine de
 placement ; l'affectation réelle des broches la fera varier. Si besoin, la

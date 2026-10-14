@@ -62,6 +62,39 @@ module tb_cha;
         .ba(sd_ba), .a(sd_a), .dqm(sd_dqm), .dq(sd_dq));
     sram_model u_sr (.a(sr_a), .d(sr_d), .ce_n(sr_ce_n), .oe_n(sr_oe_n), .we_n(sr_we_n));
 
+
+    // ---- couche fixe NEO-CMC : séquence LSPC d'une ligne (colonne 63, puis 0..46) ----
+    localparam [11:0] FTILE = 12'h0AB;
+    reg [11:0] fword [0:6];          // mots des colonnes 40-46
+    function [18:0] faddr(input [1:0] bk, input hf, input h1, input [2:0] ln);
+        faddr = {bk, FTILE, hf, h1, ln};
+    endfunction
+    function [7:0] fval(input [18:0] a);  fval = {a[18:17], a[4:3], 1'b1, a[2:0]}; endfunction
+    task fix_pulse(input [15:0] pv, input do_chk, input [1:0] bk, input [2:0] ln);
+        begin
+            pbus[15:0] = pv;
+            #50 pck2b = 0; #55 pck2b = 1;
+            if (do_chk) begin
+                #250 s2h1 = 0; #5 check("CMC banque, 2H1=0", fixd, fval(faddr(bk, pv[15], 1'b0, ln)));
+                s2h1 = 1; #5 check("CMC banque, 2H1=1", fixd, fval(faddr(bk, pv[15], 1'b1, ln)));
+                #245;
+            end else #510;
+        end
+    endtask
+    task fix_line(input [2:0] ln, input integer chk_col, input [1:0] bk);
+        integer c, hf;
+        reg [11:0] t;
+        begin
+            fix_pulse({1'b0, ln, 12'h000}, 0, 0, ln);   // colonne 63
+            fix_pulse({1'b1, ln, 12'h000}, 0, 0, ln);
+            for (c = 0; c < 47; c = c + 1)
+                for (hf = 0; hf < 2; hf = hf + 1) begin
+                    t = (c >= 40) ? fword[c - 40] : FTILE;
+                    fix_pulse({hf[0], ln, t}, c == chk_col, bk, ln);
+                end
+        end
+    endtask
+
     // --------------------------------------------------------------------
     localparam [19:0] TILE = 20'h00123;
     localparam [3:0]  LINE = 4'd5;
@@ -230,6 +263,33 @@ module tb_cha;
         $display("info  latence PCK2B -> octets S disponibles : %0.1f ns", $realtime - t0);
         #200 s2h1 = 0; #5 check("FIX 2H1=0", fixd, sbyte({15'd0, 12'h456, 1'b1, 1'b0, 3'd3}));
         s2h1 = 1; #5 check("FIX 2H1=1", fixd, sbyte({15'd0, 12'h456, 1'b1, 1'b1, 3'd3}));
+
+
+        // ================= banques de couche fixe NEO-CMC =================
+        $display("--- couche fixe NEO-CMC");
+        begin : cmc
+            integer bk, hf, h1, ln;
+            for (bk = 0; bk < 4; bk = bk + 1) for (hf = 0; hf < 2; hf = hf + 1)
+                for (h1 = 0; h1 < 2; h1 = h1 + 1) for (ln = 0; ln < 8; ln = ln + 1)
+                    u_sr.mem[faddr(bk, hf, h1, ln)] = fval(faddr(bk, hf, h1, ln));
+        end
+        lk_sel = SM; lk_reg_wr(8'h04, 32'h0007FFFF);
+        // type 2 : banque de la colonne 13 = bits 9:8 du mot de la colonne 42, inversés
+        lk_reg_wr(8'h06, 32'h2);
+        fword[0] = 12'h000; fword[1] = 12'h000; fword[2] = 12'h100; fword[3] = 12'h000;
+        fword[4] = 12'h000; fword[5] = 12'h000; fword[6] = 12'h000;
+        fix_line(3'd7, 99, 0);                       // dernière ligne de la rangée précédente
+        fix_line(3'd0, 13, 2'd2);                    // colonne 13 : banque ~01 = 2
+        fix_line(3'd1, 12, 2'd3);                    // colonne 12 : banque ~00 = 3
+        lk_reg_rd(8'h06, v);  check("CMC colonne lue en dernier", (v >> 8) & 63, 46);
+        // type 1 : drapeau 0x200 en colonne 40, banque 0xF01 en colonne 44 (même rangée)
+        lk_reg_wr(8'h06, 32'h1);
+        fword[0] = 12'h000; fword[4] = 12'hF01;
+        fix_line(3'd2, 13, 2'd3);                    // sans drapeau : banque 3 par défaut
+        fword[0] = 12'h200;
+        fix_line(3'd3, 99, 0);
+        fix_line(3'd4, 5, 2'd2);                     // drapeau vu : banque ~01 = 2
+        lk_reg_wr(8'h06, 32'h0);  lk_reg_wr(8'h04, 32'h0001FFFF);
 
         z80_read(16'h1234, b); check("M1 [1234]", b, mbyte(32'h1234));
         z80_bank(8'h0B, 8'h03);

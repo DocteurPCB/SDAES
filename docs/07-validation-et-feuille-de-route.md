@@ -5,7 +5,7 @@
 | Élément | Vérification |
 |---|---|
 | HDL des 4 FPGA | simulation Icarus au niveau carte (`make -C hdl sim`) : P+V et C+SM sur leurs bus de liaison partagés ; chargement, menu, bascule, lectures P anticipées avec banques, C (ZMC2, avec et sans retournement), S, M1 avec banques, ADPCM A/B, diagnostics |
-| Synthèse et placement-routage | Yosys + nextpnr iCE40 HX8K/TQ144 (`make -C hdl lint pnr`) : 1 327 à 3 653 cellules, 101 à 118 MHz pour 100 MHz visés (broches non affectées) |
+| Synthèse et placement-routage | Yosys + nextpnr iCE40 HX8K/TQ144 (`make -C hdl lint pnr`) : 1 621 à 3 653 cellules, 101 à 114 MHz pour 100 MHz visés (broches non affectées) |
 | Menu 68000 | compilé ; exécuté dans un émulateur 68000 face à une Neo Geo simulée (`tools/tests/test_menu_emu.py`) : écran, navigation, chargement, séquence de bascule depuis la RAM |
 | Pilote Z80 | assemblé (vecteurs 0x38 / 0x66 vérifiés) |
 | Firmware RP2350 | logique (navigation, protocole, chargement `.neo` vers les 4 FPGA, plan mémoire, registres, descriptions de protections) testée sur PC avec imitations de FatFs et de la liaison (`tools/tests/test_firmware.py`) |
@@ -47,8 +47,9 @@
 ## Limitations connues / à faire
 
 * Protections : SMA, PVC et superposition KOF 98 sont intégrées (voir
-  `docs/08-cartouches-protegees.md`) ; restent les **banques de couche fixe**
-  des cartes CMC (ROM S de 512 Ko), PRO-CT0 et Metal Slug X.
+  `docs/08-cartouches-protegees.md`), ainsi que les banques de couche fixe
+  NEO-CMC (type 2 complet, type 1 approché pour Garou) ; restent PRO-CT0 et
+  Metal Slug X.
 * Pas de retour au menu sans le bouton de la cartouche.
 * Mise à jour des bitstreams depuis la carte SD (le RP2350 peut écrire les
   flash SPI des FPGA) : à ajouter.

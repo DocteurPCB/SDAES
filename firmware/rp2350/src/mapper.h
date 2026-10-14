@@ -34,7 +34,15 @@ typedef struct {
     /* cycles d'attente 68000 demandés à la console (/ROMWAIT, /PWAIT0-1) :
      * zone ROM 0 ou 1, zone PORT 0, 1 ou 2 ; 0 = pleine vitesse */
     uint8_t    rom_wait, port_wait;
+    /* banques de couche fixe NEO-CMC (FPGA SM) : 0 aucune, 1 type Garou,
+     * 2 type KOF 2000 ; FIX_BANK_AUTO = selon le NGH (mapper_fix_bank) */
+    uint8_t    fix_bank;
 } mapper_t;
+
+#define FIX_BANK_AUTO 0xFF
+
+/* Type de banques de couche fixe d'après le NGH (cartes NEO-CMC). */
+uint8_t mapper_fix_bank(uint32_t ngh);
 
 /* Initialise une description "standard". */
 void mapper_default(mapper_t *m);
