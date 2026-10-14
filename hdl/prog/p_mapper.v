@@ -2,6 +2,7 @@
 // Protections et changements de banque des cartouches (FPGA P, mode jeu).
 //
 //   mode 0  STD : écriture en 0x2FFFF0-0x2FFFFF = numéro de banque de 1 Mo
+//                 (bits 2-0 de la donnée seulement)
 //   mode 1  SMA : (KOF 99, Garou, Metal Slug 3, KOF 2000)
 //                 - registre de banque à une adresse propre au jeu, numéro
 //                   brouillé (6 bits choisis dans la donnée) puis table de
@@ -270,7 +271,8 @@ module p_mapper (
             op_unpack <= 1'b0; op_pack <= 1'b0; op_bank <= 1'b0;
             if (wr_go) begin
                 if (f_std && bank_en && wr_be[0]) begin
-                    nb_val <= 23'h080000 + {d[7:0], 19'd0};
+                    // 3 bits, comme le verrou des cartes PROG (MAME write_banksel : data & 7)
+                    nb_val <= 23'h080000 + {d[2:0], 19'd0};
                     nb_set <= 1'b1;
                 end
                 if (f_bank) begin

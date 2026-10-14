@@ -289,6 +289,8 @@ module tb_prog;
         m68k_write(24'h2FFFF0, 16'h0001);
         m68k_read(24'h200080, w); check("P2 banque1 [200080]", w, pword(32'h100040));
         lk_reg_rd(8'h08, v); check("base P2 (mots) apres banque 1", v, 32'h100000);
+        m68k_write(24'h2FFFF0, 16'hFFF9);      // seuls les bits 2-0 comptent : banque 1
+        lk_reg_rd(8'h08, v); check("banque standard sur 3 bits", v, 32'h100000);
 
         adpcm_a_read(24'h012346, b); check("ADPCM-A [012346]", b, vbyte(32'h012346));
         adpcm_a_read(24'h012345, b); check("ADPCM-A [012345]", b, vbyte(32'h012345));

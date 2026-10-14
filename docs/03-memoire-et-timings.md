@@ -79,10 +79,22 @@ inversée, donnée lue capturée sur le front descendant. Résultats de
 | 68000 : /OE → donnée, code (adresse 40 ns avant /OE) | ~125-150 ns | **79 ns** (100 % d'anticipations réussies, rafraîchissements compris) |
 | 68000 : alternance code P1 / données P2 | idem | **88 ns** |
 | 68000 : pire cas (adresse en même temps que /OE) | idem | **126 ns** |
-| PCK1B → deux mots C prêts | avant le LOAD suivant (~300 ns) | **125 ns** |
-| PCK2B → deux octets S prêts | ~300 ns | **140 ns** (dont 20 ns pour la banque CMC) |
+| PCK1B → deux mots C prêts | 1er LOAD à PCK1B + 291 ns | **125 ns** |
+| PCK2B → deux octets S prêts | 1er échantillon FIXD à PCK2B + 250 ns | **140 ns** (dont 20 ns pour la banque CMC) |
 | Z80 : lecture M1 | ~300 ns | **70 ns** |
 | ADPCM : /SDROE → donnée | plusieurs centaines de ns | **98 ns** |
+
+Les contraintes C et S viennent de la **simulation du LSPC de Furrtek**
+(SNKVerilog, iverilog, période de pixel 667 ns) : après le front montant de
+PCK1B, LOAD verrouille le premier mot au front descendant de 12M à
++291 ns, le second à +625 ns ; CA4 bascule **au même instant** que ces
+verrous. Le FPGA C échantillonne donc CA4 au front montant de 12M qui
+précède (registre `ca4_sel`) au lieu de l'utiliser directement, sinon la
+moitié présentée au ZMC2 pourrait changer pendant le verrou. Côté S, le
+NEO-B1 échantillonne FIXD 41 ns avant chaque front de 2H1, le premier à
++250 ns de PCK2B. Pour le 68000, le budget après /ROMOE est d'environ
+125-135 ns (cycle sans attente) : le pire cas de SDAES (126 ns) est limite,
+d'où les sorties /ROMWAIT, /PWAIT0 et /PWAIT1 réglables (registre 0x04).
 
 S'y ajoutent les délais des tampons de niveaux (~3-5 ns pour les 74LVC en 3,3 V, ~5-8 ns pour les 74AHCT en 5 V) et des
 pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
@@ -108,5 +120,5 @@ devient limite.
 2. Sens du sérialiseur ZMC2 (ordre des pixels, rôle de EVEN et H).
 3. Fronts de démultiplexage ADPCM.
 4. Délai réel entre l'adresse 68000 et /ROMOE (efficacité de l'anticipation).
-5. Marge réelle entre PCK1B et LOAD.
+5. Marge réelle entre PCK1B et LOAD (simulée : 166 ns).
 6. Réinitialisation par le chien de garde sur AES.

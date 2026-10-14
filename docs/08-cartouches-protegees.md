@@ -10,7 +10,7 @@ D'autres agissent pendant le jeu (puce sur la cartouche qui répond au
 
 | Protection | Jeux concernés (exemples) | SDAES |
 |---|---|---|
-| Banques P standard (écriture en 0x2FFFF0) | tous les jeux de plus de 2 Mo | ✅ intégré |
+| Banques P standard (écriture en 0x2FFFF0, 3 bits de banque comme MAME `data & 7`) | tous les jeux de plus de 2 Mo | ✅ intégré |
 | CMC42 / CMC50 : chiffrement C, S, M1 | KOF 99-2003, Garou, Metal Slug 3-5, SVC, Matrimelee, Samurai Shodown V... | ✅ données déchiffrées dans le `.neo` |
 | NEO-PCM2 : chiffrement V | KOF 2002, Matrimelee, Rage of the Dragons, Metal Slug 4... | ✅ données déchiffrées dans le `.neo` |
 | **SMA** : banques brouillées, lecture de protection, générateur aléatoire | KOF 99, Garou, Metal Slug 3, KOF 2000 | ✅ intégré, **table par jeu à fournir** (voir plus bas) |
@@ -115,6 +115,9 @@ overlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd
 * **Fenêtre P2 à décalage libre** : la base de la zone 0x200000 n'est plus un
   multiple de 1 Mo mais un décalage quelconque (mots de 16 bits). La lecture
   anticipée des deux candidats (P1 et P2) fonctionne à l'identique.
+* **Banques standard** : seuls les bits 2-0 de la donnée écrite comptent
+  (8 banques de 1 Mo, comme `write_banksel` de MAME) ; un jeu qui écrit
+  par exemple 0xFFF9 sélectionne la banque 1.
 * **SMA** : l'écriture au registre de banque passe par la permutation
   `bank_bits` puis par la table (BRAM de 64 entrées) ; trois cycles plus tard
   la nouvelle base est en place. Les lectures aux adresses `prot` et `rng`

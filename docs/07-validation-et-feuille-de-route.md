@@ -10,6 +10,7 @@
 | Pilote Z80 | assemblé (vecteurs 0x38 / 0x66 vérifiés) |
 | Firmware RP2350 | logique (navigation, protocole, chargement `.neo` vers les 4 FPGA, plan mémoire, registres, descriptions de protections) testée sur PC avec imitations de FatFs et de la liaison (`tools/tests/test_firmware.py`) |
 | Protections | SMA, PVC, superposition KOF 98 : banc de test `tb_prog` ; outil d'extraction des tables SMA testé sur des extraits au format MAME |
+| Recoupement avec le Verilog de Furrtek (SNKVerilog, NeoChips) et le cœur MiSTer | ZMC2, NEO-273 (correspondances C/S), banques Z80 et décodage /SDRD0, démultiplexage ADPCM (PCM), attentes C1, PVC, SMA conformes ; LSPC simulé pour mesurer PCK1B→LOAD et PCK2B→FIXD. Deux défauts trouvés et corrigés : course CA4/LOAD, registre de banque standard sur 8 bits au lieu de 3 |
 | Outils | `tools/neotool.py` + 12 tests unitaires |
 
 ## Ce qui n'est PAS encore vérifié
