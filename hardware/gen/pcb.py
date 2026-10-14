@@ -289,8 +289,9 @@ class Layout:
         b.SetCopperLayerCount(4)
         ds = b.GetDesignSettings()
         nc = ds.m_NetSettings.m_DefaultNetClass
-        nc.SetTrackWidth(pcbnew.FromMM(0.15))
-        nc.SetClearance(pcbnew.FromMM(0.15))
+        # 0,127 mm (5 mil) : minimum courant des fabricants en 4 couches
+        nc.SetTrackWidth(pcbnew.FromMM(0.127))
+        nc.SetClearance(pcbnew.FromMM(0.127))
         nc.SetViaDiameter(pcbnew.FromMM(0.6))
         nc.SetViaDrill(pcbnew.FromMM(0.3))
         ds.m_TrackMinWidth = pcbnew.FromMM(0.127)
