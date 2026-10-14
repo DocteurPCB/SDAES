@@ -76,7 +76,8 @@ Alimentations par carte : AMS1117-3.3 (5 V → 3,3 V) et AP2112K-1.2
 `hardware/kicad/{prog,cha}/{prog,cha}.kicad_pcb` : contour, deux trous de
 10 mm pour les plots de la coque et connecteur J1 placé. Cotes reprises des
 cartes AES de jwestfall69 (`neogeo-diag-aes-prog`, `neogeo-diag-aes-cha`,
-fabriquées et testées, domaine public), identiques à 0,01 mm près, et
+fabriquées et testées, domaine public ; ce sont des cartes de test du Z80,
+reprises pour leur mécanique seulement), identiques à 0,01 mm près, et
 recoupées sur la photo de la carte SNK NEO-AEG PROG-EP du wiki :
 
 | | PROG | CHA |

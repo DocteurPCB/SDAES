@@ -8,7 +8,9 @@
 > chaque port FPGA le contact AES correspondant. **Numérotation et sens
 > physique** recoupés avec les cartes AES de jwestfall69
 > (`neogeo-diag-aes-prog`, `neogeo-diag-aes-cha`, fabriquées et testées,
-> domaine public) : A1..A50 sur la face composants (« dessus »), B1..B50 sur
+> domaine public ; cartes de test du Z80 : seules leur mécanique et la
+> position des contacts servent de référence, pas leurs choix électriques) :
+> A1..A50 sur la face composants (« dessus »), B1..B50 sur
 > l'autre ; vu côté composants, languette vers le bas, A1 et B1 sont à
 > droite, l'un derrière l'autre (sérigraphie « A1 » des cartes SNK NEO-AEG).
 > Les images du wiki montrent la face A dans l'ordre inverse (A50 en haut).
@@ -160,8 +162,6 @@ SCK et IO. Chaque carte est alimentée par son propre connecteur.
 
 ## /PDTACK et cycles d'attente
 
-Sur la carte de diagnostic de jwestfall69, les contacts B28-B31 (/ROMWAIT,
-/PDTACK, /PWAIT0, /PWAIT1) sont simplement reliés au +5 V.
 Sur une cartouche d'origine, /ROMWAIT, /PWAIT0, /PWAIT1 et /PDTACK sont
 reliés à 5 V ou à la masse pour régler les cycles d'attente du 68000
 (page « Wait cycle » du wiki). SDAES pilote les trois premiers depuis le
