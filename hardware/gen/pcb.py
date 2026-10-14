@@ -62,7 +62,7 @@ PLACE = {
         "U15": (112, 98, 0), "U17": (100, 64, None),        # FPGA SM et SRAM
         "U12": (192, 98, 0), "U14": (192, 62, None),        # FPGA C et SDRAM
         "A1": (150, 90, 0),                                    # Pico 2, au milieu
-        "J4": (150, 55, 180),                                  # microSD, ouverture vers le haut
+        "J4": (150, 55, 0),                                    # microSD, ouverture vers le haut
         "SW1": (128, 50, 0),                                   # bouton retour menu
         "J5": (172, 52, 0),                                    # câble PROG-CHA
     },
