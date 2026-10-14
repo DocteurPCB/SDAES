@@ -55,6 +55,9 @@ def run_freerouting(dsn, ses, passes):
 def import_ses(pcb, ses):
     """Pistes et vias de la session dans la carte (les anciennes sont retirées)."""
     s = parse(open(ses).read())
+    while not find(s, "routes"):              # parse() peut envelopper la session
+        s = next(e for e in s if isinstance(e, list) and find(e, "routes") or
+                 isinstance(e, list) and e and e[0] == "session")
     routes = find(s, "routes")[0]
     res = find(routes, "resolution")[0]
     unit = {"um": 1e-3, "mm": 1.0, "mil": 0.0254, "inch": 25.4}[res[1]]
@@ -110,12 +113,14 @@ def import_ses(pcb, ses):
 
 
 def drc(pcb, report):
-    subprocess.run(["kicad-cli", "pcb", "drc", "--schematic-parity", "-o", report, pcb],
-                   capture_output=True)
-    out = open(report).read()
-    for line in out.splitlines():
-        if line.startswith("**") and ("Found" in line or "violations" in line or "unconnected" in line):
+    """DRC de KiCad (module pcbnew : kicad-cli 7 n'a pas de commande drc)."""
+    b = pcbnew.LoadBoard(pcb)
+    pcbnew.WriteDRCReport(b, report, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    text = open(report).read()
+    for line in text.splitlines():
+        if line.startswith("**") and ("Found" in line or "unconnected" in line.lower()):
             print("  " + line.strip("* "))
+    return text
 
 
 def main():

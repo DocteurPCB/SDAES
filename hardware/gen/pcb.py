@@ -61,12 +61,18 @@ PLACE = {
         "U1": (150, 150, 0), "U2": (138, 150, None),
         "U15": (112, 98, 0), "U17": (100, 64, None),        # FPGA SM et SRAM
         "U12": (192, 98, 0), "U14": (192, 62, None),        # FPGA C et SDRAM
-        "A1": (150, 90, 0),                                    # Pico 2, au milieu
+        "A1": (150, 93, 0),                                    # Pico 2, au milieu
         "J4": (150, 55, 0),                                    # microSD, ouverture vers le haut
         "SW1": (128, 50, 0),                                   # bouton retour menu
         "J5": (172, 52, 0),                                    # câble PROG-CHA
     },
 }
+# 9 trous d'entretoise M3 reliant les deux cartes : mêmes coordonnées sur
+# PROG et CHA (repère commun : axe de la languette), hors composants.
+STANDOFFS = [(70, 55), (230, 55), (70, 100), (230, 100), (70, 150), (230, 150),
+             (130, 100), (170, 100), (150, 124)]
+STANDOFF_FP = "MountingHole:MountingHole_3.2mm_M3"
+STANDOFF_KEEP = 3.5            # rayon sans composant ni cuivre autour (mm)
 MARGIN = 0.3       # écart minimal entre deux composants (mm)
 POWER = {"GND", "+3V3", "+1V2", "+5V"}
 
@@ -107,6 +113,10 @@ def allowed(r, is_edge=False):
         k = outline.HOLE_D / 2 + 1.5
         if overlap(r, (hx - k, hy - k, hx + k, hy + k)):
             return False
+    for hx, hy in STANDOFFS:
+        k = STANDOFF_KEEP
+        if overlap(r, (hx - k, hy - k, hx + k, hy + k)):
+            return False
     return True
 
 
@@ -125,6 +135,14 @@ class Layout:
         for f in self.board.GetFootprints():          # J1 déjà placé par outline
             self.edge_fp = f
         self.taken = []
+        for i, (x, y) in enumerate(STANDOFFS):
+            fp = load_fp(STANDOFF_FP)
+            fp.SetReference(f"H{i + 1}")
+            fp.SetValue("Entretoise M3")
+            fp.SetBoardOnly(True)
+            fp.SetExcludedFromBOM(True)
+            fp.SetPosition(mm(x, y))
+            self.board.Add(fp)
 
     # -- composants -------------------------------------------------------
     def add(self, part, x, y, rot):
@@ -294,7 +312,7 @@ class Layout:
         nc.SetClearance(pcbnew.FromMM(0.127))
         nc.SetViaDiameter(pcbnew.FromMM(0.6))
         nc.SetViaDrill(pcbnew.FromMM(0.3))
-        ds.m_TrackMinWidth = pcbnew.FromMM(0.127)
+        ds.m_TrackMinWidth = pcbnew.FromMM(0.09)        # rétrécissement à l'entrée des broches
         ds.m_ViasMinSize = pcbnew.FromMM(0.45)
         ds.m_MinThroughDrill = pcbnew.FromMM(0.3)
         pw = pcbnew.NETCLASS("Alim")
@@ -321,6 +339,106 @@ class Layout:
                          (CX + w / 2 - 0.5, SHOULDER - 0.5), (CX - w / 2 + 0.5, SHOULDER - 0.5)):
                 ol.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
             b.Add(z)
+
+        # zones interdites (pistes, vias, plans) autour des trous
+        for (x, y), r in [(h, outline.HOLE_D / 2 + 0.8) for h in HOLES] + \
+                         [(h, STANDOFF_KEEP) for h in STANDOFFS]:
+            k = pcbnew.ZONE(b)
+            k.SetIsRuleArea(True)
+            k.SetDoNotAllowTracks(True)
+            k.SetDoNotAllowVias(True)
+            k.SetDoNotAllowCopperPour(True)
+            k.SetDoNotAllowPads(False)
+            k.SetDoNotAllowFootprints(False)
+            k.SetLayerSet(pcbnew.LSET.AllCuMask())
+            ol = k.Outline()
+            ol.NewOutline()
+            for i in range(24):
+                a = 2 * math.pi * i / 24
+                ol.Append(pcbnew.FromMM(x + r * math.cos(a)), pcbnew.FromMM(y + r * math.sin(a)))
+            b.Add(k)
+
+    def fanout_planes(self):
+        """Via de raccordement aux plans internes pour chaque pastille CMS de
+        masse ou de +3V3, posé avant le routage (Freerouting en oubliait) :
+        dans le prolongement de la pastille, vers l'extérieur du composant,
+        sinon dans la direction libre la plus proche."""
+        b = self.board
+        via_d, via_drill, clr = 0.6, 0.3, 0.15
+        obst = []      # (x0, y0, x1, y1, net, faces) des pastilles
+        for fp in b.GetFootprints():
+            for p in fp.Pads():
+                bb = p.GetBoundingBox()
+                faces = {"F", "B"} if p.GetAttribute() == pcbnew.PAD_ATTRIB_PTH or p.GetAttribute() == pcbnew.PAD_ATTRIB_NPTH \
+                    else ({"B"} if fp.IsFlipped() else {"F"})
+                obst.append((pcbnew.ToMM(bb.GetLeft()), pcbnew.ToMM(bb.GetTop()), pcbnew.ToMM(bb.GetRight()),
+                             pcbnew.ToMM(bb.GetBottom()), p.GetNetname(), faces, p))
+        vias = []
+
+        def free(x, y, net, pad):
+            r = via_d / 2 + clr
+            in_tab = (abs(x - CX) < outline.TAB_W / 2 - 1 and SHOULDER - 1 < y < EDGE_Y - 10.8)
+            if not allowed((x - r, y - r, x + r, y + r)) and not in_tab:
+                return False
+            for hx, hy in HOLES + STANDOFFS:
+                if math.hypot(x - hx, y - hy) < 6.5:
+                    return False
+            for x0, y0, x1, y1, n, faces, p in obst:
+                if p is pad:
+                    continue
+                dx = max(x0 - x, 0, x - x1)
+                dy = max(y0 - y, 0, y - y1)
+                if math.hypot(dx, dy) < r + (0 if n == net else 0.05):
+                    return False
+            for vx, vy in vias:
+                if math.hypot(x - vx, y - vy) < via_d + clr:
+                    return False
+            return True
+
+        n_ok = n_ko = 0
+        for fp in b.GetFootprints():
+            c = fp.GetPosition()
+            cx, cy = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
+            layer = pcbnew.B_Cu if fp.IsFlipped() else pcbnew.F_Cu
+            for p in fp.Pads():
+                if p.GetNetname() not in PLANES or p.GetAttribute() != pcbnew.PAD_ATTRIB_SMD:
+                    continue
+                v = p.GetPosition()
+                px, py = pcbnew.ToMM(v.x), pcbnew.ToMM(v.y)
+                bb = p.GetBoundingBox()
+                half = max(pcbnew.ToMM(bb.GetWidth()), pcbnew.ToMM(bb.GetHeight())) / 2
+                a0 = math.atan2(py - cy, px - cx) if (px, py) != (cx, cy) else 0.0
+                # direction principale : axe de la pastille le plus proche de a0
+                a0 = round(a0 / (math.pi / 2)) * (math.pi / 2)
+                done = False
+                for da in (0, 0.5, -0.5, 1.0, -1.0, 1.57, -1.57, 3.14):
+                    for dist in (half + via_d / 2 + 0.25, half + via_d / 2 + 0.6, half + 1.4):
+                        a = a0 + da
+                        x, y = px + dist * math.cos(a), py + dist * math.sin(a)
+                        if free(x, y, p.GetNetname(), p):
+                            via = pcbnew.PCB_VIA(b)
+                            via.SetPosition(mm(x, y))
+                            via.SetWidth(pcbnew.FromMM(via_d))
+                            via.SetDrill(pcbnew.FromMM(via_drill))
+                            via.SetNet(p.GetNet())
+                            b.Add(via)
+                            t = pcbnew.PCB_TRACK(b)
+                            t.SetStart(v)
+                            t.SetEnd(mm(x, y))
+                            t.SetWidth(pcbnew.FromMM(0.25 if half < 0.6 else 0.3))
+                            t.SetLayer(layer)
+                            t.SetNet(p.GetNet())
+                            b.Add(t)
+                            vias.append((x, y))
+                            done = True
+                            break
+                    if done:
+                        break
+                n_ok += done
+                n_ko += not done
+                if not done:
+                    print(f"  sans via : {fp.GetReference()}.{p.GetNumber()} ({p.GetNetname()})")
+        print(f"  vias vers les plans : {n_ok} posés, {n_ko} sans place")
 
     def save(self):
         out = os.path.join(KICAD, self.name, f"{self.name}.kicad_pcb")
@@ -426,6 +544,7 @@ def build(name):
     L = Layout(name)
     L.place()
     L.finish()
+    L.fanout_planes()
     out = L.save()
     print(f"{out} : {len(L.fps)} composants, longueur estimée des liaisons {L.hpwl(list(L.fps)):.0f} mm")
     return L
