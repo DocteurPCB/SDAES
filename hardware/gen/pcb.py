@@ -68,6 +68,7 @@ PLACE = {
     },
 }
 MARGIN = 0.3       # écart minimal entre deux composants (mm)
+POWER = {"GND", "+3V3", "+1V2", "+5V"}
 
 
 def mm(x, y):
@@ -203,18 +204,37 @@ class Layout:
             r = bbox(self.fps[a.ref])
             if a.ref != "J1" and not allowed(r):
                 print(f"  ATTENTION : {a.ref} sort de la zone autorisée {tuple(round(v, 1) for v in r)}")
+            sides = self.sides(self.fps[a.ref])
             for o in self.taken:
-                if overlap(r, o[1]):
+                if overlap(r, o[1]) and sides & o[2]:
                     print(f"  ATTENTION : {a.ref} chevauche {o[0]}")
-            self.taken.append((a.ref, r))
+            self.taken.append((a.ref, r, sides))
         # satellites : près de la broche de l'ancre qui partage un réseau
         for a, sats in groups:
             used_pads = {}
+            big = len(self.fps[a.ref].Pads()) >= 14 and a.ref.startswith("U")
             for s in sats:
                 fp = self.add(s, 0, 0, 0)
                 target = self.target(a, s, used_pads)
-                self.drop(fp, target, a)
+                bottom = big and s.ref.startswith("C") and set(s.nets.values()) <= POWER
+                if bottom:
+                    # découplage sous le boîtier, face arrière : la face
+                    # composants reste libre pour la sortie des broches
+                    c = self.fps[a.ref].GetPosition()
+                    cx, cy = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
+                    dx, dy = cx - target[0], cy - target[1]
+                    dist = math.hypot(dx, dy) or 1
+                    pull = min(4.0, 0.6 * dist)
+                    target = (target[0] + dx / dist * pull, target[1] + dy / dist * pull)
+                self.drop(fp, target, a, bottom)
         return missing
+
+    @staticmethod
+    def sides(fp):
+        """Faces occupées : traversant = les deux."""
+        if any(p.GetAttribute() == pcbnew.PAD_ATTRIB_PTH for p in fp.Pads()):
+            return {"F", "B"}
+        return {"B"} if fp.IsFlipped() else {"F"}
 
     def target(self, anchor, sat, used):
         """Point visé pour un satellite : broche de l'ancre de même réseau (hors
@@ -237,7 +257,7 @@ class Layout:
         x, y = self.fps[anchor.ref].GetPosition().x, self.fps[anchor.ref].GetPosition().y
         return pcbnew.ToMM(x), pcbnew.ToMM(y)
 
-    def drop(self, fp, target, anchor):
+    def drop(self, fp, target, anchor, bottom=False):
         """Pose `fp` à l'emplacement libre le plus proche de `target` (spirale
         sur une grille de 0,5 mm), tourné pour pointer vers l'ancre."""
         ax, ay = (pcbnew.ToMM(v) for v in (self.fps[anchor.ref].GetPosition().x,
@@ -245,6 +265,9 @@ class Layout:
         tx, ty = target
         horiz = abs(tx - ax) < abs(ty - ay)       # broche en haut/bas de l'ancre
         fp.SetOrientationDegrees(90 if horiz else 0)
+        if bottom:
+            fp.Flip(fp.GetPosition(), False)
+        sides = self.sides(fp)
         for rad in range(0, 80):
             cands = []
             for i in range(-rad, rad + 1):
@@ -255,8 +278,8 @@ class Layout:
                 x, y = tx + i * 0.5, ty + j * 0.5
                 fp.SetPosition(mm(x, y))
                 r = bbox(fp)
-                if allowed(r) and not any(overlap(r, o[1]) for o in self.taken):
-                    self.taken.append((fp.GetReference(), r))
+                if allowed(r) and not any(overlap(r, o[1]) and sides & o[2] for o in self.taken):
+                    self.taken.append((fp.GetReference(), r, sides))
                     return
         raise SystemExit(f"pas de place pour {fp.GetReference()}")
 
