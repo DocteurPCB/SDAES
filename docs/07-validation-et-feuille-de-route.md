@@ -58,3 +58,6 @@
 * Bitstreams des FPGA lus sur la carte SD à chaque démarrage (pas de
   flash) : mise à jour = copier `SDAES/fpga_*.bin` (`make -C hdl sd`).
 * Version MVS : autre brochage et autre forme de carte ; HDL réutilisable.
+* Plus tard : écran d'accueil personnalisable depuis la carte SD (image de
+  fond en sprites convertie par un outil PC, chargée par le RP2350 dans la
+  SDRAM C avant le menu ; couleurs, logo, police, musique).
