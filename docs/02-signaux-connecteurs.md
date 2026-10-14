@@ -1,4 +1,4 @@
-# 2. Signaux des connecteurs et translateurs de niveaux
+# 2. Signaux des connecteurs et tampons de niveaux
 
 > **Source.** Le brochage ci-dessous est relevé sur les images de la page
 > « AES cartridge pinout » du wiki neogeodev ; les rôles des signaux viennent
@@ -99,15 +99,15 @@ comme sur une cartouche d'origine, **à vérifier**).
 | `SDPA[11:8]` | V | → | ADPCM-B : adresse (multiplexée) |
 | `SDPMPX`, `SDPOE_N` | V | → | ADPCM-B : strobe, lecture |
 
-Translateurs (74LVC16T245, TSSOP-48 ; côté A = 3,3 V FPGA, côté B = 5 V) :
+Tampons de niveaux (voir « Niveaux 5 V » plus bas) :
 
-| Groupe | Canaux | DIR | /OE |
-|---|---|---|---|
-| U1-U2 entrées FPGA P | A1-A19, ROMOE, PORTOEU/L, PORTWEL/U (24, trois moitiés) | fixe B→A | `XLAT_EN_N` (P) |
-| U2, 2e moitié : sorties FPGA P | ROMWAIT, PWAIT0, PWAIT1 (3) | fixe A→B | `XLAT_EN_N` (P) |
-| U3 bus D | D0-D15 | `D_DIR` (1 = FPGA → console) | `XLAT_EN_N` (P) |
-| U4 entrées FPGA V | SDRA8-9, 20-23, SDRMPX, SDROE, SDPA8-11, SDPMPX, SDPOE (14) | fixe B→A | `XLAT_EN_N` (P) |
-| U5 bus ADPCM | SDRAD0-7 (moitié 1), SDPAD0-7 (moitié 2) | `RAD_DIR`, `PAD_DIR` | `XLAT_EN_N` (P) |
+| Repère | Composant | Canaux | Sens | /OE |
+|---|---|---|---|---|
+| U1-U2 | 74LVC16244A (3,3 V) | A1-A19, ROMOE, PORTOEU/L, PORTWEL/U (24) | console → FPGA P | `XLAT_EN_N` |
+| U3 | 74LVC16244A (3,3 V) | SDRA8-9, 20-23, SDRMPX, SDROE, SDPA8-11, SDPMPX, SDPOE (14) | console → FPGA V | `XLAT_EN_N` |
+| U4 | 74LVC16245A (3,3 V) | D0-D15 | `D_DIR` (1 = FPGA → console) | `XLAT_EN_N` |
+| U5 | 74LVC16245A (3,3 V) | SDRAD0-7 (moitié 1), SDPAD0-7 (moitié 2) | `RAD_DIR`, `PAD_DIR` | `XLAT_EN_N` |
+| U6 | 74AHCT125 (5 V) | ROMWAIT, PWAIT0, PWAIT1 | FPGA P → console | `OE5_N` |
 
 ## Carte CHA
 
@@ -124,16 +124,19 @@ Translateurs (74LVC16T245, TSSOP-48 ; côté A = 3,3 V FPGA, côté B = 5 V) :
 | `SDMRD_N`, `SDROM_N`, `SDRD0_N` | SM | → | lecture mémoire, sélection M1, ports de banques |
 | `SDD[7:0]` | SM | ← | donnée Z80 (pilotée seulement en lecture M1) |
 
-Translateurs :
+Tampons de niveaux :
 
-| Groupe | Canaux | DIR | /OE |
-|---|---|---|---|
-| U1-U4 entrées | P0-23, PCK1B/2B, CA4, S2H1, 12M, EVEN, LOAD, H, SDA0-15, SDMRD, SDROM, SDRD0 (51) | fixe B→A | `XLAT_EN_N` (C) |
-| U5-U6 sorties | GAD, GBD, DOTA, DOTB, FIXD (18) | fixe A→B | `XLAT_EN_N` (C) |
-| U7 SDD (74LVC8T245) | SDD0-7 | fixe A→B | `SDD_OE_N` (SM, combinatoire) |
+| Repère | Composant | Canaux | Sens | /OE |
+|---|---|---|---|---|
+| U1-U4 | 74LVC16244A (3,3 V) | P0-23, PCK1B/2B, CA4, 2H1, 12M, EVEN, LOAD, H, SDA0-15, SDMRD, SDROM, SDRD0 (51) | console → FPGA C et SM | `XLAT_EN_N` |
+| U5-U6 | 74AHCT16244 (5 V) | GAD, GBD, DOTA, DOTB, FIXD (18) | FPGA C et SM → console | `OE5_N` |
+| U7 | 74AHCT244 (5 V) | SDD0-7 | FPGA SM → Z80 | `SDD_OE5_N` |
 
-Les sorties des translateurs d'entrée U1-U4 alimentent les deux FPGA (P0-15
-vers C et SM).
+Les sorties de U1-U4 alimentent les deux FPGA (P0-15 vers C et SM).
+`SDD_OE5_N` = `SDD_OE_N` OU `OE5_N` (porte 74AHCT1G32 en 5 V) :
+`SDD_OE_N` vient directement du FPGA SM (combinatoire, rapide : le bus Z80
+doit être relâché sans retard), `OE5_N` garantit la haute impédance à la
+mise sous tension (voir « Mise sous tension »).
 
 ## Câble inter-cartes (12 contacts)
 
@@ -158,14 +161,55 @@ reliés à 5 V ou à la masse pour régler les cycles d'attente du 68000
 (page « Wait cycle » du wiki). SDAES pilote les trois premiers depuis le
 FPGA P (pleine vitesse par défaut ; quelques jeux ont besoin d'attente pour
 espacer leurs accès VRAM) et tire /PDTACK à 5 V par une résistance de
-10 kΩ (aucune cartouche commerciale ne l'utilise). Avec les translateurs en
+10 kΩ (aucune cartouche commerciale ne l'utilise). Avec les tampons en
 haute impédance (FPGA non configurés), des résistances de 10 kΩ vers 5 V
 sur les trois sorties d'attente donnent la pleine vitesse.
 
+## Niveaux 5 V
+
+La console ne connaît que le 5 V, et une partie de ses signaux sort de
+logique TTL dont le niveau haut peut ne pas dépasser 2,7-3,4 V (par
+exemple PCK1B et PCK2B, issus d'inverseurs 74AS04 d'après le wiki
+neogeodev). Aucune broche de FPGA ne touche le connecteur, et les
+tampons sont choisis selon le sens :
+
+* **console → cartouche : 74LVC16244A / 74LVC16245A alimentés en 3,3 V.**
+  Entrées tolérantes au 5 V (5,5 V max), seuil TTL (niveau haut reconnu
+  dès 2,0 V), sorties 3,3 V vers les FPGA. Un translateur double tension
+  (74LVC16T245) aurait un seuil de 0,7 x 5 V = 3,5 V côté console : trop
+  haut pour des sorties TTL. Ce composant n'est donc plus utilisé.
+* **cartouche → console, puces vidéo SNK (pixels, couche fixe), attentes
+  et Z80 : 74AHCT alimentés en 5 V.** Leurs entrées TTL acceptent le 3,3 V
+  des FPGA et leurs sorties montent à 5 V, ce qui convient quel que soit
+  le seuil des puces de la console (à confirmer sur matériel pour les
+  puces SNK).
+* **bus bidirectionnels D (68000) et SDRAD/SDPAD (YM2610) : 74LVC16245A en
+  3,3 V.** Dans le sens cartouche → console, le niveau haut est de 3,3 V :
+  suffisant pour les entrées TTL du 68000 et du YM2610 (niveau haut à
+  partir de 2,0 V ; à confirmer pour le YM2610). Hors lecture, leurs
+  sorties sont en haute impédance et supportent le 5 V du bus.
+
 ## Mise sous tension
 
-`XLAT_EN_N` est tiré à 3,3 V par une résistance de 10 kΩ : tant que les
-FPGA ne sont pas configurés (quelques dizaines de ms depuis la flash SPI), **tous les
-translateurs sont en haute impédance** et la cartouche est électriquement
-absente du bus. Le FPGA P (resp. C) force `XLAT_EN_N` à 0 une fois sa PLL
-verrouillée.
+Deux signaux de validation, tirés vers l'état « désactivé » par des
+résistances de 10 kΩ :
+
+* `XLAT_EN_N` (tampons 74LVC, 3,3 V) : tiré à 3,3 V. Tant que le 3,3 V
+  n'est pas établi, ces tampons non alimentés restent en haute impédance
+  (fonction Ioff des 74LVC...A) ; ensuite, la résistance les garde
+  désactivés.
+* `OE5_N` (tampons 74AHCT, 5 V) : tiré à **5 V**. Ces tampons sont
+  alimentés dès la mise sous tension de la console : tirer leur /OE au
+  3,3 V les activerait pendant la montée du régulateur. Le FPGA commande
+  `OE5_N` à travers un 74LVC1G07 (drain ouvert, sortie tolérante au 5 V,
+  alimenté en 3,3 V) : non alimenté ou au repos, il laisse la résistance
+  tenir `OE5_N` à 5 V. `OE5_N` ne change qu'une fois, après la
+  configuration : la lenteur du drain ouvert (résistance de tirage) est
+  sans conséquence. `SDD_OE5_N` (carte CHA) = `SDD_OE_N` OU `OE5_N`.
+
+Tant que les FPGA ne sont pas configurés (quelques dizaines de ms depuis la
+flash SPI), **tous les tampons sont en haute impédance** et la cartouche
+est électriquement absente du bus. Le FPGA P (resp. C) force `XLAT_EN_N`
+à 0 une fois sa PLL verrouillée ; `OE5_N` suit `XLAT_EN_N` (même broche
+du FPGA, à travers le 74LVC1G07). La cartouche ne doit pas être branchée
+console allumée.

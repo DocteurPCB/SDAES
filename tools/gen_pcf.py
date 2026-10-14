@@ -41,7 +41,7 @@ with open(out, "w") as f:
     f.write("# Gabarit généré par tools/gen_pcf.py : compléter les numéros de broches.\n")
     f.write("# CLK25 sur une entrée globale (GBIN) ; voir hardware/README.md pour les\n")
     f.write("# signaux utilisés comme horloges. « AES ... » = contact du connecteur de\n")
-    f.write("# cartouche relié à ce port à travers un translateur (hardware/aes_connector.csv).\n")
+    f.write("# cartouche relié à ce port à travers un tampon de niveaux (hardware/aes_connector.csv).\n")
     for d, p in ports:
         c = contact(p)
         f.write(f"# set_io {p} ?    # {d}" + (f", AES {c}" if c else "") + "\n")

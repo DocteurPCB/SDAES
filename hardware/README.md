@@ -36,7 +36,7 @@ utilisables pour les signaux venant de la console).
 
 1. Relever le brochage et les cotes des cartes AES PROG/CHA sur une
    cartouche réelle (voir `docs/02-signaux-connecteurs.md`).
-2. Schémas : alimentations, FPGA + flash SPI, SDRAM, SRAM, translateurs,
+2. Schémas : alimentations, FPGA + flash SPI, SDRAM, SRAM, tampons de niveaux,
    Pico 2 + microSD (CHA), câble inter-cartes.
 3. Routage 4 couches, contacts dorés chanfreinés.
 4. Compléter les fichiers `.pcf` puis `make -C hdl bits`.

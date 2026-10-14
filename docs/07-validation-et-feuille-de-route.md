@@ -25,6 +25,9 @@
 * `qlink.c`, `main.c`, `hw_config.c` n'ont pas été compilés avec le SDK Pico
   (pas d'accès au SDK dans l'environnement de développement).
 * Timing avec les vraies broches (fichiers `.pcf` à compléter).
+* Niveaux : seuils d'entrée des puces vidéo SNK et du YM2610 ; à l'allumage,
+  vérifier à l'oscilloscope que les tampons restent en haute impédance
+  pendant la montée des alimentations.
 * Comportement du BIOS AES avec le menu (code de sécurité recopié,
   réinitialisation par chien de garde).
 

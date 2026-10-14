@@ -67,7 +67,7 @@ Résultats actuels de `make test` :
 ## Documentation
 
 1. [Architecture](docs/01-architecture.md)
-2. [Signaux et translateurs](docs/02-signaux-connecteurs.md)
+2. [Signaux et niveaux 5 V](docs/02-signaux-connecteurs.md)
 3. [Mémoires et timings](docs/03-memoire-et-timings.md)
 4. [Liaison RP2350 ↔ FPGA](docs/04-liaison-rp2350.md)
 5. [Menu et firmware](docs/05-menu-et-firmware.md)

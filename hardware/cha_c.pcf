@@ -2,7 +2,7 @@
 # Gabarit généré par tools/gen_pcf.py : compléter les numéros de broches.
 # CLK25 sur une entrée globale (GBIN) ; voir hardware/README.md pour les
 # signaux utilisés comme horloges. « AES ... » = contact du connecteur de
-# cartouche relié à ce port à travers un translateur (hardware/aes_connector.csv).
+# cartouche relié à ce port à travers un tampon de niveaux (hardware/aes_connector.csv).
 # set_io CLK25 ?    # input
 # set_io P[0] ?    # input, AES CHA dessus 40
 # set_io P[1] ?    # input, AES CHA dessous 11

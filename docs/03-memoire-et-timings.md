@@ -84,7 +84,7 @@ inversée, donnée lue capturée sur le front descendant. Résultats de
 | Z80 : lecture M1 | ~300 ns | **70 ns** |
 | ADPCM : /SDROE → donnée | plusieurs centaines de ns | **98 ns** |
 
-S'y ajoutent les délais des translateurs (~4-6 ns par traversée) et des
+S'y ajoutent les délais des tampons de niveaux (~3-5 ns pour les 74LVC en 3,3 V, ~5-8 ns pour les 74AHCT en 5 V) et des
 pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 
 ## Placement-routage (nextpnr, broches non affectées)
