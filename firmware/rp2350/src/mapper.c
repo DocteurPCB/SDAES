@@ -76,14 +76,24 @@ bool mapper_builtin(uint32_t ngh, mapper_t *out)
     return false;
 }
 
-void mapper_ms5_resolve(mapper_t *m, uint32_t psize, uint32_t crc_p1)
+void mapper_pvc_resolve(mapper_t *m, uint32_t psize, uint32_t crc_p1)
 {
-    if (!m->builtin || m->mode != MAP_PVC || psize >= MS5_PVC_MIN_PSIZE) return;
-    if (!ngh_match(0x268, m->ngh_seen)) return;
-    /* Metal Slug 5 Plus : banques propres ; sinon (bootleg mslug5b...) :
-     * aucune protection en jeu, banques standard */
-    m->mode = (crc_p1 == MS5PLUS_P1_CRC) ? MAP_MS5P : MAP_STD;
-    snprintf(m->name, sizeof(m->name), m->mode == MAP_MS5P ? "ms5plus" : "mslug5-5mo");
+    if (!m->builtin || m->mode != MAP_PVC) return;
+    const char *name = NULL;
+    if (ngh_match(0x268, m->ngh_seen) && psize <= 0x500000u) {
+        m->mode = (crc_p1 == MS5PLUS_P1_CRC) ? MAP_MS5P : MAP_STD;
+        name = m->mode == MAP_MS5P ? "ms5plus" : "mslug5-bootleg";
+    } else if (ngh_match(0x269, m->ngh_seen) && psize <= 0x700000u) {
+        m->mode = MAP_STD;
+        name = "svcplus";
+    } else if (ngh_match(0x271, m->ngh_seen) && psize <= 0x800000u) {
+        m->mode = psize > 0x700000u ? MAP_K3B : psize > 0x600000u ? MAP_K3P : MAP_STD;
+        name = m->mode == MAP_K3B ? "kf2k3bl" : m->mode == MAP_K3P ? "kf2k3pl" : "kof2003-bootleg";
+    }
+    if (name) {
+        m->fix_bank = 0;             /* bootlegs : ROM S de 128 Ko, pas de banques CMC */
+        snprintf(m->name, sizeof(m->name), "%s", name);
+    }
 }
 
 /* NGH écrit en hexadécimal "à la SNK" (0x251) ou en décimal (251) */
@@ -137,6 +147,8 @@ static bool apply_key(sect_t *st, const char *key, const char *val, char *err, i
         else if (!strncmp(val, "std", 3)) m->mode = MAP_STD;
         else if (!strncmp(val, "ct0", 3)) m->mode = MAP_CT0;
         else if (!strncmp(val, "ms5p", 4)) m->mode = MAP_MS5P;
+        else if (!strncmp(val, "k3b", 3)) m->mode = MAP_K3B;
+        else if (!strncmp(val, "k3p", 3)) m->mode = MAP_K3P;
         else goto bad;
     } else if (ieq(key, "bank_addr")) {
         if (parse_nums(val, v, 1) != 1) goto bad;

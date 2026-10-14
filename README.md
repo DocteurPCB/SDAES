@@ -37,7 +37,7 @@ QFN.
 | `menu/` | menu Neo Geo : programme 68000 (`68k/`) et pilote Z80 (`z80/`) |
 | `firmware/rp2350/` | firmware du Pico 2 (SDK Pico + FatFs SDIO) et test sur PC |
 | `protocol/` | protocole menu ↔ RP2350, partagé |
-| `tools/` | `neotool.py` (.neo, police, BRAM, code de sécurité), tests |
+| `tools/` | `neotool.py` (.neo, police, BRAM, code de sécurité, bootlegs avec `mame_sets.py`), tests |
 | `hardware/` | brochage du connecteur AES (`aes_connector.csv`), gabarits de contraintes FPGA (`.pcf`), futurs projets KiCad |
 
 ## Construire et tester
@@ -82,7 +82,8 @@ Résultats actuels de `make test` :
 * Protections : SMA (KOF 99, Garou, Metal Slug 3, KOF 2000), PVC (Metal
   Slug 5, SVC Chaos, KOF 2003), KOF 98, PRO-CT0 (Fatal Fury 2, Super
   Sidekicks), Metal Slug X (P1 corrigée au chargement), Metal Slug 5 Plus
-  et le bootleg de Metal Slug 5 sont pris en charge
+  et les bootlegs de Metal Slug 5, SVC Chaos et KOF 2003 sont pris en
+  charge (`neotool mame` fabrique leurs `.neo`)
   ([détails](docs/08-cartouches-protegees.md)) ; les tables SMA s'extraient
   du source de MAME avec `neotool.py sma-from-mame`. Banques de couche fixe
   NEO-CMC : KOF 2000, SVC, KOF 2003, Metal Slug 3/4 ; approchées pour Garou.

@@ -25,6 +25,12 @@
 //                 0x2FFFF0-0x2FFFFF = 0x00A0 ; écriture de 0xA0 en 0x2FFFF0 :
 //                 fenêtre P2 à l'octet 0xA0 ; écriture en 0x2FFFF4 : fenêtre
 //                 à (donnée >> 4) x 1 Mo.
+//   modes 5/6 K3B/K3P : bootlegs de KOF 2003 (MAME prot_kof2k3bl.cpp) ;
+//                 RAM de 8 Ko en 0x2FE000 comme la PVC, sans les couleurs ;
+//                 écriture en 0x2FFFF0/0x2FFFF2 : banque. K3B (kf2k3bl,
+//                 kf2k3upl) comme la PVC, et un mot lisible en 0x058196 dont
+//                 l'octet bas reprend l'octet bas de 0xFF9 ; K3P (kf2k3pl) :
+//                 banque avec l'octet bas de 0xFF8.
 //   superposition (KOF 98) : une écriture d'un code à une adresse donnée
 //                 remplace deux mots de la zone P1 par d'autres valeurs.
 //
@@ -66,10 +72,14 @@ module p_mapper (
     output reg  [15:0] gw_data,
     output reg  [1:0]  gw_mask
 );
-    localparam M_STD = 3'd0, M_SMA = 3'd1, M_PVC = 3'd2, M_CT0 = 3'd3, M_MS5P = 3'd4;
+    localparam M_STD = 3'd0, M_SMA = 3'd1, M_PVC = 3'd2, M_CT0 = 3'd3, M_MS5P = 3'd4,
+               M_K3B = 3'd5, M_K3P = 3'd6;
 
     reg [2:0]  mode = M_STD;
-    assign pvc_mode = (mode == M_PVC);
+    // RAM de protection de 8 Ko en 0x2FE000 (PVC et bootlegs de KOF 2003)
+    wire   ram_mode = (mode == M_PVC) || (mode == M_K3B) || (mode == M_K3P);
+    assign pvc_mode = ram_mode;
+    reg [15:0] k3_ovl = 16'h0000;      // mot lu en 0x058196 (mode K3B)
     reg        ovl_en = 1'b0;
     reg [18:0] sma_bank_addr = 19'h7FFF8;
     reg [23:0] sma_perm = 24'h543210;
@@ -178,14 +188,16 @@ module p_mapper (
     wire        in_pvc_regs   = in_pvc_region && (a[11:4] == 8'hFF) && (a[3:0] <= 4'd9);
     reg  f_prot = 1'b0, f_rng0 = 1'b0, f_rng1 = 1'b0, f_pvcr = 1'b0, f_pvcram = 1'b0;
     reg  f_ovl0 = 1'b0, f_ovl1 = 1'b0, f_bank = 1'b0, f_trig = 1'b0, f_std = 1'b0;
-    reg  f_ct0 = 1'b0, f_ms5p = 1'b0;
+    reg  f_ct0 = 1'b0, f_ms5p = 1'b0, f_pvchi = 1'b0, f_k3ovl = 1'b0;
     reg  [1:0] ct0_eh = 2'b00;    // {EVEN, H} = {A2, A3} de la lecture
     always @(posedge clk) begin
         f_prot   <= mode == M_SMA && prot_en && a == prot_addr;
         f_rng0   <= mode == M_SMA && rng_en0 && a == rng_addr0;
         f_rng1   <= mode == M_SMA && rng_en1 && a == rng_addr1;
-        f_pvcr   <= mode == M_PVC && in_pvc_regs;
-        f_pvcram <= mode == M_PVC && in_pvc_region && !in_pvc_regs;
+        f_pvcr   <= ram_mode && in_pvc_regs;
+        f_pvcram <= ram_mode && in_pvc_region && !in_pvc_regs;
+        f_pvchi  <= mode == M_PVC && in_pvc_region && a[11:3] == 9'h1FF && a[3:0] >= 4'hA;   // 0xFFA-0xFFF
+        f_k3ovl  <= mode == M_K3B && a == 19'h2C0CB;                                         // 0x058196
         f_ovl0   <= ovl_en && a == ovl_addr;
         f_ovl1   <= ovl_en && a == ovl_addr + 19'd1;
         f_bank   <= mode == M_SMA && a == sma_bank_addr;
@@ -198,23 +210,33 @@ module p_mapper (
 
     always @(posedge clk) begin
         sp_port_hit <= f_prot || f_rng0 || f_rng1 || f_pvcr || f_ct0 || f_ms5p;
-        sp_rom_hit  <= ovl_active && (f_ovl0 || f_ovl1);
+        sp_rom_hit  <= (ovl_active && (f_ovl0 || f_ovl1)) || f_k3ovl;
         if (f_pvcr)                  sp_data <= sh[a[3:0]];
         else if (f_prot)             sp_data <= prot_val;
         else if (f_rng0 || f_rng1)   sp_data <= rng;
         else if (f_ct0)              sp_data <= {8'h00, ct0_out(ct0_sr, ct0_eh[1], ct0_eh[0])};
         else if (f_ms5p)             sp_data <= 16'h00A0;
+        else if (f_k3ovl)            sp_data <= k3_ovl;
         else if (f_ovl0)             sp_data <= ovl_v0;
         else                         sp_data <= ovl_v1;
     end
 
     // ---- écritures et effets ----
-    reg       pvc_wr = 1'b0;     // écriture PVC registrée, appliquée au cycle suivant
+    // Registres 0xFF0-0xFF9 (PVC et bootlegs de KOF 2003) : écriture au cycle
+    // suivant wr_go, effets un cycle plus tard. Les conditions sont décodées
+    // dès wr_go (bascules à un seul bit actif) : chemin critique.
+    reg        pvc_wr = 1'b0;
+    reg [9:0]  pvc_oh = 10'd0;   // registre écrit (un bit par mot 0xFF0-0xFF9)
     reg [15:0] pvc_wd;
     reg [1:0]  pvc_wbe;
-    reg       pvc_op = 1'b0;     // un registre PVC a été écrit au cycle précédent
-    reg [3:0] pvc_reg_w = 4'h0;  // ... lequel
+    reg        pw_unpack = 1'b0, pw_pack = 1'b0, pw_bank = 1'b0, pw_k3 = 1'b0, pw_k3p = 1'b0;
+    reg        op_unpack = 1'b0, op_pack = 1'b0, op_bank = 1'b0, op_k3 = 1'b0, op_k3p = 1'b0;
     reg [1:0] sma_pend = 2'd0;   // attente de la lecture de la table SMA
+
+    // nouvelle base P2 issue d'une écriture (banques standard, Metal Slug 5
+    // Plus), appliquée au cycle suivant (chemin critique)
+    reg        nb_set = 1'b0;
+    reg [22:0] nb_val = 23'h0;
 
     // remise à zéro au passage en mode jeu, registrée (chemin critique)
     reg start_r = 1'b0;
@@ -223,38 +245,45 @@ module p_mapper (
     always @(posedge clk) begin
         base_chg <= 1'b0;
         gw_req   <= 1'b0;
+        nb_set   <= 1'b0;
 
         if (start_r) begin
             p2_base_w  <= 23'h080000;        // 0x100000 octets
+            nb_set     <= 1'b0;
             rng        <= rng_seed;
             ovl_active <= 1'b0;
             sma_pend   <= 2'd0;
-            pvc_op     <= 1'b0;
             pvc_wr     <= 1'b0;
+            op_unpack  <= 1'b0; op_pack <= 1'b0; op_bank <= 1'b0;
             for (k = 0; k < 10; k = k + 1) sh[k] <= 16'h0000;
             ct0_sr     <= 32'h0;
+            k3_ovl     <= 16'h0;
         end else begin
             // lecture du générateur : avance d'un pas
             if (port_rd_ev && (f_rng0 || f_rng1)) rng <= {rng[14:0], rng_fb};
+            if (nb_set) begin
+                p2_base_w <= nb_val;
+                base_chg  <= 1'b1;
+            end
 
-            pvc_op <= 1'b0;
             pvc_wr <= 1'b0;
+            op_unpack <= 1'b0; op_pack <= 1'b0; op_bank <= 1'b0;
             if (wr_go) begin
                 if (f_std && bank_en && wr_be[0]) begin
-                    p2_base_w <= 23'h080000 + {d[7:0], 19'd0};
-                    base_chg  <= 1'b1;
+                    nb_val <= 23'h080000 + {d[7:0], 19'd0};
+                    nb_set <= 1'b1;
                 end
                 if (f_bank) begin
                     tbl_ridx <= sma_idx(d, sma_perm);
                     sma_pend <= 2'd2;
                 end
                 if (f_ms5p && a[2:0] == 3'd0 && d == 16'h00A0) begin   // 0x2FFFF0
-                    p2_base_w <= 23'h000050;                            // octet 0xA0
-                    base_chg  <= 1'b1;
+                    nb_val <= 23'h000050;                               // octet 0xA0
+                    nb_set <= 1'b1;
                 end
                 if (f_ms5p && a[2:0] == 3'd2) begin                     // 0x2FFFF4
-                    p2_base_w <= {d[7:4], 19'd0};                       // (d >> 4) Mo
-                    base_chg  <= 1'b1;
+                    nb_val <= {d[7:4], 19'd0};                          // (d >> 4) Mo
+                    nb_set <= 1'b1;
                 end
                 if (f_ct0) begin
                     if (a[0])            // LOAD = A1
@@ -268,11 +297,19 @@ module p_mapper (
                     if (d == ovl_on)  ovl_active <= 1'b1;
                     if (d == ovl_off) ovl_active <= 1'b0;
                 end
-                if (f_pvcr) begin
+                if (f_pvcr || f_pvchi) begin
+                    // f_pvchi : PVC, écriture en 0xFFA-0xFFF (RAM en SDRAM),
+                    // qui déclenche aussi le changement de banque
                     pvc_wr    <= 1'b1;
-                    pvc_reg_w <= a[3:0];
+                    for (k = 0; k < 10; k = k + 1) pvc_oh[k] <= f_pvcr && a[3:0] == k;
                     pvc_wd    <= d;
                     pvc_wbe   <= wr_be;
+                    pw_k3     <= mode != M_PVC;
+                    pw_k3p    <= mode == M_K3P;
+                    pw_unpack <= mode == M_PVC && f_pvcr && a[3:0] == 4'h0;
+                    pw_pack   <= mode == M_PVC && f_pvcr && (a[3:0] == 4'h4 || a[3:0] == 4'h5);
+                    // PVC : 0xFF8-0xFFF ; bootlegs de KOF 2003 : 0xFF8 et 0xFF9
+                    pw_bank   <= f_pvchi || (f_pvcr && a[3:0] >= 4'h8);
                 end
                 if (f_pvcram) begin
                     gw_req  <= 1'b1;
@@ -292,26 +329,37 @@ module p_mapper (
 
             // PVC : écriture du registre, puis effets au cycle suivant
             if (pvc_wr) begin
-                if (pvc_wbe[1]) sh[pvc_reg_w][15:8] <= pvc_wd[15:8];
-                if (pvc_wbe[0]) sh[pvc_reg_w][7:0]  <= pvc_wd[7:0];
-                pvc_op <= 1'b1;
-            end
-            if (pvc_op) begin
-                if (pvc_reg_w == 4'h0) begin
-                    // décompactage de la couleur du mot 0xFF0
-                    sh[1] <= {3'b000, sh[0][7:4], sh[0][13], 3'b000, sh[0][3:0], sh[0][12]};
-                    sh[2] <= {7'b0000000, sh[0][15], 3'b000, sh[0][11:8], sh[0][14]};
-                end else if (pvc_reg_w == 4'h4 || pvc_reg_w == 4'h5) begin
-                    // compactage des mots 0xFF4 (vert/bleu) et 0xFF5 (sombre/rouge)
-                    sh[6] <= {sh[5][8], sh[5][0], sh[4][8], sh[4][0],
-                              sh[5][4:1], sh[4][12:9], sh[4][4:1]};
-                end else if (pvc_reg_w[3]) begin
-                    // changement de banque : décalage = 0x100000 + {mot 0xFF9, octet haut de 0xFF8}
-                    p2_base_w <= 23'h080000 + {sh[9], sh[8][15:9]};
-                    base_chg  <= 1'b1;
-                    sh[8] <= {8'hA0, sh[8][7:1], 1'b0};
-                    sh[9] <= {sh[9][15:8], 1'b0, sh[9][6:0]};
+                for (k = 0; k < 10; k = k + 1) begin
+                    if (pvc_oh[k] && pvc_wbe[1]) sh[k][15:8] <= pvc_wd[15:8];
+                    if (pvc_oh[k] && pvc_wbe[0]) sh[k][7:0]  <= pvc_wd[7:0];
                 end
+                op_unpack <= pw_unpack;
+                op_pack   <= pw_pack;
+                op_bank   <= pw_bank;
+                op_k3     <= pw_k3;
+                op_k3p    <= pw_k3p;
+            end
+            if (op_unpack) begin
+                // décompactage de la couleur du mot 0xFF0
+                sh[1] <= {3'b000, sh[0][7:4], sh[0][13], 3'b000, sh[0][3:0], sh[0][12]};
+                sh[2] <= {7'b0000000, sh[0][15], 3'b000, sh[0][11:8], sh[0][14]};
+            end
+            if (op_pack)
+                // compactage des mots 0xFF4 (vert/bleu) et 0xFF5 (sombre/rouge)
+                sh[6] <= {sh[5][8], sh[5][0], sh[4][8], sh[4][0],
+                          sh[5][4:1], sh[4][12:9], sh[4][4:1]};
+            if (op_bank) begin
+                // octets 68000 : b0 b1 = mot 0xFF8, b2 b3 = mot 0xFF9
+                // PVC et K3B (MAME pvc_prot_device::get_bank_base, kof2003_w) :
+                //   0x100000 + {b2, b3, b0}, puis ff8 = (ff8 & 0xFE00) | 0x00A0
+                //   et ff9 &= 0x7FFF
+                // K3P (kof2003p_w) : 0x100000 + {b2, b3, b1}, puis b1 &= 0xFE
+                //   et ff9 &= 0x7FFF
+                p2_base_w <= 23'h080000 + {sh[9], op_k3p ? sh[8][7:1] : sh[8][15:9]};
+                base_chg  <= 1'b1;
+                sh[8] <= op_k3p ? {sh[8][15:1], 1'b0} : {sh[8][15:9], 1'b0, 8'hA0};
+                sh[9] <= {1'b0, sh[9][14:0]};
+                if (op_k3) k3_ovl[7:0] <= sh[9][7:0];   // mot lu en 0x058196 (K3B)
             end
         end
     end

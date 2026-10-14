@@ -20,6 +20,8 @@ D'autres agissent pendant le jeu (puce sur la cartouche qui répond au
 | **Banques de couche fixe**, type 1 (CMC42/50) | Metal Slug 3, Metal Slug 4 ; Garou | ✅ banque constante ; ⚠️ **approché** pour Garou (voir plus bas) |
 | **Metal Slug 5 Plus** (bootleg) : lecture en 0x2FFFF0, banques propres | Metal Slug 5 Plus | ✅ intégré (mode 4), reconnu par le NGH 268, la taille de P et le CRC de P1 |
 | Bootleg Metal Slug 5 (`mslug5b`) : données brouillées seulement | Metal Slug 5 (bootleg) | ✅ banques standard ; `.neo` à désembrouiller avec `neotool build --descramble mslug5b` |
+| Bootlegs de SVC Chaos (`svcboot`, `svcsplus` : PVC ; `svcplus`, `svcplusa` : rien) | SVC Chaos (bootlegs) | ✅ reconnus par la taille de P ; `.neo` avec `neotool mame` |
+| Bootlegs de KOF 2003 : RAM de 8 Ko et banques (`kf2k3bl`, `kf2k3upl` : mode K3B ; `kf2k3pl`, `kf2k3bla` : mode K3P) | KOF 2003 (bootlegs), KOF 2004 Plus / Ultra Plus | ✅ intégrés (modes 5 et 6), reconnus par la taille de P ; `.neo` avec `neotool mame` |
 | **PRO-CT0** : le sérialiseur de pixels du ZMC2 câblé sur le bus 68000 | Fatal Fury 2, Super Sidekicks | ✅ intégré (mode 3), reconnu par le NGH (047, 052) |
 | Metal Slug X (puce Altera sur la carte PROG) | Metal Slug X | ✅ contrôles neutralisés dans P1 au chargement, reconnu par le NGH (250) |
 
@@ -51,7 +53,7 @@ Syntaxe (`#` ou `;` commencent un commentaire, nombres en hexadécimal
 ```
 [kof99]                       ; pas de section dans un fichier .map
 ngh        = 0x251            ; numéro de jeu (en-tête du .neo)
-mapper     = sma              ; std | sma | pvc | ct0 | ms5p
+mapper     = sma              ; std | sma | pvc | ct0 | ms5p | k3b | k3p
 bank_addr  = 0x2ffff0         ; adresse 68000 du registre de banque
 bank_bits  = 14 6 8 10 12 5   ; bit de la donnée qui devient le bit 0, 1, ... 5 du numéro
 bank_table = 0x000000 0x100000 0x200000 ...   ; jusqu'à 64 décalages (octets),
@@ -125,9 +127,10 @@ overlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd
   * écriture du mot 0xFF0 (0x2FFFE0) : la couleur est décompactée dans les
     mots 0xFF1 (vert/bleu, 5 bits chacun) et 0xFF2 (bit sombre/rouge) ;
   * écriture des mots 0xFF4-0xFF5 : la couleur est recompactée dans 0xFF6 ;
-  * écriture des mots 0xFF8-0xFF9 : base P2 = 0x100000 + {mot 0xFF9, octet
-    haut du mot 0xFF8}, puis l'octet haut de 0xFF8 passe à 0xA0 et les bits
-    0 de 0xFF8 et 7 de 0xFF9 sont effacés.
+  * écriture des mots 0xFF8-0xFFF : base P2 = 0x100000 + {mot 0xFF9, octet
+    haut du mot 0xFF8}, puis 0xFF8 = (0xFF8 & 0xFE00) | 0x00A0 et
+    0xFF9 &= 0x7FFF (l'octet bas de 0xFF8 passe à 0xA0, le bit 0 de son
+    octet haut et le bit 15 de 0xFF9 sont effacés).
   La RAM est remise à zéro par le RP2350 à chaque chargement.
 * **Superposition** : après l'écriture du code d'activation à l'adresse de
   déclenchement, les lectures des deux mots désignés renvoient les valeurs
@@ -247,6 +250,59 @@ paire de ROM C comme dans la région de MAME (les c5/c6 du bootleg font 2 Mo
 au lieu de 8). `--descramble ms5plus` reprend `sx_decrypt(1)`. Un `.neo`
 produit par un autre outil peut déjà être désembrouillé : ne pas appliquer
 deux fois.
+
+## Bootlegs de SVC Chaos et de KOF 2003
+
+D'après MAME (`boot_svc.cpp`, `boot_kof2k3.cpp`, `prot_kof2k3bl.cpp`) :
+
+| Jeu MAME | NGH | Zone P | En jeu | Mode SDAES |
+|---|---|---|---|---|
+| `svc` (original) | 269 | 8 Mo | PVC | 2 |
+| `svcboot`, `svcsplus` | 269 | 8 Mo | PVC | 2 |
+| `svcplus`, `svcplusa` | 269 | 6 Mo | rien | 0 (banques standard) |
+| `kof2003`, `kof2003h` | 271 | 9 Mo | PVC | 2 |
+| `kf2k3bl`, `kf2k3upl` | 271 | 8 Mo | RAM 8 Ko + banque, mot en 0x058196 | 5 (K3B) |
+| `kf2k3pl`, `kf2k3bla` | 271 | 7 Mo | RAM 8 Ko + banque | 6 (K3P) |
+
+Le firmware choisit d'après le NGH et la taille de P ; `mapper = k3b` ou
+`k3p` dans un `.map` force le mode. Aucun de ces bootlegs n'utilise les
+banques de couche fixe CMC (ROM S de 128 Ko).
+
+**Protection des bootlegs de KOF 2003** : 8 Ko de RAM en 0x2FE000 comme la
+PVC, sans les couleurs. Une écriture dans les mots 0xFF8 ou 0xFF9
+(0x2FFFF0, 0x2FFFF2) change la fenêtre P2 :
+
+* K3B : 0x100000 + {octet haut de 0xFF9, octet bas de 0xFF9, octet haut de
+  0xFF8}, puis 0xFF8 = (0xFF8 & 0xFE00) | 0x00A0 et 0xFF9 &= 0x7FFF, comme
+  la PVC ; le mot lu en 0x058196 prend pour octet bas l'octet bas de 0xFF9
+  (0 au départ) ;
+* K3P : la même chose avec l'octet bas de 0xFF8 au lieu de l'octet haut, et
+  sans écrire 0xA0.
+
+**Fabriquer les `.neo`** : `neotool mame <jeu>` reproduit l'agencement des
+fichiers de MAME (moitiés échangées, ordre des ROM V) et les fonctions de
+remise en ordre de MAME (P, C, S, M1) :
+
+```
+python3 tools/neotool.py mame svcplus --dir roms/svcplus -o svcplus.neo
+python3 tools/neotool.py mame kf2k3bl --dir roms/kf2k3bl -o kf2k3bl.neo --from kof2003.neo
+```
+
+Les C et V des bootlegs de KOF 2003 sont ceux de l'original, chiffrés :
+`--from` les reprend d'un `kof2003.neo` déchiffré. Même chose pour
+`ms5plus` (`--from mslug5.neo`). Jeux connus : `svcboot`, `svcplus`,
+`svcplusa`, `svcsplus`, `kf2k3bl`, `kf2k3bla`, `kf2k3pl`, `kf2k3upl`,
+`ms5plus`, `mslug5b`. Les fonctions sont vérifiées par des tests contre une
+transcription littérale du code de MAME, pas contre de vrais fichiers.
+
+### Correction de la PVC
+
+En reprenant ce code, une erreur de la PVC a été corrigée : après un
+changement de banque, MAME écrit 0xA0 dans l'octet **bas** du mot 0xFF8 et
+efface le bit de poids fort du mot 0xFF9 (`ff8 = (ff8 & 0xFE00) | 0x00A0`,
+`ff9 &= 0x7FFF`). SDAES le faisait sur les octets inverses. Le changement de
+banque est aussi déclenché par une écriture dans les mots 0xFFA à 0xFFF,
+comme dans MAME.
 
 ## Metal Slug X
 

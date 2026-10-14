@@ -277,7 +277,7 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     int r = 0;
     r |= stream(&x, LINK_P,  SP_P_SDRAM, 0,            h->psize);
     if (!r && scan.on) msx_patch_apply(&scan);
-    mapper_ms5_resolve(&m, h->psize, scan.crc_p1);
+    mapper_pvc_resolve(&m, h->psize, scan.crc_p1);
     r |= stream(&x, LINK_SM, SP_SM_SRAM, 0,            h->ssize);
     r |= stream(&x, LINK_SM, SP_SM_SRAM, SRAM_M1_BASE, h->msize);
     r |= stream(&x, LINK_V,  SP_V_SDRAM, 0,            h->v1size);
@@ -290,7 +290,7 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     }
 
     /* protections : RAM PVC à zéro, table SMA, registres du FPGA P */
-    if (m.mode == MAP_PVC) {
+    if (m.mode == MAP_PVC || m.mode == MAP_K3B || m.mode == MAP_K3P) {
         memset(buf[0], 0, 8192);
         qlink_mem_write(LINK_P, SP_P_SDRAM, PVC_RAM_BYTE, buf[0], 8192);
     }
@@ -333,7 +333,8 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     qlink_reg_write(LINK_P,  REG_CTRL, CTRL_ARM |
                     (m.mode == MAP_STD && h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
 
-    static const char *const kind[] = { "", " (SMA)", " (PVC)", " (PRO-CT0)", " (MS5 PLUS)" };
+    static const char *const kind[] = { "", " (SMA)", " (PVC)", " (PRO-CT0)", " (MS5 PLUS)",
+                                        " (KOF2003 BL)", " (KOF2003 PL)" };
     if (scan.on)
         snprintf(msg, msglen, "%.30s (P1 CORRIGEE: %d)", h->name[0] ? h->name : "JEU", scan.n);
     else

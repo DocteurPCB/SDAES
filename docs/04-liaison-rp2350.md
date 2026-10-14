@@ -48,7 +48,7 @@ Communs aux 4 FPGA :
 Spécifiques : P : 0x03 masque P (mots), 0x04 cycles d'attente
 {/PWAIT1, /PWAIT0, /ROMWAIT} (défaut 0b111 = pleine vitesse), 0x08 base P2 courante (mots), 0x09
 acquittement de `LK_IRQ` ; protections (`hdl/prog/p_mapper.v`) : 0x0A mode
-(bits 2:0 : 0 std, 1 SMA, 2 PVC, 3 PRO-CT0, 4 Metal Slug 5 Plus ; bit 8 superposition), 0x0B registre de
+(bits 2:0 : 0 std, 1 SMA, 2 PVC, 3 PRO-CT0, 4 Metal Slug 5 Plus, 5/6 bootlegs de KOF 2003 ; bit 8 superposition), 0x0B registre de
 banque SMA, 0x0C permutation des bits, 0x0D/0x0E adresse (bit 31 = actif) et
 valeur de protection, 0x0F/0x15 adresses du générateur, 0x16 graine, 0x17
 déclencheur, 0x18 codes {activation, retrait}, 0x19 adresse et 0x1A valeurs

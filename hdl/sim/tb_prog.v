@@ -363,7 +363,8 @@ module tb_prog;
         m68k_write(24'h2FFFF2, 16'h0123);      // octets hauts de l'adresse de banque
         m68k_write(24'h2FFFF0, 16'h40FF);      // octet bas -> banque 0x100000 + 0x012340
         m68k_read(24'h200080, w); check("PVC banque [200080]", w, pword(32'h080000 + 32'h012340/2 + 32'h40));
-        m68k_read(24'h2FFFF0, w); check("PVC registre FF8 apres banque", w, 16'hA0FE);
+        // MAME : ff8 = (ff8 & 0xFE00) | 0x00A0 ; ff9 &= 0x7FFF
+        m68k_read(24'h2FFFF0, w); check("PVC registre FF8 apres banque", w, 16'h40A0);
         m68k_read(24'h2FFFF2, w); check("PVC registre FF9 apres banque", w, 16'h0123);
         m68k_write(24'h2FE100, 16'h1357);      // RAM de protection (SDRAM)
         m68k_write(24'h2FE102, 16'h2468);
@@ -394,6 +395,40 @@ module tb_prog;
         m68k_write(24'h2FFFF2, 16'hBEEF);
         m68k_read(24'h200000, w); check("PRO-CT0 rechargement", w, 16'h00B7);
         m68k_read(24'h200004, w); check("PRO-CT0 rechargement, EVEN=1", w, 16'h007B);
+        lk_reg_wr(8'h01, 32'h0);
+
+        // ---- bootlegs de KOF 2003 (MAME prot_kof2k3bl.cpp)
+        $display("--- KOF 2003 bootleg (K3B)");
+        load_pwords(32'h080000 + 32'h012356/2 + 32'h40, 1);
+        load_pwords(32'h058196 >> 1, 1);       // mot de P remplacé en mode K3B
+        lk_reg_wr(8'h0A, 32'h5);
+        lk_reg_wr(8'h01, 32'h1);
+        m68k_write(24'h2FFFE2, 16'h5A5A);
+        check("mode jeu K3B", mode, 1);
+        m68k_read(24'h058196, w); check("K3B mot 0x058196 au depart", w, 16'h0000);
+        m68k_write(24'h2FFFF2, 16'h0123);
+        m68k_write(24'h2FFFF0, 16'h40FF);
+        m68k_read(24'h200080, w); check("K3B banque [200080]", w, pword(32'h080000 + 32'h012340/2 + 32'h40));
+        m68k_read(24'h2FFFF0, w); check("K3B registre FF8 apres banque", w, 16'h40A0);
+        m68k_read(24'h2FFFF2, w); check("K3B registre FF9 apres banque", w, 16'h0123);
+        m68k_read(24'h058196, w); check("K3B mot 0x058196", w, 16'h0023);
+        m68k_write(24'h2FE100, 16'h1357);
+        m68k_read(24'h2FE100, w); check("K3B RAM [2FE100]", w, 16'h1357);
+        m68k_write(24'h2FFFE0, 16'hABCD);      // pas de décompactage de couleur
+        m68k_read(24'h2FFFE2, w); check("K3B sans couleurs PVC", w, 16'h0000);
+        lk_reg_wr(8'h01, 32'h0);
+
+        $display("--- KOF 2003 bootleg (K3P)");
+        lk_reg_wr(8'h0A, 32'h6);
+        lk_reg_wr(8'h01, 32'h1);
+        m68k_write(24'h2FFFE2, 16'h5A5A);
+        check("mode jeu K3P", mode, 1);
+        m68k_write(24'h2FFFF2, 16'h8123);
+        m68k_write(24'h2FFFF0, 16'h4056);      // banque 0x100000 + {01, 23, 56}
+        m68k_read(24'h200080, w); check("K3P banque [200080]", w, pword(32'h080000 + 32'h012356/2 + 32'h40));
+        m68k_read(24'h2FFFF0, w); check("K3P registre FF8 apres banque", w, 16'h4056);
+        m68k_read(24'h2FFFF2, w); check("K3P registre FF9 apres banque", w, 16'h0123);
+        m68k_read(24'h058196, w); check("K3P pas de mot 0x058196", w, pword(32'h058196 >> 1));
         lk_reg_wr(8'h01, 32'h0);
 
         // ---- Metal Slug 5 Plus (MAME : write_bankprot_ms5p, mslug5p_prot_r)

@@ -15,7 +15,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef enum { MAP_STD = 0, MAP_SMA = 1, MAP_PVC = 2, MAP_CT0 = 3, MAP_MS5P = 4 } map_mode_t;
+typedef enum { MAP_STD = 0, MAP_SMA = 1, MAP_PVC = 2, MAP_CT0 = 3, MAP_MS5P = 4,
+               MAP_K3B = 5, MAP_K3P = 6 } map_mode_t;
 
 typedef struct {
     char       name[32];
@@ -50,14 +51,18 @@ typedef struct {
  * KOF 2000 « n »...) ont le même NGH et une zone P de 5 Mo au plus. */
 #define SMA_MIN_PSIZE  0x500001u
 
-/* Metal Slug 5 (NGH 268) : l'original (PVC) a une zone P de 8 Mo ; Metal
- * Slug 5 Plus et le bootleg mslug5b en ont 5 Mo. Le premier Mo de P de
- * Metal Slug 5 Plus (MAME : ms5-p1p.bin) a ce CRC32. */
-#define MS5_PVC_MIN_PSIZE  0x500001u
+/* Jeux PVC et leurs bootlegs (même NGH), départagés par la taille de P
+ * (régions de MAME) :
+ *   Metal Slug 5 (268) : 8 Mo PVC ; 5 Mo : Plus (CRC32 du 1er Mo de P =
+ *     celui de ms5-p1p.bin) ou bootleg mslug5b (banques standard)
+ *   SVC Chaos (269)    : 8 Mo PVC (svc, svcboot, svcsplus) ; 6 Mo :
+ *     svcplus, svcplusa (banques standard)
+ *   KOF 2003 (271)     : 9 Mo PVC ; 8 Mo : kf2k3bl, kf2k3upl (K3B) ;
+ *     7 Mo : kf2k3pl, kf2k3bla (K3P) */
 #define MS5PLUS_P1_CRC     0x106B276Fu
 
-/* Choix final pour le NGH 268, une fois P lu (crc_p1 : CRC32 du 1er Mo). */
-void mapper_ms5_resolve(mapper_t *m, uint32_t psize, uint32_t crc_p1);
+/* Choix final, une fois P lu (crc_p1 : CRC32 du 1er Mo). */
+void mapper_pvc_resolve(mapper_t *m, uint32_t psize, uint32_t crc_p1);
 
 enum { PATCH_NONE = 0, PATCH_MSLUGX = 1 };
 

@@ -243,6 +243,25 @@ def cmd_build(args):
     return 0
 
 
+def cmd_mame(args):
+    import mame_sets
+    base = None
+    if args.base:
+        data = readb(args.base)
+        bh = NeoHeader.unpack(data)
+        base = {n: data[o:o + sz] for n, o, sz in bh.regions()}
+    r, ngh, title = mame_sets.build_regions(args.set, args.dir, base)
+    h = NeoHeader(len(r["P"]), len(r["S"]), len(r["M"]), len(r["V1"]), len(r["V2"]), len(r["C"]),
+                  args.year, 0, 0, ngh, args.name or title, args.manu)
+    with open(args.output, "wb") as f:
+        f.write(h.pack())
+        for k in ("P", "S", "M", "V1", "V2", "C"):
+            f.write(r[k])
+    print(f"{args.output} : {args.set} P={len(r['P'])} S={len(r['S'])} M={len(r['M'])} "
+          f"V={len(r['V1']) + len(r['V2'])} C={len(r['C'])} NGH=0x{ngh:X}")
+    return 0
+
+
 def swap16(b):
     a = bytearray(b)
     a[0::2], a[1::2] = b[1::2], b[0::2]
@@ -354,7 +373,7 @@ def cmd_bramhex16(args):
 # Protections (format .map / MAPPERS.TXT, cf. firmware/rp2350/src/mapper.c)
 # ---------------------------------------------------------------------------
 PORT_BASE = 0x200000
-MAP_MODES = {"std": 0, "sma": 1, "pvc": 2, "ct0": 3, "ms5p": 4}
+MAP_MODES = {"std": 0, "sma": 1, "pvc": 2, "ct0": 3, "ms5p": 4, "k3b": 5, "k3p": 6}
 
 
 def _nums(text):
@@ -573,6 +592,18 @@ def main(argv=None):
     s = sub.add_parser("info")
     s.add_argument("file")
     s.set_defaults(fn=cmd_info)
+
+    s = sub.add_parser("mame", help="fabrique le .neo d'un bootleg depuis ses fichiers ROM de MAME")
+    s.add_argument("set", help="nom MAME : svcboot, svcplus, svcplusa, svcsplus, kf2k3bl, kf2k3bla, "
+                               "kf2k3pl, kf2k3upl, ms5plus, mslug5b")
+    s.add_argument("--dir", required=True, help="dossier des fichiers ROM (zip de MAME décompressé)")
+    s.add_argument("-o", "--output", required=True)
+    s.add_argument("--from", dest="base", metavar="ORIGINAL.NEO",
+                   help=".neo déchiffré de l'original (KOF 2003, Metal Slug 5) pour C, V et M1")
+    s.add_argument("--name", default="")
+    s.add_argument("--manu", default="")
+    s.add_argument("--year", type=int, default=0)
+    s.set_defaults(fn=cmd_mame)
 
     s = sub.add_parser("build")
     s.add_argument("-o", "--output", required=True)

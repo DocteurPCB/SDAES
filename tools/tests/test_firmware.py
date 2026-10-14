@@ -98,6 +98,11 @@ class FirmwareHostTest(unittest.TestCase):
             p1 = bytes(range(256)) * (0x100000 // 256 - 1) + bytes(252)
             neo_with_p("ms5plus", 0x268, p1 + forge_crc32(p1, 0x106B276F))
             neo_with_p("mslug5b", 0x268, bytes(range(256)) * 16)
+            # SVC Chaos et KOF 2003 : versions départagées par la taille de P
+            neo_with_p("svcplus", 0x269, bytes(0x600000))
+            neo_with_p("kof2003", 0x271, bytes(0x900000))
+            neo_with_p("kf2k3bl", 0x271, bytes(0x800000))
+            neo_with_p("kf2k3pl", 0x271, bytes(0x700000))
             small_neo("fatfury2", 0x047)
             # Metal Slug X : P1 avec deux séquences andi.w #1,D3 ; bne, dont une
             # à cheval sur deux blocs de 32 Ko (ordre petit-boutiste du .neo)

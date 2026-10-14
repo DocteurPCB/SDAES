@@ -171,6 +171,31 @@ int main(void)
     expect(regs[LINK_P][0x0A] == 0, "MS5 bootleg : banques standard");
     expect((regs[LINK_P][REG_CTRL] & CTRL_BANK_EN) == 0, "MS5 bootleg : petit P, pas de banque");
 
+    /* SVC Chaos et KOF 2003 : versions d'après la taille de P */
+    {
+        static const struct { const char *name; uint32_t mode; uint32_t fix; } v[] = {
+            { "svcplus", 0, 0 }, { "kof2003", 2, 2 }, { "kf2k3bl", 5, 0 }, { "kf2k3pl", 6, 0 },
+        };
+        for (unsigned i = 0; i < sizeof(v) / sizeof(v[0]); i++) {
+            char what[64];
+            memset(regs, 0, sizeof(regs));
+            memset(mem[LINK_P][SP_P_SDRAM] + 0x18FE000, 0xAA, 8192);
+            snprintf(what, sizeof(what), "%s : charge", v[i].name);
+            expect(send(CMD_OPEN, (uint32_t)find(v[i].name)) == ST_OK, what);
+            printf("info  message : %s\n", mbstr(MB_RSP_MSG));
+            snprintf(what, sizeof(what), "%s : mode %u", v[i].name, (unsigned)v[i].mode);
+            expect(regs[LINK_P][0x0A] == v[i].mode, what);
+            snprintf(what, sizeof(what), "%s : couche fixe %u", v[i].name, (unsigned)v[i].fix);
+            expect(regs[LINK_SM][REG_SM_FIX_BANK] == v[i].fix, what);
+            if (v[i].mode >= 2 && v[i].mode != 3) {
+                int z = 1;
+                for (int k = 0; k < 8192; k++) if (mem[LINK_P][SP_P_SDRAM][0x18FE000 + k]) z = 0;
+                snprintf(what, sizeof(what), "%s : RAM de protection a zero", v[i].name);
+                expect(z, what);
+            }
+        }
+    }
+
     /* Metal Slug X : correctif de P1 */
     memset(regs, 0, sizeof(regs));
     expect(send(CMD_OPEN, (uint32_t)find("mslugx")) == ST_OK, "Metal Slug X");
