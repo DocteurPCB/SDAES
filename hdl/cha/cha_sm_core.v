@@ -119,9 +119,10 @@ module cha_sm_core #(
     reg [15:0] s_latch = 16'h0;
     always @(posedge pck2b) s_latch <= pbus;
 
-    // Octet S : {tuile[11:0], P3, 2H1, ligne[2:0]} (17 bits, 128 Ko)
+    // Octet S (wiki neogeodev, NEO-273 / P bus) : A16..A5 = P11..P0 (tuile),
+    // A4 = P15 (demi-tuile), A3 = 2H1, A2..A0 = P14..P12 (ligne). 128 Ko.
     function [16:0] s_byte_addr(input [15:0] p, input h1);
-        s_byte_addr = {p[15:4], p[3], h1, p[2:0]};
+        s_byte_addr = {p[11:0], p[15], h1, p[14:12]};
     endfunction
 
     // =========================================================================

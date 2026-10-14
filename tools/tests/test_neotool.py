@@ -212,7 +212,7 @@ void sma_prot_device::garou_install_protection(cpu_device* maincpu, neogeo_banke
 
 class MapperTests(TmpDir):
     def test_parse_and_registers(self):
-        text = ("[kof98]\nngh = 0x242\noverlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd\n"
+        text = ("[kof98]\nngh = 0x242\noverlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd\nwait = 1 2\n"
                 "[jeu]\nmapper = sma\nbank_addr = 0x2ffff0\nbank_bits = 14 6 8 10 12 5\n"
                 "bank_table = 0x0 0x100000\n  0x3cc000\nprot = 0x2fe446 0x9a37\nrng = 0x2ffff8 0x2ffffa\n")
         maps = {m["name"]: m for m in neotool.parse_mappers(text)}
@@ -223,13 +223,17 @@ class MapperTests(TmpDir):
         self.assertEqual(regs[0x0C], 0x5CA86E)
         self.assertEqual(regs[0x0D], 0x80000000 | 0x7F223)
         self.assertEqual(regs[0x15], 0x80000000 | 0x7FFFD)
+        self.assertEqual(regs[0x04], 7)                         # pleine vitesse par défaut
         ovl = dict(neotool.mapper_registers(maps["kof98"]))
         self.assertEqual((ovl[0x0A], ovl[0x17], ovl[0x18], ovl[0x19], ovl[0x1A]),
                          (0x100, 0x5555, 0x009000F0, 0x80, 0x00C200FD))
+        self.assertEqual(ovl[0x04], 2)                          # ROM 1 cycle, PORT 2 cycles
 
     def test_parse_errors(self):
         with self.assertRaises(ValueError):
             neotool.parse_mappers("[x]\nmapper = sma\n")            # table manquante
+        with self.assertRaises(ValueError):
+            neotool.parse_mappers("[x]\nwait = 2 0\n")               # ROM : 1 cycle au plus
         with self.assertRaises(ValueError):
             neotool.parse_mappers("[x]\nbank_bits = 1 2 3\n")
         with self.assertRaises(ValueError):

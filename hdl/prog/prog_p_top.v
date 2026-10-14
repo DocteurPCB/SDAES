@@ -4,7 +4,9 @@ module prog_p_top (
     // bus 68000 (côté 3,3 V des translateurs)
     input  wire [19:1] A,
     inout  wire [15:0] D,
-    input  wire        ROMOE_N, PORTOE_N, PORTWEL_N, PORTWEU_N,
+    input  wire        ROMOE_N, PORTOEU_N, PORTOEL_N, PORTWEL_N, PORTWEU_N,
+    // configuration des cycles d'attente (sorties de la cartouche vers la console)
+    output wire        ROMWAIT_N, PWAIT0_N, PWAIT1_N,
     output wire        XLAT_EN_N,     // résistance de tirage à 1 : isolé au démarrage
     output wire        D_DIR,         // 1 : FPGA -> console
     // liaison RP2350 (bus partagé avec le FPGA V, CS séparés)
@@ -33,11 +35,15 @@ module prog_p_top (
     assign LK_IO = lk_oe    ? lk_o    : 4'hz;
     assign D_DIR = d_drive;
     assign XLAT_EN_N = rst;
+    // Le connecteur AES ne fournit pas /PORTOE combiné : lecture d'un octet
+    // ou de l'autre (la cartouche présente toujours le mot entier)
+    wire portoe_n = PORTOEU_N & PORTOEL_N;
 
     prog_p_core #(.MENU_P_HI_INIT("menu_p_hi.hex"), .MENU_P_LO_INIT("menu_p_lo.hex")) u_core (
         .clk(clk), .rst(rst),
         .a(A), .d_i(D), .d_o(d_o), .d_drive(d_drive),
-        .romoe_n(ROMOE_N), .portoe_n(PORTOE_N), .portwel_n(PORTWEL_N), .portweu_n(PORTWEU_N),
+        .romoe_n(ROMOE_N), .portoe_n(portoe_n), .portwel_n(PORTWEL_N), .portweu_n(PORTWEU_N),
+        .wait_n({PWAIT1_N, PWAIT0_N, ROMWAIT_N}),
         .lk_sck(LK_SCK), .lk_cs_n(LK_CS_N), .lk_io_i(LK_IO), .lk_io_o(lk_o), .lk_io_oe(lk_oe),
         .lk_irq(LK_IRQ), .mode_out(MODE),
         .sd_cke(SD_CKE), .sd_cs_n(SD_CS_N), .sd_ras_n(SD_RAS_N), .sd_cas_n(SD_CAS_N), .sd_we_n(SD_WE_N),

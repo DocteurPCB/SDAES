@@ -41,10 +41,12 @@ module tb_prog;
     wire [1:0] v_ba, v_dqm; wire [12:0] v_sa; wire [15:0] v_dq_o;
     wire [15:0] v_dq = v_dq_oe ? v_dq_o : 16'hz;
 
+    wire [2:0] wait_n;
     prog_p_core #(.SDRAM_INIT_WAIT(200)) dut_p (
         .clk(clk), .rst(rst),
         .a(a), .d_i(d_wr), .d_o(d_o), .d_drive(d_drive),
         .romoe_n(romoe_n), .portoe_n(portoe_n), .portwel_n(portwel_n), .portweu_n(portweu_n),
+        .wait_n(wait_n),
         .lk_sck(lk_sck), .lk_cs_n(lk_cs0), .lk_io_i(lk_io), .lk_io_o(lk_io_p), .lk_io_oe(lk_oe_p),
         .lk_irq(lk_irq), .mode_out(mode),
         .sd_cke(p_cke), .sd_cs_n(p_cs_n), .sd_ras_n(p_ras_n), .sd_cas_n(p_cas_n), .sd_we_n(p_we_n),
@@ -169,6 +171,11 @@ module tb_prog;
         #3000;
         lk_sel = P; lk_reg_rd(8'h00, v);  check("ID P", v, 32'h4E475032);
         lk_sel = V; lk_reg_rd(8'h00, v);  check("ID V", v, 32'h4E475632);
+        lk_sel = P;
+        check("attente par défaut (pleine vitesse)", wait_n, 3'b111);
+        lk_reg_wr(8'h04, 32'h6);  lk_reg_rd(8'h04, v);
+        check("ROMWAIT = 1 cycle", {29'd0, wait_n}, 32'h6);
+        lk_reg_wr(8'h04, 32'h7);
         lk_sel = P; lk_reg_rd(8'h02, v);  check("SDRAM P initialisee", v & 1, 1);
         lk_sel = V; lk_reg_rd(8'h02, v);  check("SDRAM V initialisee", v & 1, 1);
 

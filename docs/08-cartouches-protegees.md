@@ -53,6 +53,9 @@ rng_seed   = 0x2345           ; valeur initiale du générateur (défaut 0x2345)
 overlay    = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd
              ; déclencheur, code d'activation, code de retrait,
              ; adresse du 1er mot remplacé, valeur 1, valeur 2
+wait       = 0 0              ; cycles d'attente 68000 : zone ROM (0-1), zone PORT (0-2)
+             ; 0 0 = pleine vitesse (défaut). Pour les jeux qui espacent leurs
+             ; accès VRAM grâce à l'attente de leur cartouche d'origine.
 ```
 
 Le décalage de la table est ajouté à 0x100000 : la fenêtre 0x200000-0x2FFFFF

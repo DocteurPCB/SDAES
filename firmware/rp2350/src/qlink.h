@@ -30,6 +30,7 @@ typedef enum { LINK_P = 0, LINK_V = 1, LINK_C = 2, LINK_SM = 3 } link_id_t;
 #define REG_DBG_DATA     0x11
 /* FPGA P */
 #define REG_P_MASK       0x03
+#define REG_P_WAIT       0x04   /* {PWAIT1, PWAIT0, ROMWAIT}, actifs à 0 */
 #define REG_P_BANK       0x08
 #define REG_IRQ_ACK      0x09   /* écriture : acquitte LK_IRQ */
 /* FPGA V */

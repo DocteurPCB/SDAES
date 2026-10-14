@@ -108,6 +108,10 @@ static bool apply_key(sect_t *st, const char *key, const char *val, char *err, i
         m->ovl = true;
         m->ovl_trig = v[0]; m->ovl_on = v[1]; m->ovl_off = v[2];
         m->ovl_addr = v[3]; m->ovl_v0 = v[4]; m->ovl_v1 = v[5];
+    } else if (ieq(key, "wait")) {
+        /* cycles d'attente : zone ROM (0-1), zone PORT (0-2) */
+        if (parse_nums(val, v, 2) != 2 || v[0] > 1 || v[1] > 2) goto bad;
+        m->rom_wait = (uint8_t)v[0]; m->port_wait = (uint8_t)v[1];
     } else {
         snprintf(err, errlen, "CLE INCONNUE: %.20s", key);
         return false;
@@ -195,6 +199,9 @@ int mapper_registers(const mapper_t *m, mapper_reg_t *r, int max)
     int n = 0;
     #define REG(a, v) do { if (n < max) { r[n].reg = (a); r[n].val = (v); n++; } } while (0)
     REG(0x0A, (uint32_t)m->mode | (m->ovl ? 0x100u : 0));
+    /* 0x04 : {PWAIT1, PWAIT0, ROMWAIT}, actifs à 0 (wiki neogeodev « Wait cycle ») */
+    static const uint8_t pwait[3] = { 0x3, 0x2, 0x1 };
+    REG(0x04, (uint32_t)(pwait[m->port_wait] << 1) | (m->rom_wait ? 0u : 1u));
     if (m->mode == MAP_SMA) {
         uint32_t perm = 0;
         for (int i = 0; i < 6; i++) perm |= (uint32_t)(m->bank_bits[i] & 0xF) << (4 * i);

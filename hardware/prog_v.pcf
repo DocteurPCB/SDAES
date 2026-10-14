@@ -1,38 +1,39 @@
 # Contraintes prog_v_top - iCE40HX4K-TQ144 (puce HX8K, outils libres)
 # Gabarit généré par tools/gen_pcf.py : compléter les numéros de broches.
 # CLK25 sur une entrée globale (GBIN) ; voir hardware/README.md pour les
-# signaux utilisés comme horloges.
+# signaux utilisés comme horloges. « AES ... » = contact du connecteur de
+# cartouche relié à ce port à travers un translateur (hardware/aes_connector.csv).
 # set_io CLK25 ?    # input
-# set_io SDRAD[0] ?    # inout
-# set_io SDRAD[1] ?    # inout
-# set_io SDRAD[2] ?    # inout
-# set_io SDRAD[3] ?    # inout
-# set_io SDRAD[4] ?    # inout
-# set_io SDRAD[5] ?    # inout
-# set_io SDRAD[6] ?    # inout
-# set_io SDRAD[7] ?    # inout
-# set_io SDRA_L[8] ?    # input
-# set_io SDRA_L[9] ?    # input
-# set_io SDRA_U[20] ?    # input
-# set_io SDRA_U[21] ?    # input
-# set_io SDRA_U[22] ?    # input
-# set_io SDRA_U[23] ?    # input
-# set_io SDRMPX ?    # input
-# set_io SDROE_N ?    # input
-# set_io SDPAD[0] ?    # inout
-# set_io SDPAD[1] ?    # inout
-# set_io SDPAD[2] ?    # inout
-# set_io SDPAD[3] ?    # inout
-# set_io SDPAD[4] ?    # inout
-# set_io SDPAD[5] ?    # inout
-# set_io SDPAD[6] ?    # inout
-# set_io SDPAD[7] ?    # inout
-# set_io SDPA[8] ?    # input
-# set_io SDPA[9] ?    # input
-# set_io SDPA[10] ?    # input
-# set_io SDPA[11] ?    # input
-# set_io SDPMPX ?    # input
-# set_io SDPOE_N ?    # input
+# set_io SDRAD[0] ?    # inout, AES PROG dessous 32
+# set_io SDRAD[1] ?    # inout, AES PROG dessous 33
+# set_io SDRAD[2] ?    # inout, AES PROG dessous 34
+# set_io SDRAD[3] ?    # inout, AES PROG dessous 35
+# set_io SDRAD[4] ?    # inout, AES PROG dessous 36
+# set_io SDRAD[5] ?    # inout, AES PROG dessous 37
+# set_io SDRAD[6] ?    # inout, AES PROG dessous 38
+# set_io SDRAD[7] ?    # inout, AES PROG dessous 39
+# set_io SDRA_L[8] ?    # input, AES PROG dessous 40
+# set_io SDRA_L[9] ?    # input, AES PROG dessous 41
+# set_io SDRA_U[20] ?    # input, AES PROG dessous 42
+# set_io SDRA_U[21] ?    # input, AES PROG dessous 43
+# set_io SDRA_U[22] ?    # input, AES PROG dessous 44
+# set_io SDRA_U[23] ?    # input, AES PROG dessous 45
+# set_io SDRMPX ?    # input, AES PROG dessous 46
+# set_io SDROE_N ?    # input, AES PROG dessous 47
+# set_io SDPAD[0] ?    # inout, AES PROG dessus 17
+# set_io SDPAD[1] ?    # inout, AES PROG dessus 16
+# set_io SDPAD[2] ?    # inout, AES PROG dessus 15
+# set_io SDPAD[3] ?    # inout, AES PROG dessus 14
+# set_io SDPAD[4] ?    # inout, AES PROG dessus 13
+# set_io SDPAD[5] ?    # inout, AES PROG dessus 12
+# set_io SDPAD[6] ?    # inout, AES PROG dessus 11
+# set_io SDPAD[7] ?    # inout, AES PROG dessus 10
+# set_io SDPA[8] ?    # input, AES PROG dessus 9
+# set_io SDPA[9] ?    # input, AES PROG dessus 8
+# set_io SDPA[10] ?    # input, AES PROG dessus 7
+# set_io SDPA[11] ?    # input, AES PROG dessus 6
+# set_io SDPMPX ?    # input, AES PROG dessus 5
+# set_io SDPOE_N ?    # input, AES PROG dessus 4
 # set_io RAD_DIR ?    # output
 # set_io PAD_DIR ?    # output
 # set_io LK_SCK ?    # input

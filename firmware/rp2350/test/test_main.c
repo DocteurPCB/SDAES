@@ -118,6 +118,7 @@ int main(void)
     expect(send(CMD_OPEN, (uint32_t)find("kof99b")) == ST_OK, "SMA avec .map charge");
     printf("info  message : %s\n", mbstr(MB_RSP_MSG));
     expect(regs[LINK_P][0x0A] == 1, "SMA : mode");
+    expect(regs[LINK_P][REG_P_WAIT] == 7, "attente : pleine vitesse par defaut");
     expect(regs[LINK_P][0x0B] == 0x7FFF8, "SMA : registre de banque 0x2FFFF0");
     expect(regs[LINK_P][0x0C] == 0x5CA86E, "SMA : permutation des bits");
     expect(regs[LINK_P][0x0D] == (0x80000000u | 0x7F223), "SMA : adresse de protection");
@@ -140,6 +141,7 @@ int main(void)
     expect(regs[LINK_P][0x0A] == 0x100, "superposition : mode");
     expect(regs[LINK_P][0x17] == 0x5555 && regs[LINK_P][0x18] == 0x009000F0 &&
            regs[LINK_P][0x19] == 0x80 && regs[LINK_P][0x1A] == 0x00C200FD, "superposition : registres");
+    expect(regs[LINK_P][REG_P_WAIT] == 2, "attente : ROM 1 cycle, PORT 2 cycles");
 
     /* PVC reconnu par son NGH sans fichier */
     memset(regs, 0, sizeof(regs));

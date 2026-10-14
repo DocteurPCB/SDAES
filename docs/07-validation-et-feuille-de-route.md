@@ -15,10 +15,13 @@
 ## Ce qui n'est PAS encore vérifié
 
 * Aucun prototype matériel : schémas et routage restent à faire (KiCad).
-* Brochage exact des connecteurs AES (voir l'avertissement de `docs/02`).
-* Correspondances de bits C/S, ordre des pixels du ZMC2, fronts du
-  démultiplexage ADPCM : issues de la rétro-ingénierie publique, isolées
-  dans un seul bloc pour être corrigées facilement.
+* Brochage des connecteurs AES : relevé sur le wiki neogeodev
+  (`hardware/aes_connector.csv`) ; reste à confirmer le sens de la
+  numérotation et les faces sur une cartouche réelle.
+* Correspondances de bits C/S et fronts du ZMC2 : conformes au wiki
+  neogeodev ; ordre des pixels du ZMC2 (EVEN, H) et fronts du
+  démultiplexage ADPCM : issus de la rétro-ingénierie publique. Le tout est
+  isolé dans un seul bloc pour être corrigé facilement.
 * `qlink.c`, `main.c`, `hw_config.c` n'ont pas été compilés avec le SDK Pico
   (pas d'accès au SDK dans l'environnement de développement).
 * Timing avec les vraies broches (fichiers `.pcf` à compléter).

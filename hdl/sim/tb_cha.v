@@ -192,7 +192,7 @@ module tb_cha;
 
         // ================= mode MENU =================
         $display("--- mode menu");
-        pbus = {4'd0, 4'd0, 12'h041, 1'b0, 3'd2};
+        pbus = {8'd0, 1'b0, 3'd2, 12'h041};   // P15 = demi-tuile, P14..12 = ligne
         #50 pck2b = 0; #80 pck2b = 1;
         #300 s2h1 = 0; #5 check("menu FIX 2H1=0", fixd, 8'h11);
         s2h1 = 1; #5 check("menu FIX 2H1=1", fixd, 8'h22);
@@ -223,7 +223,7 @@ module tb_cha;
         zmc2_check(expected_cr(1), 0);
         zmc2_check(expected_cr(1), 1);
 
-        pbus = {8'd0, 12'h456, 1'b1, 3'd3};
+        pbus = {8'd0, 1'b1, 3'd3, 12'h456};
         #50 pck2b = 0; #80 pck2b = 1;
         t0 = $realtime;
         @(dut_s.fix1);

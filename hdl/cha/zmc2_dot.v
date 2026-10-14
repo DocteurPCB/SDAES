@@ -8,8 +8,9 @@
 // CR[31:24]= plan 3   (ROM C paire, octet haut)
 //
 // Cadencé directement par la broche 12M, comme la puce d'origine.
-// D'après le wiki neogeodev (NEO-ZMC2) : LOAD verrouille la donnée C au
-// front MONTANT de 12M ; EVEN échange les pixels A et B ; H inverse l'ordre
+// D'après la page NEO-ZMC2 du wiki neogeodev : LOAD verrouille la donnée C
+// au front DESCENDANT de 12M, le pixel suivant sort aussi au front
+// descendant ; EVEN échange les pixels A et B ; H inverse l'ordre
 // des pixels (retournement horizontal) ; DOTA/DOTB = pixel opaque.
 // À VALIDER sur matériel.
 // -----------------------------------------------------------------------------
@@ -26,7 +27,7 @@ module zmc2_dot (
 );
     reg [31:0] sr = 32'h0;
 
-    always @(posedge clk_12m) begin
+    always @(negedge clk_12m) begin
         if (load)
             sr <= cr;
         else if (h)

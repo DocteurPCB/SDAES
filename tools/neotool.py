@@ -324,7 +324,8 @@ def _nums(text):
 
 def default_mapper(name=""):
     return {"name": name, "ngh": 0, "mode": 0, "bank_addr": 0, "bank_bits": list(range(6)),
-            "bank_table": [], "prot": None, "rng": [], "rng_seed": 0x2345, "overlay": None}
+            "bank_table": [], "prot": None, "rng": [], "rng_seed": 0x2345, "overlay": None,
+            "wait": (0, 0)}
 
 
 def parse_mappers(text, whole_file=False, name=""):
@@ -377,6 +378,10 @@ def parse_mappers(text, whole_file=False, name=""):
             if len(v) != 6:
                 raise ValueError("overlay : 6 valeurs")
             cur["overlay"] = v
+        elif key == "wait":
+            if len(v) != 2 or v[0] > 1 or v[1] > 2:
+                raise ValueError("wait : attente zone ROM (0-1) et zone PORT (0-2)")
+            cur["wait"] = tuple(v)
         else:
             raise ValueError(f"clé inconnue : {key}")
     if cur:
@@ -394,6 +399,9 @@ def mapper_registers(m):
     def idx(a):
         return ((a - PORT_BASE) >> 1) & 0x7FFFF
     regs = [(0x0A, m["mode"] | (0x100 if m["overlay"] else 0))]
+    # {PWAIT1, PWAIT0, ROMWAIT}, actifs à 0 : 0 = pleine vitesse
+    rom_w, port_w = m["wait"]
+    regs.append((0x04, ((0x3, 0x2, 0x1)[port_w] << 1) | (0 if rom_w else 1)))
     if m["mode"] == 1:
         perm = sum((b & 0xF) << (4 * i) for i, b in enumerate(m["bank_bits"]))
         regs += [(0x0B, idx(m["bank_addr"])), (0x0C, perm),

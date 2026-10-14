@@ -1,48 +1,49 @@
 # Contraintes cha_c_top - iCE40HX4K-TQ144 (puce HX8K, outils libres)
 # Gabarit généré par tools/gen_pcf.py : compléter les numéros de broches.
 # CLK25 sur une entrée globale (GBIN) ; voir hardware/README.md pour les
-# signaux utilisés comme horloges.
+# signaux utilisés comme horloges. « AES ... » = contact du connecteur de
+# cartouche relié à ce port à travers un translateur (hardware/aes_connector.csv).
 # set_io CLK25 ?    # input
-# set_io P[0] ?    # input
-# set_io P[1] ?    # input
-# set_io P[2] ?    # input
-# set_io P[3] ?    # input
-# set_io P[4] ?    # input
-# set_io P[5] ?    # input
-# set_io P[6] ?    # input
-# set_io P[7] ?    # input
-# set_io P[8] ?    # input
-# set_io P[9] ?    # input
-# set_io P[10] ?    # input
-# set_io P[11] ?    # input
-# set_io P[12] ?    # input
-# set_io P[13] ?    # input
-# set_io P[14] ?    # input
-# set_io P[15] ?    # input
-# set_io P[16] ?    # input
-# set_io P[17] ?    # input
-# set_io P[18] ?    # input
-# set_io P[19] ?    # input
-# set_io P[20] ?    # input
-# set_io P[21] ?    # input
-# set_io P[22] ?    # input
-# set_io P[23] ?    # input
-# set_io PCK1B ?    # input
-# set_io CA4 ?    # input
-# set_io CLK_12M ?    # input
-# set_io EVEN ?    # input
-# set_io LOAD ?    # input
-# set_io H ?    # input
-# set_io GAD[0] ?    # output
-# set_io GAD[1] ?    # output
-# set_io GAD[2] ?    # output
-# set_io GAD[3] ?    # output
-# set_io GBD[0] ?    # output
-# set_io GBD[1] ?    # output
-# set_io GBD[2] ?    # output
-# set_io GBD[3] ?    # output
-# set_io DOTA ?    # output
-# set_io DOTB ?    # output
+# set_io P[0] ?    # input, AES CHA dessus 40
+# set_io P[1] ?    # input, AES CHA dessous 11
+# set_io P[2] ?    # input, AES CHA dessus 39
+# set_io P[3] ?    # input, AES CHA dessous 12
+# set_io P[4] ?    # input, AES CHA dessus 38
+# set_io P[5] ?    # input, AES CHA dessous 13
+# set_io P[6] ?    # input, AES CHA dessus 37
+# set_io P[7] ?    # input, AES CHA dessous 14
+# set_io P[8] ?    # input, AES CHA dessus 36
+# set_io P[9] ?    # input, AES CHA dessous 15
+# set_io P[10] ?    # input, AES CHA dessus 35
+# set_io P[11] ?    # input, AES CHA dessous 16
+# set_io P[12] ?    # input, AES CHA dessus 34
+# set_io P[13] ?    # input, AES CHA dessous 17
+# set_io P[14] ?    # input, AES CHA dessus 33
+# set_io P[15] ?    # input, AES CHA dessous 18
+# set_io P[16] ?    # input, AES CHA dessus 32
+# set_io P[17] ?    # input, AES CHA dessous 19
+# set_io P[18] ?    # input, AES CHA dessus 31
+# set_io P[19] ?    # input, AES CHA dessous 20
+# set_io P[20] ?    # input, AES CHA dessus 30
+# set_io P[21] ?    # input, AES CHA dessous 21
+# set_io P[22] ?    # input, AES CHA dessus 29
+# set_io P[23] ?    # input, AES CHA dessous 22
+# set_io PCK1B ?    # input, AES CHA dessus 48
+# set_io CA4 ?    # input, AES CHA dessus 41
+# set_io CLK_12M ?    # input, AES CHA dessus 46
+# set_io EVEN ?    # input, AES CHA dessus 44
+# set_io LOAD ?    # input, AES CHA dessus 42
+# set_io H ?    # input, AES CHA dessus 43
+# set_io GAD[0] ?    # output, AES CHA dessous 32
+# set_io GAD[1] ?    # output, AES CHA dessous 33
+# set_io GAD[2] ?    # output, AES CHA dessous 34
+# set_io GAD[3] ?    # output, AES CHA dessous 35
+# set_io GBD[0] ?    # output, AES CHA dessous 36
+# set_io GBD[1] ?    # output, AES CHA dessous 37
+# set_io GBD[2] ?    # output, AES CHA dessous 38
+# set_io GBD[3] ?    # output, AES CHA dessous 39
+# set_io DOTA ?    # output, AES CHA dessous 30
+# set_io DOTB ?    # output, AES CHA dessous 31
 # set_io XLAT_EN_N ?    # output
 # set_io LK_SCK ?    # input
 # set_io LK_CS_N ?    # input

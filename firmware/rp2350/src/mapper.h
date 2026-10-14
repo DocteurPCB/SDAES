@@ -31,6 +31,9 @@ typedef struct {
     /* superposition (KOF 98) */
     bool       ovl;
     uint32_t   ovl_trig, ovl_on, ovl_off, ovl_addr, ovl_v0, ovl_v1;
+    /* cycles d'attente 68000 demandés à la console (/ROMWAIT, /PWAIT0-1) :
+     * zone ROM 0 ou 1, zone PORT 0, 1 ou 2 ; 0 = pleine vitesse */
+    uint8_t    rom_wait, port_wait;
 } mapper_t;
 
 /* Initialise une description "standard". */

@@ -9,9 +9,9 @@ QFN.
 > **État : conception + logiciel vérifiés en simulation, pas encore de
 > prototype matériel.** Le code FPGA, le menu, le firmware et les outils sont
 > écrits et testés automatiquement (voir plus bas) ; les circuits imprimés
-> restent à dessiner et plusieurs détails du brochage AES doivent être
-> confirmés sur une vraie cartouche
-> (`docs/07-validation-et-feuille-de-route.md`).
+> restent à dessiner. Le brochage AES est relevé sur le wiki neogeodev
+> (`hardware/aes_connector.csv`) ; son orientation reste à confirmer sur une
+> vraie cartouche (`docs/07-validation-et-feuille-de-route.md`).
 
 ## Principe
 
@@ -38,7 +38,7 @@ QFN.
 | `firmware/rp2350/` | firmware du Pico 2 (SDK Pico + FatFs SDIO) et test sur PC |
 | `protocol/` | protocole menu ↔ RP2350, partagé |
 | `tools/` | `neotool.py` (.neo, police, BRAM, code de sécurité), tests |
-| `hardware/` | gabarits de contraintes FPGA (`.pcf`), futurs projets KiCad |
+| `hardware/` | brochage du connecteur AES (`aes_connector.csv`), gabarits de contraintes FPGA (`.pcf`), futurs projets KiCad |
 
 ## Construire et tester
 

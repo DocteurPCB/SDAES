@@ -36,6 +36,7 @@ module prog_p_core #(
     input  wire        portoe_n,
     input  wire        portwel_n,
     input  wire        portweu_n,
+    output wire [2:0]  wait_n,            // {PWAIT1, PWAIT0, ROMWAIT}, actifs à 0
 
     input  wire        lk_sck,
     input  wire        lk_cs_n,
@@ -75,6 +76,7 @@ module prog_p_core #(
     reg        game_mode = 1'b0;
     reg        irq = 1'b0;
     reg [23:0] p_mask = 24'h07FFFF;      // en mots
+    reg [2:0]  wait_cfg = 3'b111;        // pleine vitesse (cf. wiki neogeodev « Wait cycle »)
     reg [23:0] dbg_addr = 24'h0;
     reg [15:0] dbg_data = 16'h0;
     reg        dbg_req = 1'b0, dbg_busy = 1'b0;
@@ -90,6 +92,7 @@ module prog_p_core #(
             case (reg_addr)
             8'h01: begin ctrl_arm <= reg_wdata[0]; ctrl_bank_en <= reg_wdata[3]; end
             8'h03: p_mask   <= reg_wdata[23:0];
+            8'h04: wait_cfg <= reg_wdata[2:0];
             8'h10: dbg_addr <= reg_wdata[23:0];
             default: ;
             endcase
@@ -102,6 +105,7 @@ module prog_p_core #(
         8'h01: reg_rdata = {28'd0, ctrl_bank_en, 2'b00, ctrl_arm};
         8'h02: reg_rdata = {25'd0, pk_ovf, dbg_busy, irq, game_mode, pk_empty & sd_idle, sd_init_done, sd_init_done};
         8'h03: reg_rdata = {8'd0, p_mask};
+        8'h04: reg_rdata = {29'd0, wait_cfg};
         8'h08, 8'h0A, 8'h0C: reg_rdata = map_rdata;
         8'h09: reg_rdata = {31'd0, irq};
         8'h10: reg_rdata = {8'd0, dbg_addr};
@@ -475,6 +479,7 @@ module prog_p_core #(
         .sd_ba(sd_ba), .sd_a(sd_a), .sd_dqm(sd_dqm), .sd_dq_o(sd_dq_o), .sd_dq_oe(sd_dq_oe), .sd_dq_i(sd_dq_i));
 
     assign d_o      = p_dout;
+    assign wait_n   = wait_cfg;
     assign d_drive  = ~romoe_n | ~portoe_n;     // combinatoire depuis les broches
     assign mode_out = game_mode;
     assign lk_irq   = irq;
