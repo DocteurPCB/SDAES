@@ -86,12 +86,12 @@ pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 
 | FPGA | Cellules logiques | BRAM | E/S | Fréquence max |
 |---|---|---|---|---|
-| P (avec protections) | 3 608 | 28 / 32 | 90 | 100,5 MHz |
+| P (avec protections) | 3 653 | 28 / 32 | 94 | 103 MHz |
 | V | 1 881 | 0 | 80 | 101 MHz |
 | C | 1 785 | 0 | 89 | 107 MHz |
-| SM | 1 327 | 20 / 32 | 92 | 115 MHz |
+| SM | 1 327 | 20 / 32 | 92 | 118 MHz |
 
-La marge à 100 MHz est faible (0,5 à 7 %) et dépend de la graine de
+La marge à 100 MHz est faible (1 à 18 %) et dépend de la graine de
 placement ; l'affectation réelle des broches la fera varier. Si besoin, la
 PLL peut être réglée à 90 MHz : les latences augmentent d'environ 10 % et
 restent dans les budgets ci-dessus, sauf le pire cas 68000 (~140 ns), qui
