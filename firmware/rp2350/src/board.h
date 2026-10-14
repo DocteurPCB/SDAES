@@ -25,6 +25,7 @@
 #define PIN_PROG_IRQ    22      /* commande du menu en attente (actif haut) */
 #define PIN_CDONE       26      /* CDONE des 4 FPGA en ET câblé (drain ouvert) */
 #define PIN_BUTTON      27      /* bouton "retour menu" (actif bas) */
+#define PIN_CRESET_N    28      /* reset commun des 4 FPGA (tiré à la masse) */
 #define PIN_LED         25      /* LED du Pico 2 */
 
 /* Fréquence de la liaison : sys 150 MHz / (2 x LINK_CLKDIV) */

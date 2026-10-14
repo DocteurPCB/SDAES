@@ -3,6 +3,8 @@
 #   make lint    : synthèse Yosys des 4 FPGA
 #   make pnr     : placement-routage nextpnr (broches non affectées), rapport de fréquence
 #   make bits    : bitstreams (nécessite les .pcf complétés dans ../hardware)
+#   make sd      : build/sd/SDAES/fpga_*.bin, à copier à la racine de la carte SD
+#                  (le RP2350 configure les FPGA avec ces fichiers au démarrage)
 IVERILOG ?= iverilog
 VVP      ?= vvp
 YOSYS    ?= yosys
@@ -69,7 +71,14 @@ $(BUILD)/%.bin: $(BUILD)/%.asc
 
 bits: $(addprefix $(BUILD)/,$(addsuffix .bin,$(TOPS)))
 
+sd: bits
+	mkdir -p $(BUILD)/sd/SDAES
+	cp $(BUILD)/prog_p_top.bin $(BUILD)/sd/SDAES/fpga_p.bin
+	cp $(BUILD)/prog_v_top.bin $(BUILD)/sd/SDAES/fpga_v.bin
+	cp $(BUILD)/cha_c_top.bin  $(BUILD)/sd/SDAES/fpga_c.bin
+	cp $(BUILD)/cha_sm_top.bin $(BUILD)/sd/SDAES/fpga_sm.bin
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all sim lint pnr bits clean
+.PHONY: all sim lint pnr bits sd clean

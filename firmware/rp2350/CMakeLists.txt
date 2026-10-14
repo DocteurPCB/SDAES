@@ -22,6 +22,7 @@ add_executable(sdaes_fw
     src/neo_loader.c
     src/mapper.c
     src/browser.c
+    src/fpga_boot.c
     src/hw_config.c
 )
 pico_generate_pio_header(sdaes_fw ${CMAKE_CURRENT_LIST_DIR}/src/qlink.pio)

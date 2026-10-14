@@ -1,8 +1,9 @@
 /*
  * Firmware SDAES pour Raspberry Pi Pico 2 (RP2350).
  *
- * 1. attend la configuration des quatre FPGA et l'initialisation des SDRAM
- * 2. monte la carte SD (FatFs, SDIO 4 bits)
+ * 1. monte la carte SD (FatFs, SDIO 4 bits)
+ * 2. configure les quatre FPGA depuis SDAES/fpga_*.bin, attend
+ *    l'initialisation des SDRAM
  * 3. répond aux commandes du menu 68000 (sonnette LK_IRQ)
  * 4. bouton : désarme les FPGA -> la console redémarre sur le menu
  */
@@ -12,6 +13,7 @@
 #include "board.h"
 #include "qlink.h"
 #include "browser.h"
+#include "fpga_boot.h"
 
 static FATFS fs;
 
@@ -45,6 +47,15 @@ int main(void)
 
     qlink_init();
 
+    /* sans flash, les FPGA ne démarrent qu'avec les fichiers de la carte SD */
+    int sd_ok = f_mount(&fs, "0:", 1) == FR_OK;
+    printf("SDAES: carte SD %s\n", sd_ok ? "montée" : "absente");
+    char msg[40];
+    if (!sd_ok || fpga_boot(msg, sizeof(msg)) != 0) {
+        printf("SDAES: FPGA non configurés (%s)\n", sd_ok ? msg : "pas de carte SD");
+        for (;;) blink(sd_ok ? 4 : 5), sleep_ms(1000);
+    }
+
     absolute_time_t t = make_timeout_time_ms(2000);
     while (!fpga_ready()) {
         if (time_reached(t)) {
@@ -54,8 +65,6 @@ int main(void)
         sleep_ms(5);
     }
 
-    int sd_ok = f_mount(&fs, "0:", 1) == FR_OK;
-    printf("SDAES: carte SD %s\n", sd_ok ? "montée" : "absente");
     browser_init(sd_ok);
     gpio_put(PIN_LED, 1);
 

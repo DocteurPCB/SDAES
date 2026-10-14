@@ -10,6 +10,32 @@ quartets, **poids fort d'abord**. Le FPGA sur-échantillonne la liaison à
 En lecture, le FPGA présente le quartet suivant ~40 ns après chaque front
 montant ; le maître lit au front montant suivant (le firmware lit à ~5 MHz).
 
+## Démarrage : configuration des FPGA depuis la carte SD
+
+Les FPGA n'ont pas de flash. `CRESET_N`, commun aux quatre FPGA (câble
+PROG-CHA, broche 13), est tiré à la masse et piloté par le RP2350 (GP28) :
+les FPGA restent en reset à la mise sous tension. Le firmware
+(`firmware/rp2350/src/fpga_boot.c`) :
+
+1. monte la carte SD et vérifie la présence de `SDAES/fpga_p.bin`,
+   `fpga_v.bin`, `fpga_c.bin` et `fpga_sm.bin` (sinon les FPGA restent en
+   reset, la LED du Pico clignote 4 fois, 5 sans carte SD) ;
+2. met les quatre CS à 0 et relâche `CRESET_N` : chaque iCE40 démarre en
+   **SPI esclave** (note Lattice TN1248) ; attend 2 ms, remonte les CS et
+   envoie 8 coups d'horloge ;
+3. pour chaque FPGA : CS à 0, bitstream bit de poids fort d'abord sur
+   IO0 (= SDI du FPGA), échantillonné au front montant de SCK ; CS à 1 et
+   160 coups d'horloge ;
+4. vérifie `CDONE` (ET câblé des quatre FPGA).
+
+Le bus de liaison arrive sur les broches de configuration de l'iCE40
+(SCK = 70, SDI = 68, SS = 71), qui redeviennent `LK_SCK`, `LK_IO[0]` et
+`LK_CS_N` une fois le FPGA démarré ; un FPGA déjà configuré ignore le
+trafic tant que son CS est à 1. Environ 135 Ko par FPGA, moins d'une
+seconde au total. **Mettre à jour les FPGA = copier les fichiers `.bin`
+sur la carte SD** (`make -C hdl sd`). En secours, le connecteur 2 x 3 de
+chaque FPGA permet une configuration directe par `iceprog -S`.
+
 ## Trames
 
 | Commande | Octets envoyés | Réponse |

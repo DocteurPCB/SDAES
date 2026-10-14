@@ -6,7 +6,10 @@ Règles (hardware/README.md) :
     (côtés gauche et bas du boîtier, vers le connecteur de bord) ;
   * mémoire (SDRAM ou SRAM), liaison RP2350, MODE, LED : bancs 0 et 1 ;
   * signaux utilisés comme horloges dans le HDL : entrées globales GBIN ;
-  * broches SPI de configuration (67, 68, 70, 71) réservées à la flash.
+  * broches SPI de configuration : pas de flash, le RP2350 configure chaque
+    FPGA en mode esclave par le bus de liaison ; LK_SCK -> 70 (SCK),
+    LK_IO[0] -> 68 (SDI), LK_CS_N -> 71 (SS), qui redeviennent ces entrées
+    après la configuration ; 67 (SDO) reste libre (connecteur de secours).
 
 Les numéros de broches et les bancs viennent du symbole KiCad
 FPGA_Lattice:ICE40HX4K-TQ144. Le résultat est vérifié par nextpnr
@@ -40,6 +43,8 @@ GBIN = {0: 129, 1: 128, 2: 94, 3: 93, 4: 52, 5: 49, 6: 21, 7: 20}
 # d'entrée d'une broche (nextpnr : « PLL bel ... conflicts with input »).
 # La broche 129 est réservée à une sortie : la PLL du haut reste libre.
 OUTPUT_ONLY = {129}
+# Bus de liaison sur les broches de configuration SPI (mode esclave)
+CFG_PINS = {"LK_SCK": 70, "LK_IO[0]": 68, "LK_CS_N": 71}
 
 
 def bus(name, lo, hi):
@@ -98,9 +103,12 @@ def assign(name):
     for sig, g in cfg["gbin"].items():
         pin[sig] = GBIN[g]
         used.add(GBIN[g])
+    for sig, p in CFG_PINS.items():
+        pin[sig] = p
+        used.add(p)
     if os.path.exists(PINS_OPT) and not getattr(assign, "raw", False):
         for sig, p in json.load(open(PINS_OPT)).get(name, {}).items():
-            if sig in dirs and p not in used:
+            if sig in dirs and sig not in pin and p not in used:
                 pin[sig] = p
                 used.add(p)
 
@@ -144,7 +152,7 @@ def main():
             for d, p in plist:
                 c = gen_pcf.contact(p)
                 g = [k for k, v in GBIN.items() if v == pin[p]]
-                note = f"{d}, banc {bank_of(pin[p])}" + (f", GBIN{g[0]}" if g else "") \
+                note = f"{d}, " + ("configuration SPI" if p in CFG_PINS else f"banc {bank_of(pin[p])}") + (f", GBIN{g[0]}" if g else "") \
                     + (f", AES {c}" if c else "")
                 f.write(f"set_io {p} {pin[p]}    # {note}\n")
         print(f"{out} : {len(plist)} broches")

@@ -126,3 +126,36 @@ void qlink_mem_read(link_id_t l, uint8_t space, uint32_t addr, void *buf, size_t
     memcpy(buf, mem[l][space] + addr, len);
 }
 bool qlink_wait_idle(link_id_t l, uint32_t t) { (void)l; (void)t; return pending_l < 0; }
+
+/* ---- configuration des FPGA (SPI esclave) ---- */
+uint8_t cfg_buf[4][CFG_MAX];
+size_t  cfg_len[4];
+int     cfg_resets;
+static int cfg_cur = -1;
+
+void qlink_cfg_reset(void)
+{
+    cfg_resets++;
+    memset(cfg_len, 0, sizeof(cfg_len));
+}
+void qlink_cfg_begin(link_id_t l)
+{
+    if (cfg_cur >= 0) { fprintf(stderr, "ECHEC cfg_begin imbriqué\n"); exit(1); }
+    cfg_cur = l;
+}
+void qlink_cfg_data(link_id_t l, const void *buf, size_t len)
+{
+    if (cfg_cur != (int)l) { fprintf(stderr, "ECHEC cfg_data hors begin/end\n"); exit(1); }
+    if (cfg_len[l] + len > CFG_MAX) { fprintf(stderr, "ECHEC bitstream trop grand\n"); exit(1); }
+    memcpy(cfg_buf[l] + cfg_len[l], buf, len);
+    cfg_len[l] += len;
+}
+void qlink_cfg_end(link_id_t l)
+{
+    if (cfg_cur != (int)l) { fprintf(stderr, "ECHEC cfg_end sans begin\n"); exit(1); }
+    cfg_cur = -1;
+}
+bool qlink_cfg_done(void)
+{
+    return cfg_len[0] && cfg_len[1] && cfg_len[2] && cfg_len[3];
+}

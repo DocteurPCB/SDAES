@@ -24,7 +24,11 @@ make -C hdl pnr YOSYS=yowasp-yosys NEXTPNR=yowasp-nextpnr-ice40
 * `CLK25` sur l'entrée globale GBIN3 (broche 93).
 * Broche 129 réservée à une sortie : la PLL du haut, utilisée par le
   design, réquisitionne son chemin d'entrée (de même la broche 49 pour la
-  PLL du bas). Broches SPI 67, 68, 70, 71 réservées à la flash.
+  PLL du bas).
+* Pas de flash : le RP2350 configure les FPGA en SPI esclave par le bus
+  de liaison. `LK_SCK` sur la broche 70 (SCK), `LK_IO[0]` sur 68 (SDI),
+  `LK_CS_N` sur 71 (SS) ; elles redeviennent ces entrées après la
+  configuration. 67 (SDO) ne sert qu'au connecteur de secours.
 * Signaux utilisés **comme horloges** dans le HDL — à placer sur des
   entrées globales (GBIN) : `CLK_12M`, `PCK1B` (FPGA C) ; `PCK2B` (SM) ;
   `SDRMPX`, `SDPMPX` (V).
@@ -64,8 +68,8 @@ Raspberry Pi (Pico 2).
 | PROG | 124 | 274 |
 | CHA | 138 | 293 |
 
-Par FPGA : flash SPI W25Q32JV (+ connecteur 2 x 3 pour `iceprog`, le FPGA
-tenu en reset par CRESET), oscillateur 25 MHz, filtre RC des deux PLL
+Par FPGA : connecteur de secours 2 x 3 (configuration directe par
+`iceprog -S`, RP2350 au repos), oscillateur 25 MHz, filtre RC des deux PLL
 (100 Ω, 10 µF, 100 nF), découplage 100 nF par broche d'alimentation, LED.
 Alimentations par carte : AMS1117-3.3 (5 V → 3,3 V) et AP2112K-1.2
 (3,3 V → 1,2 V).

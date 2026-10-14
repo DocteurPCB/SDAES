@@ -49,8 +49,8 @@ PLACE = {
         "U3": (101, ROW, None), "U7": (118, ROW, None), "U8": (134, ROW, None), "U9": (144, ROW, None),
         "U4": (160, ROW, None), "U6": (177, ROW, None), "U5": (194, ROW, None),
         "U1": (150, 150, 0), "U2": (138, 150, None),          # régulateurs, près des contacts VCC
-        "U13": (110, 98, 0), "U15": (110, 62, None),        # FPGA V et sa SDRAM
-        "U10": (190, 98, 0), "U12": (190, 62, None),        # FPGA P et sa SDRAM
+        "U12": (110, 98, 0), "U13": (110, 62, None),        # FPGA V et sa SDRAM
+        "U10": (190, 98, 0), "U11": (190, 62, None),        # FPGA P et sa SDRAM
         "J2": (150, 52, 0),                                    # câble PROG-CHA
     },
     "cha": {
@@ -59,8 +59,8 @@ PLACE = {
         "U5": (158, ROW, None), "U6": (175, ROW, None), "U8": (192, ROW, None),
         "U10": (207, ROW, None), "U11": (216, ROW, None),
         "U1": (150, 150, 0), "U2": (138, 150, None),
-        "U15": (112, 98, 0), "U17": (100, 64, None),        # FPGA SM et SRAM
-        "U12": (192, 98, 0), "U14": (192, 62, None),        # FPGA C et SDRAM
+        "U14": (112, 98, 0), "U15": (100, 64, None),        # FPGA SM et SRAM
+        "U12": (192, 98, 0), "U13": (192, 62, None),        # FPGA C et SDRAM
         "A1": (150, 93, 0),                                    # Pico 2, au milieu
         "J4": (150, 55, 0),                                    # microSD, ouverture vers le haut
         "SW1": (128, 50, 0),                                   # bouton retour menu
@@ -189,6 +189,10 @@ class Layout:
     # -- placement --------------------------------------------------------
     def place(self):
         table = PLACE[self.name]
+        vals = {p.ref: p.value for p in self.parts}
+        for ref, pcf in FPGA_REF[self.name].items():
+            if not vals.get(ref, "").startswith("iCE40"):
+                raise SystemExit(f"{self.name} : {ref} n'est pas un FPGA ({vals.get(ref)}) : table PLACE à revoir")
         groups, cur = [], None
         for p in self.parts:
             if p.ref in table:
@@ -457,7 +461,7 @@ class Layout:
 
 
 # FPGA de chaque carte : référence -> nom du gabarit .pcf (fpga_pins.FPGAS)
-FPGA_REF = {"prog": {"U10": "prog_p", "U13": "prog_v"}, "cha": {"U12": "cha_c", "U15": "cha_sm"}}
+FPGA_REF = {"prog": {"U10": "prog_p", "U12": "prog_v"}, "cha": {"U12": "cha_c", "U14": "cha_sm"}}
 PINS_OPT = os.path.join(HERE, "pins_opt.json")
 
 
@@ -514,7 +518,7 @@ def optimise_pins(L):
     for ref, pcf in FPGA_REF[L.name].items():
         cfg = fpga_pins.FPGAS[pcf]
         plist, cur, dirs = fpga_pins.assign(pcf)
-        fixed = set(cfg["gbin"])
+        fixed = set(cfg["gbin"]) | set(fpga_pins.CFG_PINS)
         part = [p for p in L.parts if p.ref == ref][0]
         fp = L.fps[ref]
         c = fp.GetPosition()

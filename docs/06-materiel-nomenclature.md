@@ -9,7 +9,6 @@ technique « drag soldering ». Aucun BGA ni QFN.
 | Fonction | Composant proposé | Boîtier | Qté |
 |---|---|---|---|
 | FPGA | **Lattice iCE40HX4K-TQ144** (puce HX8K) | TQFP-144, 0,5 mm | 4 |
-| Flash de configuration | W25Q32JVSS (SPI) | SOIC-8 208 mil | 4 |
 | SDRAM P et V | **W9825G6KH-6** (256 Mbit x16) | TSOP-II 54, 0,8 mm | 2 |
 | SDRAM C | **AS4C32M16SB-6** (512 Mbit x16) ou IS42S16320 | TSOP-II 54 | 1 |
 | SRAM S + M1 | IS61WV10248EDBLL-10 (1 Mo x 8, 10 ns) | TSOP-II 44 | 1 |
@@ -47,7 +46,7 @@ Remarques :
 | 3 x SDRAM + 1 SRAM | 10-14 € |
 | 13 tampons de niveaux + 3 portes logiques | 6-9 € |
 | Pico 2 | 5 € |
-| flash, oscillateurs, régulateurs, passifs, support SD, câble | 10-14 € |
+| oscillateurs, régulateurs, passifs, support SD, câble | 8-12 € |
 | 2 circuits imprimés 4 couches, contacts dorés chanfreinés | 8-15 € |
 | **Total (montage à la main)** | **≈ 70-95 €** |
 

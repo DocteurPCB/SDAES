@@ -124,6 +124,11 @@ class FirmwareHostTest(unittest.TestCase):
                         "prot = 0x2fe446 0x9a37\n"
                         "rng = 0x2ffff8 0x2ffffa\n")
             os.makedirs(os.path.join(sd, "SDAES"), exist_ok=True)
+            bits = {}
+            for i, n in enumerate(("p", "v", "c", "sm")):
+                bits[n] = bytes((j * 7 + i * 31) & 0xFF for j in range(135100 + i))
+                with open(os.path.join(sd, "SDAES", f"fpga_{n}.bin"), "wb") as f:
+                    f.write(bits[n])
             with open(os.path.join(sd, "SDAES", "MAPPERS.TXT"), "w") as f:
                 f.write("[kof98]\nngh = 0x242\n"
                         "overlay = 0x20aaaa 0x0090 0x00f0 0x000100 0x00c2 0x00fd\n"
@@ -141,7 +146,7 @@ class FirmwareHostTest(unittest.TestCase):
                             "-I", tst, "-I", src, "-o", exe,
                             os.path.join(tst, "test_main.c"), os.path.join(tst, "fakes.c"),
                             os.path.join(src, "browser.c"), os.path.join(src, "neo_loader.c"),
-                            os.path.join(src, "mapper.c")],
+                            os.path.join(src, "mapper.c"), os.path.join(src, "fpga_boot.c")],
                            check=True)
             env = dict(os.environ, SDAES_SD=sd, SDAES_OUT=out)
             r = subprocess.run([exe], env=env, capture_output=True, text=True)
@@ -157,6 +162,9 @@ class FirmwareHostTest(unittest.TestCase):
             h = neotool.NeoHeader.unpack(data)
             reg = {n: data[o:o + s] for n, o, s in h.regions()}
             plan = neotool.load_plan(h)
+
+            for n in ("p", "v", "c", "sm"):
+                self.assertEqual(rd(f"cfg_{n}.bin"), bits[n], f"bitstream {n}")
 
             self.assertEqual(rd("prog_p.bin"), reg["P"])
             v = rd("prog_v.bin")

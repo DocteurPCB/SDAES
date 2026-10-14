@@ -75,4 +75,14 @@ void     qlink_mem_read(link_id_t l, uint8_t space, uint32_t addr, void *buf, si
 /* attend que les écritures soient arrivées en mémoire */
 bool     qlink_wait_idle(link_id_t l, uint32_t timeout_ms);
 
+/* Configuration des iCE40 en SPI esclave par le bus de liaison :
+ * reset commun des 4 FPGA en mode esclave, puis pour chacun begin, data
+ * (octets du bitstream, bit de poids fort d'abord, sur IO0 = SDI), end.
+ * cfg_done = CDONE (ET câblé des 4 FPGA). */
+void     qlink_cfg_reset(void);
+void     qlink_cfg_begin(link_id_t l);
+void     qlink_cfg_data(link_id_t l, const void *buf, size_t len);
+void     qlink_cfg_end(link_id_t l);
+bool     qlink_cfg_done(void);
+
 #endif

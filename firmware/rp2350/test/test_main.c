@@ -9,6 +9,7 @@
 #include "ff.h"
 #include "qlink.h"
 #include "browser.h"
+#include "fpga_boot.h"
 #include "fakes.h"
 #include "../../../protocol/sdaes_mailbox.h"
 
@@ -55,6 +56,26 @@ static void dump(const char *name, const uint8_t *p, uint32_t len)
 int main(void)
 {
     fakes_init();
+
+    /* configuration des FPGA depuis SDAES/fpga_*.bin */
+    {
+        char msg[40], a[1024], b[1024];
+        int r = fpga_boot(msg, sizeof(msg));
+        printf("info  fpga_boot : %s\n", msg);
+        expect(r == 0 && cfg_resets == 1, "FPGA configurés depuis la carte SD");
+        dump("cfg_p.bin", cfg_buf[LINK_P], (uint32_t)cfg_len[LINK_P]);
+        dump("cfg_v.bin", cfg_buf[LINK_V], (uint32_t)cfg_len[LINK_V]);
+        dump("cfg_c.bin", cfg_buf[LINK_C], (uint32_t)cfg_len[LINK_C]);
+        dump("cfg_sm.bin", cfg_buf[LINK_SM], (uint32_t)cfg_len[LINK_SM]);
+        snprintf(a, sizeof(a), "%s/SDAES/fpga_v.bin", getenv("SDAES_SD"));
+        snprintf(b, sizeof(b), "%s/SDAES/fpga_v.tmp", getenv("SDAES_SD"));
+        rename(a, b);
+        r = fpga_boot(msg, sizeof(msg));
+        expect(r < 0 && !strcmp(msg, "MANQUE SDAES/fpga_v.bin") && cfg_resets == 1,
+               "fichier manquant : FPGA laissés en reset");
+        rename(b, a);
+    }
+
     browser_init(1);
 
     expect(send(CMD_PING, 0) == ST_OK, "PING");

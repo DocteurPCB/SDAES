@@ -213,8 +213,8 @@ résistances de 10 kΩ :
   configuration : la lenteur du drain ouvert (résistance de tirage) est
   sans conséquence. `SDD_OE5_N` (carte CHA) = `SDD_OE_N` OU `OE5_N`.
 
-Tant que les FPGA ne sont pas configurés (quelques dizaines de ms depuis la
-flash SPI), **tous les tampons sont en haute impédance** et la cartouche
+Tant que les FPGA ne sont pas configurés (environ une seconde : le RP2350
+les charge depuis la carte SD, voir `docs/04-liaison-rp2350.md`), **tous les tampons sont en haute impédance** et la cartouche
 est électriquement absente du bus. Le FPGA P (resp. C) force `XLAT_EN_N`
 à 0 une fois sa PLL verrouillée ; `OE5_N` suit `XLAT_EN_N` (même broche
 du FPGA, à travers le 74LVC1G07). La cartouche ne doit pas être branchée

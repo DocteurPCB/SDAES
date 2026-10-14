@@ -36,7 +36,6 @@ FP = {
     "sot223": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
     "sdram": "Package_SO:TSOP-II-54_22.2x10.16mm_P0.8mm",
     "sram": "Package_SO:TSOP-II-44_10.16x18.41mm_P0.8mm",
-    "flash": "Package_SO:SOIC-8_5.23x5.23mm_P1.27mm",
     "osc": "Oscillator:Oscillator_SMD_Abracon_ASE-4Pin_3.2x2.5mm_HandSoldering",
     "r": "Resistor_SMD:R_0603_1608Metric",
     "c": "Capacitor_SMD:C_0603_1608Metric",
@@ -44,7 +43,7 @@ FP = {
     "c22u": "Capacitor_SMD:C_1206_3216Metric",
     "led": "LED_SMD:LED_0603_1608Metric",
     "hdr2x3": "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical",
-    "hdr2x6": "Connector_PinHeader_2.54mm:PinHeader_2x06_P2.54mm_Vertical",
+    "hdr2x7": "Connector_PinHeader_2.54mm:PinHeader_2x07_P2.54mm_Vertical",
     "sd": "Connector_Card:microSD_HC_Wuerth_693072010801",
     "sw": "Button_Switch_SMD:SW_SPST_TL3342",
     "schottky": "Diode_SMD:D_SOD-123",
@@ -62,7 +61,6 @@ DSCH = k.kicad_symbol("Device", "D_Schottky")
 SW = k.kicad_symbol("Switch", "SW_Push")
 ICE40 = k.kicad_symbol("FPGA_Lattice", "ICE40HX4K-TQ144")
 SDRAM = k.kicad_symbol("Memory_RAM", "MT48LC16M16A2TG")
-FLASH = k.kicad_symbol("Memory_Flash", "W25Q32JVSS")
 OSC = k.kicad_symbol("Oscillator", "ASE-xxxMHz")
 LDO33 = k.kicad_symbol("Regulator_Linear", "AMS1117-3.3")
 LDO12 = k.kicad_symbol("Regulator_Linear", "AP2112K-1.2")
@@ -73,7 +71,7 @@ X125 = k.kicad_symbol("74xx", "74LS125")               # brochage 125 standard (
 G07 = k.kicad_symbol("74xGxx", "74LVC1G07")
 G32 = k.kicad_symbol("74xGxx", "74AHCT1G32")
 HDR6 = k.kicad_symbol("Connector_Generic", "Conn_02x03_Odd_Even")
-HDR12 = k.kicad_symbol("Connector_Generic", "Conn_02x06_Odd_Even")
+HDR14 = k.kicad_symbol("Connector_Generic", "Conn_02x07_Odd_Even")
 
 # 16244 (SN74LVC16244A / SN74AHCT16244, TSSOP-48) : brochage de la fiche TI
 _244 = {1: "1OE", 2: "1Y1", 3: "1Y2", 5: "1Y3", 6: "1Y4", 8: "2Y1", 9: "2Y2", 11: "2Y3", 12: "2Y4",
@@ -224,19 +222,28 @@ def power(sh, ref, edge_ref):
 
 
 def fpga(sh, ref, tag, pcf_name, portmap):
-    """FPGA iCE40 + flash SPI + oscillateur 25 MHz + filtres PLL + connecteur de
-    programmation + tirages CDONE/CRESET. portmap : port du top -> réseau."""
+    """FPGA iCE40 + oscillateur 25 MHz + filtres PLL + connecteur de secours +
+    tirage CRESET. portmap : port du top -> réseau.
+
+    Pas de flash : le RP2350 configure le FPGA en mode SPI esclave depuis la
+    carte SD, par le bus de liaison. Ses broches de configuration SCK (70),
+    SDI (68) et SS (71) sont reliées à LK_SCK, LK_IO[0] et LK_CS_N (affectées
+    par fpga_pins.py) et redeviennent ces entrées une fois le FPGA démarré.
+    CRESET_N est commun aux 4 FPGA, piloté par le RP2350 et tiré à la masse :
+    les FPGA restent en reset tant que le RP2350 ne les a pas lancés."""
     pins = read_pcf(pcf_name)
     nets = {}
     for port, p in pins.items():
         net = portmap(port)
         if net:
             nets[p] = net
+    for port, p in (("LK_SCK", 70), ("LK_IO[0]", 68), ("LK_CS_N", 71)):
+        if pins.get(port) != p:
+            raise SystemExit(f"{pcf_name} : {port} doit être sur la broche {p} (configuration SPI)")
     nets.update({27: "+1V2", 123: "+3V3", 89: "+3V3", 46: "+3V3", 6: "+3V3", 72: "+3V3", 108: "+3V3",
                  5: "GND", 53: "GND", 127: "GND",
                  54: f"{tag}_VCCPLL0", 126: f"{tag}_VCCPLL1",
-                 65: "CDONE", 66: f"{tag}_CRESET_N", 67: f"{tag}_FL_DI", 68: f"{tag}_FL_DO",
-                 70: f"{tag}_FL_SCK", 71: f"{tag}_FL_CS_N"})
+                 65: "CDONE", 66: "CRESET_N", 67: f"{tag}_SDO"})
     u = sh.add(k.Part(ref("U"), ICE40, "iCE40HX4K-TQ144", FP["fpga"], nets))
     # alimentations : 100 nF par broche, vrac
     decouple(sh, ref, "+1V2", 4, "10u")
@@ -245,18 +252,12 @@ def fpga(sh, ref, tag, pcf_name, portmap):
         res(sh, ref, "100", "+1V2", f"{tag}_{pll}")
         cap(sh, ref, "10u", f"{tag}_{pll}")
         cap(sh, ref, "100n", f"{tag}_{pll}")
-    res(sh, ref, "10k", "+3V3", f"{tag}_CRESET_N")
-    sh.add(k.Part(ref("U"), FLASH, "W25Q32JVSS", FP["flash"],
-                  {1: f"{tag}_FL_CS_N", 2: f"{tag}_FL_DO", 3: f"{tag}_FL_WP_N", 4: "GND",
-                   5: f"{tag}_FL_DI", 6: f"{tag}_FL_SCK", 7: f"{tag}_FL_HOLD_N", 8: "+3V3"}))
-    cap(sh, ref, "100n", "+3V3")
-    res(sh, ref, "10k", "+3V3", f"{tag}_FL_CS_N")
-    res(sh, ref, "10k", "+3V3", f"{tag}_FL_WP_N")
-    res(sh, ref, "10k", "+3V3", f"{tag}_FL_HOLD_N")
-    # programmation de la flash (iceprog) : FPGA tenu en reset par CRESET
-    sh.add(k.Part(ref("J"), HDR6, f"PROG {tag}", FP["hdr2x3"],
-                  {1: f"{tag}_FL_SCK", 2: f"{tag}_FL_CS_N", 3: f"{tag}_FL_DI", 4: f"{tag}_FL_DO",
-                   5: f"{tag}_CRESET_N", 6: "GND"}))
+    res(sh, ref, "10k", "CRESET_N", "GND")
+    # secours : configuration directe (iceprog -S) par un programmateur USB,
+    # RP2350 au repos (broches en haute impédance)
+    sh.add(k.Part(ref("J"), HDR6, f"CONF {tag}", FP["hdr2x3"],
+                  {1: nets[70], 2: nets[71], 3: f"{tag}_SDO", 4: nets[68],
+                   5: "CRESET_N", 6: "GND"}))
     sh.add(k.Part(ref("X"), OSC, "25 MHz 3,3 V", FP["osc"],
                   {1: "+3V3", 2: "GND", 3: f"{tag}_CLK25", 4: "+3V3"}))
     cap(sh, ref, "100n", "+3V3")
@@ -356,7 +357,8 @@ def edge(sh, ref, board, used):
 
 
 CABLE = {1: "PROG_SCK", 2: "PROG_IO0", 3: "PROG_IO1", 4: "PROG_IO2", 5: "PROG_IO3", 6: "CS_P",
-         7: "CS_V", 8: "LK_IRQ", 9: "MODE", 10: "CDONE", 11: "GND", 12: "GND"}
+         7: "CS_V", 8: "LK_IRQ", 9: "MODE", 10: "CDONE", 11: "GND", 12: "GND",
+         13: "CRESET_N", 14: "GND"}
 
 
 # ---------------------------------------------------------------------------
@@ -378,7 +380,7 @@ def prog_board():
     for s in ("ROMWAIT", "PWAIT0", "PWAIT1", "PDTACK"):
         res(sh, ref, "10k", "+5V", f"AES_{s}")
     res(sh, ref, "10k", "+3V3", "CDONE")
-    sh.add(k.Part(ref("J"), HDR12, "Câble PROG-CHA", FP["hdr2x6"], CABLE))
+    sh.add(k.Part(ref("J"), HDR14, "Câble PROG-CHA", FP["hdr2x7"], CABLE))
 
     sh = b.sheet("Tampons de niveaux", "buffers.kicad_sch")
     ins = [(f"AES_A{i}", f"A{i}") for i in range(1, 20)] + \
@@ -530,7 +532,7 @@ def cha_board():
           8: "PROG_SCK_MCU", 9: "PROG_IO0_MCU", 10: "PROG_IO1_MCU", 11: "PROG_IO2_MCU", 12: "PROG_IO3_MCU",
           13: "CS_P", 14: "CS_V", 15: "CHA_SCK_MCU", 16: "CHA_IO0_MCU", 17: "CHA_IO1_MCU",
           18: "CHA_IO2_MCU", 19: "CHA_IO3_MCU", 20: "CS_C", 21: "CS_SM", 22: "LK_IRQ",
-          26: "CDONE", 27: "BUTTON_N"}
+          26: "CDONE", 27: "BUTTON_N", 28: "CRESET_N"}
     for g, net in gp.items():
         pico[pin_of(PICO, f"GP{g}")] = net
     pico[pin_of(PICO, "VSYS")] = "PICO_VSYS"
@@ -551,7 +553,7 @@ def cha_board():
         res(sh, ref, "10k", "+3V3", s)
     cap(sh, ref, "10u", "+3V3")
     cap(sh, ref, "100n", "+3V3")
-    sh.add(k.Part(ref("J"), HDR12, "Câble PROG-CHA", FP["hdr2x6"], CABLE))
+    sh.add(k.Part(ref("J"), HDR14, "Câble PROG-CHA", FP["hdr2x7"], CABLE))
     return b
 
 

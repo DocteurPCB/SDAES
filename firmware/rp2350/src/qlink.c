@@ -241,3 +241,75 @@ bool qlink_wait_idle(link_id_t l, uint32_t timeout_ms)
         if (time_reached(t)) return false;
     return true;
 }
+
+/* ------------------------------------------------------------------ */
+/* Configuration des iCE40 en SPI esclave (note Lattice TN1248) :
+ * CRESET bas, SS bas ; CRESET haut -> mode esclave ; >= 1200 us ;
+ * SS haut + 8 coups d'horloge ; SS bas, bitstream (mode SPI 3, MSB
+ * d'abord) ; SS haut ; >= 149 coups d'horloge (CDONE puis E/S actives). */
+
+static void cfg_clocks(bus_t *b, int n)
+{
+    for (int i = 0; i < n; i++) {
+        gpio_put(b->sck, 0); half();
+        gpio_put(b->sck, 1); half();
+    }
+}
+
+void qlink_cfg_reset(void)
+{
+    gpio_init(PIN_CRESET_N);
+    gpio_set_dir(PIN_CRESET_N, GPIO_OUT);
+    gpio_put(PIN_CRESET_N, 0);
+    for (int i = 0; i < 2; i++) {
+        pins_sio(&buses[i], true);
+        gpio_put(buses[i].sck, 1);
+    }
+    for (int i = 0; i < 4; i++)
+        gpio_put(links[i].cs, 0);           /* SS bas au relâchement : esclave */
+    sleep_us(10);
+    gpio_put(PIN_CRESET_N, 1);
+    sleep_us(2000);
+    for (int i = 0; i < 4; i++)
+        gpio_put(links[i].cs, 1);
+    for (int i = 0; i < 2; i++)
+        cfg_clocks(&buses[i], 8);
+}
+
+void qlink_cfg_begin(link_id_t l)
+{
+    link_t *k = &links[l];
+    pins_sio(k->bus, true);
+    gpio_put(k->bus->sck, 1);
+    gpio_put(k->cs, 0);
+    half();
+}
+
+void qlink_cfg_data(link_id_t l, const void *buf, size_t len)
+{
+    bus_t *b = links[l].bus;
+    const uint8_t *p = buf;
+    while (len--) {
+        uint8_t v = *p++;
+        for (int i = 7; i >= 0; i--) {
+            gpio_put(b->sck, 0);
+            gpio_put(b->io0, (v >> i) & 1);
+            half();
+            gpio_put(b->sck, 1);              /* échantillonné au front montant */
+            half();
+        }
+    }
+}
+
+void qlink_cfg_end(link_id_t l)
+{
+    link_t *k = &links[l];
+    gpio_put(k->cs, 1);
+    cfg_clocks(k->bus, 160);
+    gpio_put(k->bus->sck, 0);
+}
+
+bool qlink_cfg_done(void)
+{
+    return gpio_get(PIN_CDONE);
+}
