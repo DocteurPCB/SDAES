@@ -1,0 +1,194 @@
+(kicad_sch
+  (version 20230121)
+  (generator eeschema)
+  (uuid 3fb1043b-b8cd-4dde-aec3-a4722e24e6eb)
+  (paper A4)
+  (title_block
+    (title "SDAES - carte CHA (sprites, couche fixe, Z80, RP2350)")
+    (comment 1 "Généré par hardware/gen (ne pas modifier à la main)"))
+  (lib_symbols)
+  (sheet
+    (at 25.4 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid 8cb05a9b-c27d-4bc0-809e-b506fb7123b3)
+    (property "Sheetname" "Connecteur et alimentations"
+      (at 25.4 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "power.kicad_sch"
+      (at 25.4 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "2")))))
+  (sheet
+    (at 88.9 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid c7c0f8b8-e662-40e1-acc2-97d4129ceca7)
+    (property "Sheetname" "Tampons de niveaux"
+      (at 88.9 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "buffers.kicad_sch"
+      (at 88.9 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "3")))))
+  (sheet
+    (at 152.4 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid 8ce46ac3-7e60-4427-8bf0-a6629fbb3136)
+    (property "Sheetname" "FPGA C"
+      (at 152.4 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "fpga_c.kicad_sch"
+      (at 152.4 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "4")))))
+  (sheet
+    (at 215.9 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid d909514b-8902-490c-9e3f-a4a36f05a1cb)
+    (property "Sheetname" "SDRAM C"
+      (at 215.9 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "sdram_c.kicad_sch"
+      (at 215.9 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "5")))))
+  (sheet
+    (at 25.4 68.58)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid f8648e2a-4191-43bf-9a03-82213d6fb1bf)
+    (property "Sheetname" "FPGA SM"
+      (at 25.4 67.88 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "fpga_sm.kicad_sch"
+      (at 25.4 94.58 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "6")))))
+  (sheet
+    (at 88.9 68.58)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid 7f57d76a-736d-44d6-a88f-70074a5c1f3c)
+    (property "Sheetname" "SRAM S + M1"
+      (at 88.9 67.88 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "sram.kicad_sch"
+      (at 88.9 94.58 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "7")))))
+  (sheet
+    (at 152.4 68.58)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid ead2dcd7-7943-41ef-8203-648aa97020da)
+    (property "Sheetname" "RP2350, carte SD, câble"
+      (at 152.4 67.88 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "mcu.kicad_sch"
+      (at 152.4 94.58 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "cha"
+        (path "/3fb1043b-b8cd-4dde-aec3-a4722e24e6eb"
+          (page "8")))))
+  (sheet_instances
+    (path "/"
+      (page "1"))))

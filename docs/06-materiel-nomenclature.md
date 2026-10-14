@@ -9,7 +9,7 @@ technique « drag soldering ». Aucun BGA ni QFN.
 | Fonction | Composant proposé | Boîtier | Qté |
 |---|---|---|---|
 | FPGA | **Lattice iCE40HX4K-TQ144** (puce HX8K) | TQFP-144, 0,5 mm | 4 |
-| Flash de configuration | W25Q16JV (SPI) | SOIC-8 | 4 |
+| Flash de configuration | W25Q32JVSS (SPI) | SOIC-8 208 mil | 4 |
 | SDRAM P et V | **W9825G6KH-6** (256 Mbit x16) | TSOP-II 54, 0,8 mm | 2 |
 | SDRAM C | **AS4C32M16SB-6** (512 Mbit x16) ou IS42S16320 | TSOP-II 54 | 1 |
 | SRAM S + M1 | IS61WV10248EDBLL-10 (1 Mo x 8, 10 ns) | TSOP-II 44 | 1 |
@@ -22,7 +22,7 @@ technique « drag soldering ». Aucun BGA ni QFN.
 | Microcontrôleur | **Raspberry Pi Pico 2** (module RP2350) | module à bords crénelés | 1 |
 | Carte SD | support microSD push-push | CMS | 1 |
 | Horloges | oscillateur 25 MHz 3,3 V | 3,2 x 2,5 mm | 4 |
-| Alimentation par carte | régulateur 5 V → 3,3 V 1 A (buck ou LDO SOT-223) ; LDO 1,2 V (cœurs iCE40) | SOT-223 / SOT-23-5 | 2 + 2 |
+| Alimentation par carte | AMS1117-3.3 (5 V → 3,3 V) ; AP2112K-1.2 (3,3 V → 1,2 V, cœurs iCE40) | SOT-223 / SOT-23-5 | 2 + 2 |
 
 Remarques :
 * La puce de l'iCE40HX4K-TQ144 est celle du HX8K ; la chaîne libre

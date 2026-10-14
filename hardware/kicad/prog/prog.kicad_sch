@@ -1,0 +1,168 @@
+(kicad_sch
+  (version 20230121)
+  (generator eeschema)
+  (uuid 632f61b5-cd25-486c-8416-1d531165c5ca)
+  (paper A4)
+  (title_block
+    (title "SDAES - carte PROG (programme 68000 + son ADPCM)")
+    (comment 1 "Généré par hardware/gen (ne pas modifier à la main)"))
+  (lib_symbols)
+  (sheet
+    (at 25.4 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid b52d95bf-d78f-4cde-85cc-ac8fe0fc1d36)
+    (property "Sheetname" "Connecteur et alimentations"
+      (at 25.4 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "power.kicad_sch"
+      (at 25.4 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "prog"
+        (path "/632f61b5-cd25-486c-8416-1d531165c5ca"
+          (page "2")))))
+  (sheet
+    (at 88.9 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid 090f6270-483a-4cc6-84b6-daa441f15f41)
+    (property "Sheetname" "Tampons de niveaux"
+      (at 88.9 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "buffers.kicad_sch"
+      (at 88.9 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "prog"
+        (path "/632f61b5-cd25-486c-8416-1d531165c5ca"
+          (page "3")))))
+  (sheet
+    (at 152.4 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid 001de3a3-f3ef-4b71-8545-cb423156a998)
+    (property "Sheetname" "FPGA P"
+      (at 152.4 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "fpga_p.kicad_sch"
+      (at 152.4 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "prog"
+        (path "/632f61b5-cd25-486c-8416-1d531165c5ca"
+          (page "4")))))
+  (sheet
+    (at 215.9 30.48)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid bc9c884e-59f2-420d-ad5d-8db0bb5cd753)
+    (property "Sheetname" "SDRAM P"
+      (at 215.9 29.78 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "sdram_p.kicad_sch"
+      (at 215.9 56.48 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "prog"
+        (path "/632f61b5-cd25-486c-8416-1d531165c5ca"
+          (page "5")))))
+  (sheet
+    (at 25.4 68.58)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid 9b9404ba-bbe3-4521-885b-0b0facec92d0)
+    (property "Sheetname" "FPGA V"
+      (at 25.4 67.88 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "fpga_v.kicad_sch"
+      (at 25.4 94.58 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "prog"
+        (path "/632f61b5-cd25-486c-8416-1d531165c5ca"
+          (page "6")))))
+  (sheet
+    (at 88.9 68.58)
+    (size 50.8 25.4)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0.0000))
+    (uuid c1186248-f0a6-4548-a355-5e0e7f82fabb)
+    (property "Sheetname" "SDRAM V"
+      (at 88.9 67.88 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "sdram_v.kicad_sch"
+      (at 88.9 94.58 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top) hide))
+    (instances
+      (project "prog"
+        (path "/632f61b5-cd25-486c-8416-1d531165c5ca"
+          (page "7")))))
+  (sheet_instances
+    (path "/"
+      (page "1"))))
