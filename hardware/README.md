@@ -138,4 +138,7 @@ PLL (note Lattice sur l'iCE40), courant réel des régulateurs.
 1. ~~Brochage et cotes des cartes AES PROG/CHA~~ (fait, voir plus haut).
 2. ~~Schémas~~, ~~contours~~ (faits).
 3. Routage 4 couches (en cours, `route.py`), contacts dorés chanfreinés.
-4. `make -C hdl bits` (bitstreams avec les broches réelles).
+4. Après un premier routage : remplacer la nappe PROG-CHA (J2 / J5, 2 x 7)
+   par un connecteur carte à carte aligné sur les deux cartes, hauteur
+   adaptée aux entretoises.
+5. `make -C hdl bits` (bitstreams avec les broches réelles).
