@@ -339,8 +339,11 @@ class Layout:
             z.SetPadConnection(pcbnew.ZONE_CONNECTION_FULL)
             ol = z.Outline()
             ol.NewOutline()
+            tw, ty = outline.TAB_W / 2 - 0.5, EDGE_Y - 10.6     # languette, au-dessus des contacts
             for x, y in ((CX - w / 2 + 0.5, TOP + 0.5), (CX + w / 2 - 0.5, TOP + 0.5),
-                         (CX + w / 2 - 0.5, SHOULDER - 0.5), (CX - w / 2 + 0.5, SHOULDER - 0.5)):
+                         (CX + w / 2 - 0.5, SHOULDER - 0.5), (CX + tw, SHOULDER - 0.5),
+                         (CX + tw, ty), (CX - tw, ty),
+                         (CX - tw, SHOULDER - 0.5), (CX - w / 2 + 0.5, SHOULDER - 0.5)):
                 ol.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
             b.Add(z)
 
@@ -367,22 +370,48 @@ class Layout:
 
     def fanout_planes(self):
         """Via de raccordement aux plans internes pour chaque pastille CMS de
-        masse ou de +3V3, posé avant le routage (Freerouting en oubliait) :
-        dans le prolongement de la pastille, vers l'extérieur du composant,
-        sinon dans la direction libre la plus proche."""
+        masse ou de +3V3, posé avant le routage (Freerouting en oubliait).
+        Circuits intégrés : via vers l'intérieur, sous le boîtier entre les
+        rangées de broches, pour laisser libres les couloirs de sortie des
+        signaux ; passifs : dans le prolongement de la pastille. Via et piste
+        de raccordement respectent l'isolement de 0,127 mm."""
         b = self.board
-        via_d, via_drill, clr = 0.6, 0.3, 0.15
-        obst = []      # (x0, y0, x1, y1, net, faces) des pastilles
+        via_d, via_drill, clr = 0.6, 0.3, 0.127 + 0.02
+        pads = []      # (x0, y0, x1, y1, réseau, pastille)
         for fp in b.GetFootprints():
             for p in fp.Pads():
                 bb = p.GetBoundingBox()
-                faces = {"F", "B"} if p.GetAttribute() == pcbnew.PAD_ATTRIB_PTH or p.GetAttribute() == pcbnew.PAD_ATTRIB_NPTH \
-                    else ({"B"} if fp.IsFlipped() else {"F"})
-                obst.append((pcbnew.ToMM(bb.GetLeft()), pcbnew.ToMM(bb.GetTop()), pcbnew.ToMM(bb.GetRight()),
-                             pcbnew.ToMM(bb.GetBottom()), p.GetNetname(), faces, p))
-        vias = []
+                pads.append((pcbnew.ToMM(bb.GetLeft()), pcbnew.ToMM(bb.GetTop()), pcbnew.ToMM(bb.GetRight()),
+                             pcbnew.ToMM(bb.GetBottom()), p.GetNetname(), p))
+        vias = []      # (x, y, réseau)
+        tracks = []    # (x1, y1, x2, y2, largeur, réseau)
 
-        def free(x, y, net, pad):
+        def d_rect(x, y, r):
+            return math.hypot(max(r[0] - x, 0, x - r[2]), max(r[1] - y, 0, y - r[3]))
+
+        def d_seg(x, y, x1, y1, x2, y2):
+            dx, dy = x2 - x1, y2 - y1
+            L = dx * dx + dy * dy
+            t = 0 if L == 0 else max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / L))
+            return math.hypot(x - x1 - t * dx, y - y1 - t * dy)
+
+        def point_ok(x, y, rad, net, pad):
+            """Un disque de rayon rad (bord du cuivre) en (x, y) est-il à
+            l'écart des autres réseaux ?"""
+            for x0, y0, x1, y1, n, p in pads:
+                if p is pad or n == net:
+                    continue
+                if d_rect(x, y, (x0, y0, x1, y1)) < rad + clr:
+                    return False
+            for vx, vy, n in vias:
+                if n != net and math.hypot(x - vx, y - vy) < rad + via_d / 2 + clr:
+                    return False
+            for x1, y1, x2, y2, w, n in tracks:
+                if n != net and d_seg(x, y, x1, y1, x2, y2) < rad + w / 2 + clr:
+                    return False
+            return True
+
+        def via_ok(x, y, net, pad):
             r = via_d / 2 + clr
             in_tab = (abs(x - CX) < outline.TAB_W / 2 - 1 and SHOULDER - 1 < y < EDGE_Y - 10.8)
             if not allowed((x - r, y - r, x + r, y + r)) and not in_tab:
@@ -390,63 +419,78 @@ class Layout:
             for hx, hy in HOLES + STANDOFFS:
                 if math.hypot(x - hx, y - hy) < 6.5:
                     return False
-            for x0, y0, x1, y1, n, faces, p in obst:
-                if p is pad:
-                    continue
-                dx = max(x0 - x, 0, x - x1)
-                dy = max(y0 - y, 0, y - y1)
-                if math.hypot(dx, dy) < r + (0 if n == net else 0.05):
+            for vx, vy, n in vias:            # perçages : écart même entre vias d'un réseau
+                if math.hypot(x - vx, y - vy) < via_d + 0.2:
                     return False
-            for vx, vy in vias:
-                if math.hypot(x - vx, y - vy) < via_d + clr:
-                    return False
-            return True
+            return point_ok(x, y, via_d / 2, net, pad)
+
+        def track_ok(x1, y1, x2, y2, w, net, pad):
+            L = math.hypot(x2 - x1, y2 - y1)
+            n = max(2, int(L / 0.05))
+            return all(point_ok(x1 + (x2 - x1) * k / n, y1 + (y2 - y1) * k / n, w / 2, net, pad)
+                       for k in range(n + 1))
 
         n_ok = n_ko = 0
         for fp in b.GetFootprints():
             c = fp.GetPosition()
             cx, cy = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
             layer = pcbnew.B_Cu if fp.IsFlipped() else pcbnew.F_Cu
+            lib = fp.GetFPIDAsString().split(":")[0]
+            inward_ok = lib in ("Package_QFP", "Package_SO")     # corps sans pastille dessous
+            is_edge = fp.GetReference() == "J1"
             for p in fp.Pads():
-                if p.GetNetname() not in PLANES or p.GetAttribute() != pcbnew.PAD_ATTRIB_SMD:
+                net = p.GetNetname()
+                if net not in PLANES or p.GetAttribute() != pcbnew.PAD_ATTRIB_SMD:
                     continue
                 v = p.GetPosition()
                 px, py = pcbnew.ToMM(v.x), pcbnew.ToMM(v.y)
                 bb = p.GetBoundingBox()
                 half = max(pcbnew.ToMM(bb.GetWidth()), pcbnew.ToMM(bb.GetHeight())) / 2
-                a0 = math.atan2(py - cy, px - cx) if (px, py) != (cx, cy) else 0.0
-                # direction principale : axe de la pastille le plus proche de a0
-                a0 = round(a0 / (math.pi / 2)) * (math.pi / 2)
+                # axe de la pastille (sa grande dimension), orienté vers
+                # l'extérieur du composant
+                if pcbnew.ToMM(bb.GetHeight()) > pcbnew.ToMM(bb.GetWidth()):
+                    a0 = math.pi / 2 if py >= cy else -math.pi / 2
+                else:
+                    a0 = 0.0 if px >= cx else math.pi
+                if is_edge:
+                    a0, dirs = -math.pi / 2, (0,)          # contacts : vers l'intérieur de la carte
+                elif inward_ok:
+                    dirs = (math.pi, 0)                    # sous le boîtier d'abord
+                else:
+                    dirs = (0, math.pi / 2, -math.pi / 2)
+                w = 0.25 if half < 0.6 else 0.3
                 done = False
-                for da in (0, 0.5, -0.5, 1.0, -1.0, 1.57, -1.57, 3.14):
-                    for dist in (half + via_d / 2 + 0.25, half + via_d / 2 + 0.6, half + 1.4):
+                for da in dirs:
+                    for dist in (half + via_d / 2 + 0.2, half + via_d / 2 + 0.5, half + 1.3, half + 2.0):
                         a = a0 + da
                         x, y = px + dist * math.cos(a), py + dist * math.sin(a)
-                        if free(x, y, p.GetNetname(), p):
-                            via = pcbnew.PCB_VIA(b)
-                            via.SetPosition(mm(x, y))
-                            via.SetWidth(pcbnew.FromMM(via_d))
-                            via.SetDrill(pcbnew.FromMM(via_drill))
-                            via.SetNet(p.GetNet())
-                            via.SetLocked(True)
-                            b.Add(via)
-                            t = pcbnew.PCB_TRACK(b)
-                            t.SetStart(v)
-                            t.SetEnd(mm(x, y))
-                            t.SetWidth(pcbnew.FromMM(0.25 if half < 0.6 else 0.3))
-                            t.SetLayer(layer)
-                            t.SetNet(p.GetNet())
-                            t.SetLocked(True)
-                            b.Add(t)
-                            vias.append((x, y))
-                            done = True
-                            break
+                        if not via_ok(x, y, net, p) or not track_ok(px, py, x, y, w, net, p):
+                            continue
+                        via = pcbnew.PCB_VIA(b)
+                        via.SetPosition(mm(x, y))
+                        via.SetWidth(pcbnew.FromMM(via_d))
+                        via.SetDrill(pcbnew.FromMM(via_drill))
+                        via.SetNet(p.GetNet())
+                        via.SetLocked(True)
+                        b.Add(via)
+                        t = pcbnew.PCB_TRACK(b)
+                        t.SetStart(v)
+                        t.SetEnd(mm(x, y))
+                        t.SetWidth(pcbnew.FromMM(w))
+                        t.SetLayer(layer)
+                        t.SetNet(p.GetNet())
+                        t.SetLocked(True)
+                        b.Add(t)
+                        vias.append((x, y, net))
+                        tracks.append((px, py, x, y, w, net))
+                        done = True
+                        break
                     if done:
                         break
                 n_ok += done
                 n_ko += not done
                 if not done:
-                    print(f"  sans via : {fp.GetReference()}.{p.GetNumber()} ({p.GetNetname()})")
+                    print(f"  sans via : {fp.GetReference()}.{p.GetNumber()} ({net})")
         print(f"  vias vers les plans : {n_ok} posés, {n_ko} sans place")
 
     def save(self):
