@@ -110,6 +110,7 @@ def import_ses(pcb, ses):
             via.SetNet(ni)
             b.Add(via)
             n_via += 1
+    patch_planes(b, os.path.basename(pcb).split(".")[0])
     b.Save(pcb)
     # remplissage sur la carte relue, dans un processus à part (un second
     # LoadBoard dans le même processus renvoie un objet inutilisable)
@@ -118,6 +119,32 @@ def import_ses(pcb, ses):
                     "pcbnew.ZONE_FILLER(b).Fill(b.Zones()); b.Save(sys.argv[1])", pcb],
                    check=True, capture_output=True)
     print(f"{pcb} : {n_tr} segments, {n_via} vias")
+
+
+def patch_planes(b, name):
+    """Après routage : via vers le plan pour chaque pastille CMS de masse ou
+    de +3V3 restée sans connexion, en évitant les pistes routées."""
+    import pcb as pcbgen
+    pcbgen.outline.BOARDS_W = pcbgen.outline.BOARDS[name][0]
+    b.BuildConnectivity()
+    conn = b.GetConnectivity()
+    todo = set()
+    for fp in b.GetFootprints():
+        for p in fp.Pads():
+            if p.GetNetname() in pcbgen.PLANES and p.GetAttribute() == pcbnew.PAD_ATTRIB_SMD:
+                if len(conn.GetConnectedTracks(p)) == 0:
+                    todo.add((fp.GetReference(), p.GetNumber(), p.IsOnLayer(pcbnew.F_Cu)))
+    if todo:
+        ok, ko = pcbgen.plane_vias(b, only=todo, quiet=True)
+        print(f"  raccordements aux plans après routage : {ok} ajoutés, {ko} impossibles")
+        if ko:
+            b.BuildConnectivity()
+            conn = b.GetConnectivity()
+            for fp in b.GetFootprints():
+                for p in fp.Pads():
+                    if (fp.GetReference(), p.GetNumber(), p.IsOnLayer(pcbnew.F_Cu)) in todo and \
+                            len(conn.GetConnectedTracks(p)) == 0:
+                        print(f"    à relier à la main : {fp.GetReference()}.{p.GetNumber()} ({p.GetNetname()})")
 
 
 def drc(pcb, report):
@@ -139,6 +166,16 @@ def main():
     pcb = os.path.join(KICAD, name, f"{name}.kicad_pcb")
     work = os.environ.get("ROUTE_DIR", os.path.join(KICAD, name))
     dsn, ses = os.path.join(work, f"{name}.dsn"), os.path.join(work, f"{name}.ses")
+    if "--patch" in args:                     # carte déjà routée : raccordements seuls
+        b = pcbnew.LoadBoard(pcb)
+        patch_planes(b, name)
+        b.Save(pcb)
+        subprocess.run([sys.executable, "-c",
+                        "import pcbnew,sys; b=pcbnew.LoadBoard(sys.argv[1]); "
+                        "pcbnew.ZONE_FILLER(b).Fill(b.Zones()); b.Save(sys.argv[1])", pcb],
+                       check=True, capture_output=True)
+        drc(pcb, os.path.join(work, f"{name}-drc.rpt"))
+        return
     if "--import" in args:
         ses = args[args.index("--import") + 1]
     else:
