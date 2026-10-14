@@ -27,28 +27,29 @@ def _pad(num, x, y, w, h, side="F"):
 
 
 def aes_edge():
-    """Contacts de bord de la cartouche AES : 2 x 50 au pas de 2,54 mm.
-    T1..T50 sur la face avant (« dessus »), B1..B50 sur la face arrière
-    (« dessous »), position 1 à gauche vue de dessus. Largeur et longueur
-    des contacts, et sens de la numérotation : à relever sur une cartouche
-    d'origine (docs/02-signaux-connecteurs.md)."""
-    pitch, w, h = 2.54, 1.78, 7.6
-    x0 = -24.5 * pitch
+    """Contacts de bord de la cartouche AES : 2 x 50 au pas de 2,54 mm,
+    contacts de 1,5 x 10 mm dont le centre est à 7,1 mm du bord de la
+    languette (cotes des cartes AES de jwestfall69, neogeo-diag-aes-prog et
+    neogeo-diag-aes-cha, fabriquées et testées). T1..T50 = contacts A1..A50
+    sur la face composants (« dessus »), B1..B50 sur l'autre face ; vu côté
+    composants, languette vers le bas, T1 et B1 sont à droite, l'un derrière
+    l'autre (sérigraphie « A1 » des cartes SNK NEO-AEG). Origine : centre de
+    la rangée, bord de la languette à y = +7,1 mm."""
+    pitch, w, h, edge = 2.54, 1.5, 10.0, 7.1
     fp = ["footprint", q("AES_Edge_2x50_P2.54mm"), ["version", "20221018"], ["generator", "pcbnew"],
           ["layer", q("F.Cu")],
-          ["descr", q("Connecteur de bord cartouche Neo Geo AES, 2 x 50 contacts, pas 2,54 mm "
-                      "(dimensions des contacts à vérifier sur une cartouche d'origine)")],
+          ["descr", q("Connecteur de bord cartouche Neo Geo AES, 2 x 50 contacts, pas 2,54 mm, "
+                      "contacts 1,5 x 10 mm (cotes jwestfall69 neogeo-diag-aes-prog/cha)")],
           ["attr", "smd"],
-          _text("reference", "REF**", 0, -6, "F.SilkS"),
-          _text("value", "AES_Edge_2x50", 0, 6, "F.Fab")]
+          _text("reference", "REF**", 0, -7, "F.SilkS"),
+          _text("value", "AES_Edge_2x50", 0, -8.5, "F.Fab")]
     for i in range(50):
-        x = x0 + i * pitch
+        x = (24.5 - i) * pitch
         fp.append(_pad(f"T{i + 1}", x, 0, w, h, "F"))
         fp.append(_pad(f"B{i + 1}", x, 0, w, h, "B"))
-    # bord de la carte sous les contacts (chanfreiner à la fabrication)
-    fp.append(_line(x0 - 3, h / 2, -x0 + 3, h / 2, "Edge.Cuts", 0.1))
-    fp += _rect(x0 - 2, -h / 2 - 1, -x0 + 2, h / 2, "F.CrtYd")
-    fp.append(_text("user", "1", x0, -h / 2 - 1.5, "F.SilkS"))
+    fp += _rect(-24.5 * pitch - 1.5, -h / 2 - 0.5, 24.5 * pitch + 1.5, edge, "F.CrtYd")
+    fp += [_text("user", "A1", 24.5 * pitch, -h / 2 - 1.5, "F.SilkS"),
+           _text("user", "A50", -24.5 * pitch, -h / 2 - 1.5, "F.SilkS")]
     return fp
 
 

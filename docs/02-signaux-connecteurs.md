@@ -5,10 +5,13 @@
 > des pages « Signals », « NEO-273 », « NEO-ZMC2 », « P bus » et
 > « Wait cycle ». La table complète, contact par contact, est dans
 > `hardware/aes_connector.csv` ; les gabarits `hardware/*.pcf` indiquent pour
-> chaque port FPGA le contact AES correspondant. **À vérifier avant de
-> dessiner le circuit imprimé** : le sens physique de la numérotation
-> (position 1 = haut des images du wiki, côté masse) et la face « dessus » /
-> « dessous », sur une cartouche réelle.
+> chaque port FPGA le contact AES correspondant. **Numérotation et sens
+> physique** recoupés avec les cartes AES de jwestfall69
+> (`neogeo-diag-aes-prog`, `neogeo-diag-aes-cha`, fabriquées et testées,
+> domaine public) : A1..A50 sur la face composants (« dessus »), B1..B50 sur
+> l'autre ; vu côté composants, languette vers le bas, A1 et B1 sont à
+> droite, l'un derrière l'autre (sérigraphie « A1 » des cartes SNK NEO-AEG).
+> Les images du wiki montrent la face A dans l'ordre inverse (A50 en haut).
 
 Chaque carte se connecte à la console par un connecteur de bord (contacts
 dorés, chanfreinés) : **2 x 50 contacts au pas de 2,54 mm**, carte de
@@ -20,59 +23,60 @@ publiés intervertissent ces deux signaux).
 
 ## Brochage du connecteur AES
 
-Positions 1 à 50, de haut en bas sur les images du wiki. Les signaux
+Positions 1 à 50 = numéros A/B officiels (repères T1..T50 / B1..B50 des
+schémas). Les signaux
 « / » sont actifs à 0.
 
-| Pos. | PROG dessus | PROG dessous | CHA dessus | CHA dessous |
+| Pos. | PROG A (dessus) | PROG B (dessous) | CHA A (dessus) | CHA B (dessous) |
 |---|---|---|---|---|
 | 1 | GND | GND | GND | GND |
 | 2 | GND | GND | GND | GND |
-| 3 | /PORTADRS | A1 | 24M | FIXD0 |
-| 4 | /SDPOE | A2 | /SDROM | FIXD1 |
-| 5 | SDPMPX | A3 | /SDMRD | FIXD2 |
-| 6 | SDPA11 | A4 | SDA15 | FIXD3 |
-| 7 | SDPA10 | A5 | SDA14 | FIXD4 |
-| 8 | SDPA9 | A6 | SDA13 | FIXD5 |
-| 9 | SDPA8 | A7 | SDA12 | FIXD6 |
-| 10 | SDPAD7 | A8 | SDA11 | FIXD7 |
-| 11 | SDPAD6 | A9 | SDA10 | P1 |
-| 12 | SDPAD5 | A10 | SDA9 | P3 |
-| 13 | SDPAD4 | A11 | SDA8 | P5 |
-| 14 | SDPAD3 | A12 | SDA7 | P7 |
-| 15 | SDPAD2 | A13 | SDA6 | P9 |
-| 16 | SDPAD1 | A14 | SDA5 | P11 |
-| 17 | SDPAD0 | A15 | SDA4 | P13 |
-| 18 | RESET | A16 | SDA3 | P15 |
-| 19 | 68KCLKB | A17 | SDA2 | P17 |
-| 20 | /PORTWEL | A18 | SDA1 | P19 |
-| 21 | /PORTWEU | A19 | SDA0 | P21 |
-| 22 | /PORTOEL | /ROMOE | /SDRD1 | P23 |
-| 23 | /PORTOEU | R OUT | /SDRD0 | R OUT |
-| 24 | VCC | R IN | VCC | R IN |
+| 3 | D0 | A1 | PCK1B | FIXD0 |
+| 4 | D1 | A2 | PCK2B | FIXD1 |
+| 5 | D2 | A3 | 12M | FIXD2 |
+| 6 | D3 | A4 | 2H1 | FIXD3 |
+| 7 | D4 | A5 | EVEN | FIXD4 |
+| 8 | D5 | A6 | H | FIXD5 |
+| 9 | D6 | A7 | LOAD | FIXD6 |
+| 10 | D7 | A8 | CA4 | FIXD7 |
+| 11 | D8 | A9 | P0 | P1 |
+| 12 | D9 | A10 | P2 | P3 |
+| 13 | D10 | A11 | P4 | P5 |
+| 14 | D11 | A12 | P6 | P7 |
+| 15 | D12 | A13 | P8 | P9 |
+| 16 | D13 | A14 | P10 | P11 |
+| 17 | D14 | A15 | P12 | P13 |
+| 18 | D15 | A16 | P14 | P15 |
+| 19 | R/W | A17 | P16 | P17 |
+| 20 | /AS | A18 | P18 | P19 |
+| 21 | /ROMOEU | A19 | P20 | P21 |
+| 22 | /ROMOEL | /ROMOE | P22 | P23 |
+| 23 | L OUT | R OUT | L OUT | R OUT |
+| 24 | L IN | R IN | L IN | R IN |
 | 25 | VCC | VCC | VCC | VCC |
 | 26 | VCC | VCC | VCC | VCC |
-| 27 | L IN | VCC | L IN | VCC |
-| 28 | L OUT | /ROMWAIT | L OUT | NC |
-| 29 | /ROMOEL | /PDTACK | P22 | NC |
-| 30 | /ROMOEU | /PWAIT0 | P20 | DOTA |
-| 31 | /AS | /PWAIT1 | P18 | DOTB |
-| 32 | R/W | SDRAD0 | P16 | GAD0 |
-| 33 | D15 | SDRAD1 | P14 | GAD1 |
-| 34 | D14 | SDRAD2 | P12 | GAD2 |
-| 35 | D13 | SDRAD3 | P10 | GAD3 |
-| 36 | D12 | SDRAD4 | P8 | GBD0 |
-| 37 | D11 | SDRAD5 | P6 | GBD1 |
-| 38 | D10 | SDRAD6 | P4 | GBD2 |
-| 39 | D9 | SDRAD7 | P2 | GBD3 |
-| 40 | D8 | SDRA8 | P0 | SDD0 |
-| 41 | D7 | SDRA9 | CA4 | SDD1 |
-| 42 | D6 | SDRA20 | LOAD | SDD2 |
-| 43 | D5 | SDRA21 | H | SDD3 |
-| 44 | D4 | SDRA22 | EVEN | SDD4 |
-| 45 | D3 | SDRA23 | 2H1 | SDD5 |
-| 46 | D2 | SDRMPX | 12M | SDD6 |
-| 47 | D1 | /SDROE | PCK2B | SDD7 |
-| 48 | D0 | 4MB | PCK1B | 8M |
+| 27 | VCC | VCC | VCC | VCC |
+| 28 | /PORTOEU | /ROMWAIT | /SDRD0 | NC |
+| 29 | /PORTOEL | /PDTACK | /SDRD1 | NC |
+| 30 | /PORTWEU | /PWAIT0 | SDA0 | DOTA |
+| 31 | /PORTWEL | /PWAIT1 | SDA1 | DOTB |
+| 32 | 68KCLKB | SDRAD0 | SDA2 | GAD0 |
+| 33 | RESET | SDRAD1 | SDA3 | GAD1 |
+| 34 | SDPAD0 | SDRAD2 | SDA4 | GAD2 |
+| 35 | SDPAD1 | SDRAD3 | SDA5 | GAD3 |
+| 36 | SDPAD2 | SDRAD4 | SDA6 | GBD0 |
+| 37 | SDPAD3 | SDRAD5 | SDA7 | GBD1 |
+| 38 | SDPAD4 | SDRAD6 | SDA8 | GBD2 |
+| 39 | SDPAD5 | SDRAD7 | SDA9 | GBD3 |
+| 40 | SDPAD6 | SDRA8 | SDA10 | SDD0 |
+| 41 | SDPAD7 | SDRA9 | SDA11 | SDD1 |
+| 42 | SDPA8 | SDRA20 | SDA12 | SDD2 |
+| 43 | SDPA9 | SDRA21 | SDA13 | SDD3 |
+| 44 | SDPA10 | SDRA22 | SDA14 | SDD4 |
+| 45 | SDPA11 | SDRA23 | SDA15 | SDD5 |
+| 46 | SDPMPX | SDRMPX | /SDMRD | SDD6 |
+| 47 | /SDPOE | /SDROE | /SDROM | SDD7 |
+| 48 | /PORTADRS | 4MB | 24M | 8M |
 | 49 | GND | GND | GND | GND |
 | 50 | GND | GND | GND | GND |
 
@@ -156,6 +160,8 @@ SCK et IO. Chaque carte est alimentée par son propre connecteur.
 
 ## /PDTACK et cycles d'attente
 
+Sur la carte de diagnostic de jwestfall69, les contacts B28-B31 (/ROMWAIT,
+/PDTACK, /PWAIT0, /PWAIT1) sont simplement reliés au +5 V.
 Sur une cartouche d'origine, /ROMWAIT, /PWAIT0, /PWAIT1 et /PDTACK sont
 reliés à 5 V ou à la masse pour régler les cycles d'attente du 68000
 (page « Wait cycle » du wiki). SDAES pilote les trois premiers depuis le

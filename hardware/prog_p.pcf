@@ -22,27 +22,27 @@ set_io A[16] 20    # input, banc 3, GBIN7, AES PROG dessous 18
 set_io A[17] 21    # input, banc 3, GBIN6, AES PROG dessous 19
 set_io A[18] 22    # input, banc 3, AES PROG dessous 20
 set_io A[19] 23    # input, banc 3, AES PROG dessous 21
-set_io D[0] 38    # inout, banc 2, AES PROG dessus 48
-set_io D[1] 39    # inout, banc 2, AES PROG dessus 47
-set_io D[2] 41    # inout, banc 2, AES PROG dessus 46
-set_io D[3] 42    # inout, banc 2, AES PROG dessus 45
-set_io D[4] 43    # inout, banc 2, AES PROG dessus 44
-set_io D[5] 44    # inout, banc 2, AES PROG dessus 43
-set_io D[6] 45    # inout, banc 2, AES PROG dessus 42
-set_io D[7] 47    # inout, banc 2, AES PROG dessus 41
-set_io D[8] 48    # inout, banc 2, AES PROG dessus 40
-set_io D[9] 49    # inout, banc 2, GBIN5, AES PROG dessus 39
-set_io D[10] 52    # inout, banc 2, GBIN4, AES PROG dessus 38
-set_io D[11] 55    # inout, banc 2, AES PROG dessus 37
-set_io D[12] 56    # inout, banc 2, AES PROG dessus 36
-set_io D[13] 60    # inout, banc 2, AES PROG dessus 35
-set_io D[14] 61    # inout, banc 2, AES PROG dessus 34
-set_io D[15] 62    # inout, banc 2, AES PROG dessus 33
+set_io D[0] 38    # inout, banc 2, AES PROG dessus 3
+set_io D[1] 39    # inout, banc 2, AES PROG dessus 4
+set_io D[2] 41    # inout, banc 2, AES PROG dessus 5
+set_io D[3] 42    # inout, banc 2, AES PROG dessus 6
+set_io D[4] 43    # inout, banc 2, AES PROG dessus 7
+set_io D[5] 44    # inout, banc 2, AES PROG dessus 8
+set_io D[6] 45    # inout, banc 2, AES PROG dessus 9
+set_io D[7] 47    # inout, banc 2, AES PROG dessus 10
+set_io D[8] 48    # inout, banc 2, AES PROG dessus 11
+set_io D[9] 49    # inout, banc 2, GBIN5, AES PROG dessus 12
+set_io D[10] 52    # inout, banc 2, GBIN4, AES PROG dessus 13
+set_io D[11] 55    # inout, banc 2, AES PROG dessus 14
+set_io D[12] 56    # inout, banc 2, AES PROG dessus 15
+set_io D[13] 60    # inout, banc 2, AES PROG dessus 16
+set_io D[14] 61    # inout, banc 2, AES PROG dessus 17
+set_io D[15] 62    # inout, banc 2, AES PROG dessus 18
 set_io ROMOE_N 24    # input, banc 3, AES PROG dessous 22
-set_io PORTOEU_N 25    # input, banc 3, AES PROG dessus 23
-set_io PORTOEL_N 26    # input, banc 3, AES PROG dessus 22
-set_io PORTWEL_N 28    # input, banc 3, AES PROG dessus 20
-set_io PORTWEU_N 29    # input, banc 3, AES PROG dessus 21
+set_io PORTOEU_N 25    # input, banc 3, AES PROG dessus 28
+set_io PORTOEL_N 26    # input, banc 3, AES PROG dessus 29
+set_io PORTWEL_N 28    # input, banc 3, AES PROG dessus 31
+set_io PORTWEU_N 29    # input, banc 3, AES PROG dessus 30
 set_io ROMWAIT_N 31    # output, banc 3, AES PROG dessous 28
 set_io PWAIT0_N 32    # output, banc 3, AES PROG dessous 30
 set_io PWAIT1_N 33    # output, banc 3, AES PROG dessous 31

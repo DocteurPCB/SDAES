@@ -19,20 +19,20 @@ set_io SDRA_U[22] 17    # input, banc 3, AES PROG dessous 44
 set_io SDRA_U[23] 18    # input, banc 3, AES PROG dessous 45
 set_io SDRMPX 20    # input, banc 3, GBIN7, AES PROG dessous 46
 set_io SDROE_N 19    # input, banc 3, AES PROG dessous 47
-set_io SDPAD[0] 23    # inout, banc 3, AES PROG dessus 17
-set_io SDPAD[1] 24    # inout, banc 3, AES PROG dessus 16
-set_io SDPAD[2] 25    # inout, banc 3, AES PROG dessus 15
-set_io SDPAD[3] 26    # inout, banc 3, AES PROG dessus 14
-set_io SDPAD[4] 28    # inout, banc 3, AES PROG dessus 13
-set_io SDPAD[5] 29    # inout, banc 3, AES PROG dessus 12
-set_io SDPAD[6] 31    # inout, banc 3, AES PROG dessus 11
-set_io SDPAD[7] 32    # inout, banc 3, AES PROG dessus 10
-set_io SDPA[8] 33    # input, banc 3, AES PROG dessus 9
-set_io SDPA[9] 34    # input, banc 3, AES PROG dessus 8
-set_io SDPA[10] 37    # input, banc 2, AES PROG dessus 7
-set_io SDPA[11] 38    # input, banc 2, AES PROG dessus 6
-set_io SDPMPX 21    # input, banc 3, GBIN6, AES PROG dessus 5
-set_io SDPOE_N 39    # input, banc 2, AES PROG dessus 4
+set_io SDPAD[0] 23    # inout, banc 3, AES PROG dessus 34
+set_io SDPAD[1] 24    # inout, banc 3, AES PROG dessus 35
+set_io SDPAD[2] 25    # inout, banc 3, AES PROG dessus 36
+set_io SDPAD[3] 26    # inout, banc 3, AES PROG dessus 37
+set_io SDPAD[4] 28    # inout, banc 3, AES PROG dessus 38
+set_io SDPAD[5] 29    # inout, banc 3, AES PROG dessus 39
+set_io SDPAD[6] 31    # inout, banc 3, AES PROG dessus 40
+set_io SDPAD[7] 32    # inout, banc 3, AES PROG dessus 41
+set_io SDPA[8] 33    # input, banc 3, AES PROG dessus 42
+set_io SDPA[9] 34    # input, banc 3, AES PROG dessus 43
+set_io SDPA[10] 37    # input, banc 2, AES PROG dessus 44
+set_io SDPA[11] 38    # input, banc 2, AES PROG dessus 45
+set_io SDPMPX 21    # input, banc 3, GBIN6, AES PROG dessus 46
+set_io SDPOE_N 39    # input, banc 2, AES PROG dessus 47
 set_io RAD_DIR 22    # output, banc 3
 set_io PAD_DIR 41    # output, banc 2
 set_io LK_SCK 87    # input, banc 1

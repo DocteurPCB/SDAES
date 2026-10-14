@@ -70,15 +70,36 @@ tenu en reset par CRESET), oscillateur 25 MHz, filtre RC des deux PLL
 Alimentations par carte : AMS1117-3.3 (5 V → 3,3 V) et AP2112K-1.2
 (3,3 V → 1,2 V).
 
-**À vérifier avant le routage** : dimensions des contacts de bord et sens
-de la numérotation (empreinte provisoire), boucles audio L/R reliées par
+### Contours et connecteur de bord
+
+`python3 hardware/gen/outline.py` (module Python de KiCad) écrit
+`hardware/kicad/{prog,cha}/{prog,cha}.kicad_pcb` : contour, deux trous de
+10 mm pour les plots de la coque et connecteur J1 placé. Cotes reprises des
+cartes AES de jwestfall69 (`neogeo-diag-aes-prog`, `neogeo-diag-aes-cha`,
+fabriquées et testées, domaine public), identiques à 0,01 mm près, et
+recoupées sur la photo de la carte SNK NEO-AEG PROG-EP du wiki :
+
+| | PROG | CHA |
+|---|---|---|
+| Corps | 174,0 x 115 mm | 173,0 x 115 mm |
+| Languette (centrée) | 129,2 x 19 mm | 129,2 x 19 mm |
+| Encoches 12 x 2,5 mm (bord supérieur) | à 36 mm de chaque bord | à 5,45 mm de chaque bord |
+| Trous Ø 10 mm | ±45 mm de l'axe, 11,75 mm au-dessus de l'épaulement | idem |
+
+Contacts : 1,5 x 10 mm au pas de 2,54 mm, centre à 7,1 mm du bord ; A1..A50
+(repères T) sur la face composants, B1..B50 sur l'autre ; vu côté
+composants, languette en bas, A1 et B1 à droite. Fabrication : 1,6 mm,
+finition ENIG, contacts dorés chanfreinés à 45°. La carte CHA se loge
+derrière la carte PROG : hauteur des composants limitée (jwestfall69 :
+un support DIP ordinaire + EPROM est trop haut, un support bas passe).
+
+**À vérifier avant le routage** : boucles audio L/R reliées par
 des résistances de 0 Ω (révision NEO-AES de la console), valeurs du filtre
 PLL (note Lattice sur l'iCE40), courant réel des régulateurs.
 
 ## À faire
 
-1. Relever le brochage et les cotes des cartes AES PROG/CHA sur une
-   cartouche réelle (voir `docs/02-signaux-connecteurs.md`).
-2. ~~Schémas~~ (fait, voir plus haut) ; contour des cartes à relever.
+1. ~~Brochage et cotes des cartes AES PROG/CHA~~ (fait, voir plus haut).
+2. ~~Schémas~~, ~~contours~~ (faits).
 3. Routage 4 couches, contacts dorés chanfreinés.
 4. `make -C hdl bits` (bitstreams avec les broches réelles).

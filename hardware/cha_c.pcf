@@ -3,36 +3,36 @@
 # « AES ... » = contact du connecteur de cartouche relié à ce port à
 # travers un tampon de niveaux (hardware/aes_connector.csv).
 set_io CLK25 93    # input, banc 1, GBIN3
-set_io P[0] 1    # input, banc 3, AES CHA dessus 40
+set_io P[0] 1    # input, banc 3, AES CHA dessus 11
 set_io P[1] 2    # input, banc 3, AES CHA dessous 11
-set_io P[2] 3    # input, banc 3, AES CHA dessus 39
+set_io P[2] 3    # input, banc 3, AES CHA dessus 12
 set_io P[3] 4    # input, banc 3, AES CHA dessous 12
-set_io P[4] 7    # input, banc 3, AES CHA dessus 38
+set_io P[4] 7    # input, banc 3, AES CHA dessus 13
 set_io P[5] 8    # input, banc 3, AES CHA dessous 13
-set_io P[6] 9    # input, banc 3, AES CHA dessus 37
+set_io P[6] 9    # input, banc 3, AES CHA dessus 14
 set_io P[7] 10    # input, banc 3, AES CHA dessous 14
-set_io P[8] 11    # input, banc 3, AES CHA dessus 36
+set_io P[8] 11    # input, banc 3, AES CHA dessus 15
 set_io P[9] 12    # input, banc 3, AES CHA dessous 15
-set_io P[10] 15    # input, banc 3, AES CHA dessus 35
+set_io P[10] 15    # input, banc 3, AES CHA dessus 16
 set_io P[11] 16    # input, banc 3, AES CHA dessous 16
-set_io P[12] 17    # input, banc 3, AES CHA dessus 34
+set_io P[12] 17    # input, banc 3, AES CHA dessus 17
 set_io P[13] 18    # input, banc 3, AES CHA dessous 17
-set_io P[14] 19    # input, banc 3, AES CHA dessus 33
+set_io P[14] 19    # input, banc 3, AES CHA dessus 18
 set_io P[15] 22    # input, banc 3, AES CHA dessous 18
-set_io P[16] 23    # input, banc 3, AES CHA dessus 32
+set_io P[16] 23    # input, banc 3, AES CHA dessus 19
 set_io P[17] 24    # input, banc 3, AES CHA dessous 19
-set_io P[18] 25    # input, banc 3, AES CHA dessus 31
+set_io P[18] 25    # input, banc 3, AES CHA dessus 20
 set_io P[19] 26    # input, banc 3, AES CHA dessous 20
-set_io P[20] 28    # input, banc 3, AES CHA dessus 30
+set_io P[20] 28    # input, banc 3, AES CHA dessus 21
 set_io P[21] 29    # input, banc 3, AES CHA dessous 21
-set_io P[22] 31    # input, banc 3, AES CHA dessus 29
+set_io P[22] 31    # input, banc 3, AES CHA dessus 22
 set_io P[23] 32    # input, banc 3, AES CHA dessous 22
-set_io PCK1B 20    # input, banc 3, GBIN7, AES CHA dessus 48
-set_io CA4 33    # input, banc 3, AES CHA dessus 41
-set_io CLK_12M 21    # input, banc 3, GBIN6, AES CHA dessus 46
-set_io EVEN 34    # input, banc 3, AES CHA dessus 44
-set_io LOAD 37    # input, banc 2, AES CHA dessus 42
-set_io H 38    # input, banc 2, AES CHA dessus 43
+set_io PCK1B 20    # input, banc 3, GBIN7, AES CHA dessus 3
+set_io CA4 33    # input, banc 3, AES CHA dessus 10
+set_io CLK_12M 21    # input, banc 3, GBIN6, AES CHA dessus 5
+set_io EVEN 34    # input, banc 3, AES CHA dessus 7
+set_io LOAD 37    # input, banc 2, AES CHA dessus 9
+set_io H 38    # input, banc 2, AES CHA dessus 8
 set_io GAD[0] 39    # output, banc 2, AES CHA dessous 32
 set_io GAD[1] 41    # output, banc 2, AES CHA dessous 33
 set_io GAD[2] 42    # output, banc 2, AES CHA dessous 34
