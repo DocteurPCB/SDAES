@@ -5,6 +5,10 @@
 //   V1 (ADPCM-A) et V2 (ADPCM-B) dans une SDRAM x16 de 32 Mo.
 // Le mode (menu/jeu) vient du FPGA P (entrée MODE).
 // -----------------------------------------------------------------------------
+`ifndef SDAES_VERSION
+`define SDAES_VERSION 32'd0
+`endif
+
 module prog_v_core #(
     parameter SDRAM_INIT_WAIT = 20000,
     parameter SDRAM_REFI      = 780
@@ -89,6 +93,7 @@ module prog_v_core #(
     always @* begin
         case (reg_addr)
         8'h00: reg_rdata = 32'h4E475632;   // "NGV2"
+        8'h0F: reg_rdata = `SDAES_VERSION;   // version du bitstream (make VERSION=)
         8'h01: reg_rdata = {30'd0, ctrl_force, ctrl_arm};
         8'h02: reg_rdata = {26'd0, dbg_busy, pk_ovf, mode_s, game_mode, pk_empty & sd_idle, sd_init_done};
         8'h04: reg_rdata = {7'd0, v1_base};

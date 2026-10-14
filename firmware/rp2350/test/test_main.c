@@ -60,7 +60,8 @@ int main(void)
     /* configuration des FPGA depuis SDAES/fpga_*.bin */
     {
         char msg[40], a[1024], b[1024];
-        int r = fpga_boot(msg, sizeof(msg));
+        int which;
+        int r = fpga_boot(msg, sizeof(msg), &which);
         printf("info  fpga_boot : %s\n", msg);
         expect(r == 0 && cfg_resets == 1, "FPGA configurés depuis la carte SD");
         dump("cfg_p.bin", cfg_buf[LINK_P], (uint32_t)cfg_len[LINK_P]);
@@ -70,13 +71,18 @@ int main(void)
         snprintf(a, sizeof(a), "%s/SDAES/fpga_v.bin", getenv("SDAES_SD"));
         snprintf(b, sizeof(b), "%s/SDAES/fpga_v.tmp", getenv("SDAES_SD"));
         rename(a, b);
-        r = fpga_boot(msg, sizeof(msg));
-        expect(r < 0 && !strcmp(msg, "MANQUE SDAES/fpga_v.bin") && cfg_resets == 1,
+        r = fpga_boot(msg, sizeof(msg), &which);
+        expect(r == BOOT_ERR_MISSING && which == LINK_V && !strcmp(msg, "MANQUE SDAES/fpga_v.bin") && cfg_resets == 1,
                "fichier manquant : FPGA laissés en reset");
         rename(b, a);
     }
 
     browser_init(1);
+    {
+        static const uint16_t ver[4] = { 41, 42, 43, 44 };
+        browser_set_fpga_versions(ver);
+        expect(mb16(MB_RSP_FPGAVER) == 41 && mb16(MB_RSP_FPGAVER + 6) == 44, "versions FPGA dans la boîte aux lettres");
+    }
 
     expect(send(CMD_PING, 0) == ST_OK, "PING");
     expect(send(CMD_LIST, 0) == ST_OK, "LIST racine");

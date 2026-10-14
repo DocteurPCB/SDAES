@@ -7,6 +7,8 @@
 
 /* à appeler après le montage de la carte SD (sd_ok = 0 si absente) */
 void browser_init(int sd_ok);
+/* versions des bitstreams lues dans les FPGA (P, V, C, SM), pour le menu */
+void browser_set_fpga_versions(const uint16_t ver[4]);
 /* traite une commande en attente dans la boîte aux lettres */
 void browser_handle_command(void);
 

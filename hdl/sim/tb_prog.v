@@ -171,6 +171,8 @@ module tb_prog;
         #3000;
         lk_sel = P; lk_reg_rd(8'h00, v);  check("ID P", v, 32'h4E475032);
         lk_sel = V; lk_reg_rd(8'h00, v);  check("ID V", v, 32'h4E475632);
+        lk_sel = P; lk_reg_rd(8'h0F, v);  check("version P", v, 32'd0);
+        lk_sel = V; lk_reg_rd(8'h0F, v);  check("version V", v, 32'd0);
         lk_sel = P;
         check("attente par défaut (pleine vitesse)", wait_n, 3'b111);
         lk_reg_wr(8'h04, 32'h6);  lk_reg_rd(8'h04, v);

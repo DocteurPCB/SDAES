@@ -6,6 +6,10 @@
 // chaque verrou PCK1B déclenche 4 lectures dans la même ligne (deux mots de
 // 32 bits : moitiés CA4 = 0 et 1).
 // -----------------------------------------------------------------------------
+`ifndef SDAES_VERSION
+`define SDAES_VERSION 32'd0
+`endif
+
 module cha_c_core #(
     parameter SDRAM_INIT_WAIT = 20000,
     parameter SDRAM_REFI      = 780
@@ -87,6 +91,7 @@ module cha_c_core #(
     always @* begin
         case (reg_addr)
         8'h00: reg_rdata = 32'h4E474332;   // "NGC2"
+        8'h0F: reg_rdata = `SDAES_VERSION;   // version du bitstream (make VERSION=)
         8'h01: reg_rdata = {30'd0, ctrl_force, ctrl_arm};
         8'h02: reg_rdata = {26'd0, dbg_busy, pk_ovf, mode_s, game_mode,
                             pk_empty & sd_idle & (cl_st == CL_IDLE), sd_init_done};

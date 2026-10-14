@@ -18,6 +18,10 @@
 // deux banques SDRAM. Quand /ROMOE ou /PORTOE arrive, la donnée est en
 // général déjà prête ; sinon une lecture normale est faite.
 // -----------------------------------------------------------------------------
+`ifndef SDAES_VERSION
+`define SDAES_VERSION 32'd0
+`endif
+
 module prog_p_core #(
     parameter MENU_P_HI_INIT  = "",
     parameter MENU_P_LO_INIT  = "",
@@ -102,6 +106,7 @@ module prog_p_core #(
     always @* begin
         case (reg_addr)
         8'h00: reg_rdata = 32'h4E475032;   // "NGP2"
+        8'h0F: reg_rdata = `SDAES_VERSION;   // version du bitstream (make VERSION=)
         8'h01: reg_rdata = {28'd0, ctrl_bank_en, 2'b00, ctrl_arm};
         8'h02: reg_rdata = {25'd0, pk_ovf, dbg_busy, irq, game_mode, pk_empty & sd_idle, sd_init_done, sd_init_done};
         8'h03: reg_rdata = {8'd0, p_mask};

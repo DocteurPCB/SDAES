@@ -26,6 +26,7 @@ typedef enum { LINK_P = 0, LINK_V = 1, LINK_C = 2, LINK_SM = 3 } link_id_t;
 #define REG_ID           0x00
 #define REG_CTRL         0x01
 #define REG_STATUS       0x02
+#define REG_VERSION      0x0F   /* version du bitstream (make -C hdl VERSION=) */
 #define REG_DBG_ADDR     0x10
 #define REG_DBG_DATA     0x11
 /* FPGA P */

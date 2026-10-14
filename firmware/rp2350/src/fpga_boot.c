@@ -26,8 +26,9 @@ static const struct { link_id_t link; const char *file; } images[4] = {
 
 static uint8_t chunk[4096];
 
-int fpga_boot(char *msg, size_t msglen)
+int fpga_boot(char *msg, size_t msglen, int *which)
 {
+    *which = -1;
     char path[64];
     FIL f;
 
@@ -36,13 +37,15 @@ int fpga_boot(char *msg, size_t msglen)
         snprintf(path, sizeof(path), "%s/%s", FPGA_DIR, images[i].file);
         if (f_open(&f, path, FA_READ) != FR_OK) {
             snprintf(msg, msglen, "MANQUE SDAES/%s", images[i].file);
-            return -1;
+            *which = i;
+            return BOOT_ERR_MISSING;
         }
         uint32_t size = f_size(&f);
         f_close(&f);
         if (size < BITSTREAM_MIN || size > BITSTREAM_MAX) {
             snprintf(msg, msglen, "TAILLE SDAES/%s", images[i].file);
-            return -2;
+            *which = i;
+            return BOOT_ERR_SIZE;
         }
     }
 
@@ -51,7 +54,8 @@ int fpga_boot(char *msg, size_t msglen)
         snprintf(path, sizeof(path), "%s/%s", FPGA_DIR, images[i].file);
         if (f_open(&f, path, FA_READ) != FR_OK) {
             snprintf(msg, msglen, "LECTURE SDAES/%s", images[i].file);
-            return -3;
+            *which = i;
+            return BOOT_ERR_READ;
         }
         qlink_cfg_begin(images[i].link);
         UINT got;
@@ -64,12 +68,13 @@ int fpga_boot(char *msg, size_t msglen)
         f_close(&f);
         if (err) {
             snprintf(msg, msglen, "LECTURE SDAES/%s", images[i].file);
-            return -3;
+            *which = i;
+            return BOOT_ERR_READ;
         }
     }
     if (!qlink_cfg_done()) {
         snprintf(msg, msglen, "CDONE BAS");
-        return -4;
+        return BOOT_ERR_CDONE;
     }
     snprintf(msg, msglen, "FPGA OK");
     return 0;

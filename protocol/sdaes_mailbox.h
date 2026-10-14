@@ -40,6 +40,7 @@
 #define MB_RSP_FWVER       0x10E   /* u16, version du firmware */
 #define MB_RSP_PATH        0x110   /* char[64], dossier courant */
 #define MB_RSP_MSG         0x150   /* char[64], message (erreur, nom du jeu) */
+#define MB_RSP_FPGAVER     0x190   /* 4 x u16 : versions des bitstreams P, V, C, SM */
 #define MB_RSP_ENTRIES     0x200   /* MB_PAGE_SIZE entrées de 32 octets */
 #define MB_ENTRY_SIZE      32      /* [0] type, [1..31] nom terminé par 0 */
 #define MB_PAGE_SIZE       24

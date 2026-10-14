@@ -222,6 +222,12 @@ void browser_init(int sd_ok)
     mb_w16(MB_RSP_FWVER, FW_VERSION);
 }
 
+void browser_set_fpga_versions(const uint16_t ver[4])
+{
+    for (int i = 0; i < 4; i++)
+        mb_w16(MB_RSP_FPGAVER + 2 * i, ver[i]);
+}
+
 void browser_handle_command(void)
 {
     uint8_t c[12];

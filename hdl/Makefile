@@ -11,6 +11,8 @@ YOSYS    ?= yosys
 NEXTPNR  ?= nextpnr-ice40
 ICEPACK  ?= icepack
 BUILD    ?= build
+# numéro de version des bitstreams (registre 0x0F, affiché par le menu)
+VERSION  ?= $(shell git rev-list --count HEAD 2>/dev/null || echo 0)
 
 COMMON = common/sync2.v common/qlink.v common/sdram.v common/wr_packer.v \
          common/bram_dp.v common/sram_ctrl.v common/ice40_prims.v
@@ -47,7 +49,7 @@ PCF_prog_v_top = ../hardware/prog_v.pcf
 PCF_cha_c_top  = ../hardware/cha_c.pcf
 PCF_cha_sm_top = ../hardware/cha_sm.pcf
 $(BUILD)/%.json: $(HEX) $(COMMON) $$(SRC_$$*)
-	cd $(BUILD) && $(YOSYS) -q -p "read_verilog $(addprefix ../,$(COMMON) $(SRC_$*)); synth_ice40 -top $* -json $*.json; tee -q -o $*_stat.txt stat" > $*_synth.log
+	cd $(BUILD) && $(YOSYS) -q -p "read_verilog -DSDAES_VERSION=$(VERSION) $(addprefix ../,$(COMMON) $(SRC_$*)); synth_ice40 -top $* -json $*.json; tee -q -o $*_stat.txt stat" > $*_synth.log
 
 lint: $(addprefix $(BUILD)/,$(addsuffix .json,$(TOPS)))
 	@for t in $(TOPS); do echo "== $$t"; grep -E "SB_LUT4|SB_DFF|SB_RAM40|SB_IO |SB_PLL|SB_CARRY" $(BUILD)/$${t}_stat.txt | awk '{s[$$2]+=$$1} END {for (k in s) printf "   %-14s %d\n", k, s[k]}'; done

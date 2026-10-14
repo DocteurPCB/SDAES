@@ -6,6 +6,10 @@
 //   S  en 0x00000-0x7FFFF,  M1 en 0x80000-0xFFFFF.
 // Le menu (police S et pilote Z80) est en BRAM.
 // -----------------------------------------------------------------------------
+`ifndef SDAES_VERSION
+`define SDAES_VERSION 32'd0
+`endif
+
 module cha_sm_core #(
     parameter MENU_S_INIT  = "",
     parameter MENU_M1_INIT = ""
@@ -103,6 +107,7 @@ module cha_sm_core #(
     always @* begin
         case (reg_addr)
         8'h00: reg_rdata = 32'h4E475332;   // "NGS2"
+        8'h0F: reg_rdata = `SDAES_VERSION;   // version du bitstream (make VERSION=)
         8'h01: reg_rdata = {30'd0, ctrl_force, ctrl_arm};
         8'h02: reg_rdata = {26'd0, dbg_busy, sw_ovf, mode_s, game_mode, sw_empty, 1'b1};
         8'h04: reg_rdata = {13'd0, s_mask};

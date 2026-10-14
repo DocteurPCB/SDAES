@@ -211,6 +211,8 @@ module tb_cha;
 
         lk_sel = C;  lk_reg_rd(8'h00, v);  check("ID C", v, 32'h4E474332);
         lk_sel = SM; lk_reg_rd(8'h00, v);  check("ID SM", v, 32'h4E475332);
+        lk_sel = C;  lk_reg_rd(8'h0F, v);  check("version C", v, 32'd0);
+        lk_sel = SM; lk_reg_rd(8'h0F, v);  check("version SM", v, 32'd0);
         lk_sel = C;  lk_reg_rd(8'h02, v);  check("SDRAM C initialisee", v & 1, 1);
 
         // --- ROM C : deux moitiés de la ligne LINE de la tuile TILE

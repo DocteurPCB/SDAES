@@ -179,10 +179,27 @@ static uint16_t mb_wait(uint16_t timeout_frames, uint8_t show_progress)
 
 /* --------------------------------------------------------------------- */
 
+/* versions : firmware du RP2350 et bitstreams des 4 FPGA (cartes SD) */
+static void draw_versions(void)
+{
+    static const char tag[4] = { 'P', 'V', 'C', 'S' };
+    fix_fill(SCREEN_X0, 3, SCREEN_W);
+    fix_put(SCREEN_X0, 3, PAL_DIM, "FW");
+    put_num(SCREEN_X0 + 3, 3, PAL_DIM, MB16(MB_RSP_FWVER));
+    fix_put(SCREEN_X0 + 9, 3, PAL_DIM, "FPGA");
+    for (uint8_t i = 0; i < 4; i++) {
+        char t[2] = { tag[i], 0 };
+        uint8_t x = SCREEN_X0 + 14 + i * 6;
+        fix_put(x, 3, PAL_DIM, t);
+        put_num(x + 1, 3, PAL_DIM, MB16(MB_RSP_FPGAVER + 2 * i));
+    }
+}
+
 static void draw_header(void)
 {
     char path[40];
     put_line(2, PAL_TITLE, "SDAES  -  NEO GEO SD");
+    draw_versions();
     mb_str(MB_RSP_PATH, path, sizeof(path));
     put_line(4, PAL_DIM, path);
 }

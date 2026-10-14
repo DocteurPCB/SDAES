@@ -88,3 +88,23 @@ python3 tools/neotool.py build -o jeu.neo --name "MON JEU" \
     --v1 001-v1.v1 001-v2.v2 --c 001-c1.c1 001-c2.c2 001-c3.c3 001-c4.c4
 python3 tools/neotool.py info jeu.neo
 ```
+
+## Versions et codes d'erreur au démarrage
+
+* Chaque FPGA expose la version de son bitstream dans le registre 0x0F
+  (`make -C hdl VERSION=n`, par défaut le nombre de commits du dépôt). Le
+  firmware les lit au démarrage et les dépose dans la boîte aux lettres
+  (`MB_RSP_FPGAVER`) ; le menu les affiche sous le titre :
+  `FW 3  FPGA P412 V412 C412 S412`.
+* En cas d'échec avant l'affichage du menu, la LED du Pico répète le code
+  d'erreur (n clignotements), puis, après une pause, le numéro du FPGA
+  concerné (1 = P, 2 = V, 3 = C, 4 = SM) :
+
+| Code | Cause |
+|---|---|
+| 3 | FPGA configuré mais muet, ou SDRAM en défaut |
+| 4 | fichier `SDAES/fpga_*.bin` absent |
+| 5 | pas de carte SD (les FPGA restent en reset) |
+| 6 | fichier de taille incohérente |
+| 7 | erreur de lecture de la carte SD |
+| 8 | configuration refusée (CDONE bas) |
