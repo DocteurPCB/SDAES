@@ -81,8 +81,8 @@ Résultats actuels de `make test` :
   BIOS est recopié, à la construction, depuis un jeu que vous possédez.
 * Protections : SMA (KOF 99, Garou, Metal Slug 3, KOF 2000), PVC (Metal
   Slug 5, SVC Chaos, KOF 2003), KOF 98, PRO-CT0 (Fatal Fury 2, Super
-  Sidekicks) et Metal Slug X (P1 corrigée au chargement) sont prises en
-  charge
+  Sidekicks), Metal Slug X (P1 corrigée au chargement), Metal Slug 5 Plus
+  et le bootleg de Metal Slug 5 sont pris en charge
   ([détails](docs/08-cartouches-protegees.md)) ; les tables SMA s'extraient
   du source de MAME avec `neotool.py sma-from-mame`. Banques de couche fixe
   NEO-CMC : KOF 2000, SVC, KOF 2003, Metal Slug 3/4 ; approchées pour Garou.

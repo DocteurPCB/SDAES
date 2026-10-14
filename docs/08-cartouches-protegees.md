@@ -18,6 +18,8 @@ D'autres agissent pendant le jeu (puce sur la cartouche qui répond au
 | **Superposition KOF 98** : un code écrit en 0x20AAAA remplace deux mots en 0x000100 | KOF 98 | ✅ intégré, paramètres dans un fichier `.map` |
 | **Banques de couche fixe**, type 2 (ROM S de 512 Ko, CMC50) | KOF 2000, SVC Chaos, KOF 2003 (Matrimelee) | ✅ intégré (FPGA SM), reconnu par le NGH |
 | **Banques de couche fixe**, type 1 (CMC42/50) | Metal Slug 3, Metal Slug 4 ; Garou | ✅ banque constante ; ⚠️ **approché** pour Garou (voir plus bas) |
+| **Metal Slug 5 Plus** (bootleg) : lecture en 0x2FFFF0, banques propres | Metal Slug 5 Plus | ✅ intégré (mode 4), reconnu par le NGH 268, la taille de P et le CRC de P1 |
+| Bootleg Metal Slug 5 (`mslug5b`) : données brouillées seulement | Metal Slug 5 (bootleg) | ✅ banques standard ; `.neo` à désembrouiller avec `neotool build --descramble mslug5b` |
 | **PRO-CT0** : le sérialiseur de pixels du ZMC2 câblé sur le bus 68000 | Fatal Fury 2, Super Sidekicks | ✅ intégré (mode 3), reconnu par le NGH (047, 052) |
 | Metal Slug X (puce Altera sur la carte PROG) | Metal Slug X | ✅ contrôles neutralisés dans P1 au chargement, reconnu par le NGH (250) |
 
@@ -49,7 +51,7 @@ Syntaxe (`#` ou `;` commencent un commentaire, nombres en hexadécimal
 ```
 [kof99]                       ; pas de section dans un fichier .map
 ngh        = 0x251            ; numéro de jeu (en-tête du .neo)
-mapper     = sma              ; std | sma | pvc | ct0
+mapper     = sma              ; std | sma | pvc | ct0 | ms5p
 bank_addr  = 0x2ffff0         ; adresse 68000 du registre de banque
 bank_bits  = 14 6 8 10 12 5   ; bit de la donnée qui devient le bit 0, 1, ... 5 du numéro
 bank_table = 0x000000 0x100000 0x200000 ...   ; jusqu'à 64 décalages (octets),
@@ -209,6 +211,42 @@ charge des valeurs et vérifie les « pixels » relus. D'après MAME
 Le FPGA P reprend la logique de `hdl/cha/zmc2_dot.v` (décalages et sorties
 identiques au modèle de MAME) ; le banc de test compare ses lectures à un
 modèle transcrit de MAME.
+
+## Metal Slug 5 : original, Plus et bootleg
+
+Les trois versions portent le NGH 268 ; MAME les traite différemment :
+
+| Version (MAME) | Zone P | En jeu | Données |
+|---|---|---|---|
+| `mslug5`, `mslug5h` (AES) | 8 Mo | PVC (mode 2) | P, C/S, M1, V chiffrés |
+| `ms5plus` | 5 Mo | lecture en 0x2FFFF0-0x2FFFFF = 0x00A0 ; écriture de 0xA0 en 0x2FFFF0 : fenêtre P2 à l'octet 0xA0 ; écriture en 0x2FFFF4 : fenêtre à (donnée >> 4) Mo (mode 4) | C, M1, V : ceux de l'original (chiffrés) ; S brouillée |
+| `mslug5b` | 5 Mo | rien : banques standard | S, V, C brouillés |
+
+Le firmware choisit après la lecture de P : 8 Mo → PVC ; 5 Mo et CRC32 du
+premier Mo égal à celui de `ms5-p1p.bin` (0x106B276F) → Metal Slug 5 Plus ;
+sinon → banques standard. `mapper = ms5p` dans un `.map` force le mode 4.
+
+**Fabriquer les `.neo`** (SDAES ne déchiffre rien au chargement) :
+
+```
+# bootleg : les fichiers de MAME, désembrouillés comme le fait MAME
+python3 tools/neotool.py build -o mslug5b.neo --ngh 0x268 --name "METAL SLUG 5" \
+    --p ms5b-p1.bin ms5b-p2.bin --s ms5b-s1.bin --m ms5b-m1.bin \
+    --v1 ms5b-v1.bin ms5b-v2.bin ms5b-v3.bin ms5b-v4.bin \
+    --c ms5b-c1.bin ms5b-c2.bin ms5b-c3.bin ms5b-c4.bin ms5b-c5.bin ms5b-c6.bin ms5b-c7.bin ms5b-c8.bin \
+    --c-align --descramble mslug5b
+
+# Metal Slug 5 Plus : P et S du Plus, le reste repris d'un mslug5.neo déchiffré
+python3 tools/neotool.py build -o ms5plus.neo --ngh 0x268 --name "METAL SLUG 5 PLUS" \
+    --from mslug5.neo --p ms5-p1p.bin ms5-p2p.bin ms5-p3p.bin --s ms5-s1p.bin --descramble ms5plus
+```
+
+`--descramble mslug5b` reprend `sx_decrypt(2)`, `mslug5b_vx_decrypt` et
+`mslug5b_cx_decrypt` de MAME (`prot_misc.cpp`) ; `--c-align` place chaque
+paire de ROM C comme dans la région de MAME (les c5/c6 du bootleg font 2 Mo
+au lieu de 8). `--descramble ms5plus` reprend `sx_decrypt(1)`. Un `.neo`
+produit par un autre outil peut déjà être désembrouillé : ne pas appliquer
+deux fois.
 
 ## Metal Slug X
 

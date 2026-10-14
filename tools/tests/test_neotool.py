@@ -88,6 +88,39 @@ class BuildTests(TmpDir):
         self.assertEqual(c[0:4], bytes([0, 100, 1, 101]))     # c1[0] c2[0] c1[1] c2[1]
         self.assertEqual(c[32:36], bytes([0xAA, 0xBB, 0xAA, 0xBB]))
 
+    def test_c_align(self):
+        big, small = bytes([1] * 8), bytes([2] * 2)
+        region = neotool.interleave_c([self.path("a", big), self.path("b", big),
+                                       self.path("c", small), self.path("d", small),
+                                       self.path("e", big), self.path("f", big)], align=True)
+        self.assertEqual(len(region), 16 + 16 + 16)          # paire 2 complétée à 16 octets
+        self.assertEqual(region[16:20], bytes([2, 2, 2, 2]))
+        self.assertEqual(region[20:32], bytes(12))
+        self.assertEqual(region[32], 1)
+
+    def test_descramble_mslug5b(self):
+        s, v, c = neotool.descramble("mslug5b", bytes([0x01, 0x20, 0x80]), bytes([0x80, 0x80, 0x01, 0x01]),
+                                     b"".join(bytes([k]) * 0x80000 for k in range(4)))
+        self.assertEqual(s, bytes([0x20, 0x01, 0x80]))       # bitswap<8>(7,6,0,4,3,2,1,5)
+        self.assertEqual(v, bytes([0x80, 0x01, 0x01, 0x04])) # octets impairs : bitswap<8>(3,2,4,1,5,0,6,7)
+        self.assertEqual([c[k * 0x80000] for k in range(4)], [0, 2, 1, 3])   # A18/A19 échangées
+
+    def test_descramble_ms5plus_and_from(self):
+        base = self.path("base.neo")
+        self.assertEqual(neotool.main(["build", "-o", base, "--p", self.path("p", bytes(64)),
+                                       "--m", self.path("m", b"MMMM"), "--v1", self.path("v", b"VVVV"),
+                                       "--c", self.path("c1", b"ab"), self.path("c2", b"cd"),
+                                       "--ngh", "0x268"]), 0)
+        s1 = bytes(range(32))
+        out = self.path("ms5plus.neo")
+        self.assertEqual(neotool.main(["build", "-o", out, "--from", base,
+                                       "--p", self.path("pp", bytes([7]) * 64), "--s", self.path("s", s1),
+                                       "--descramble", "ms5plus", "--ngh", "0x268"]), 0)
+        data = readb(out)
+        r = {n: data[o:o + sz] for n, o, sz in neotool.NeoHeader.unpack(data).regions()}
+        self.assertEqual(r["S"][:16], s1[8:16] + s1[0:8])     # moitiés de 8 octets échangées
+        self.assertEqual((r["P"], r["M"], r["V1"], r["C"]), (bytes([7]) * 64, b"MMMM", b"VVVV", b"acbd"))
+
     def test_c_must_be_pairs(self):
         with self.assertRaises(ValueError):
             neotool.interleave_c([self.path("c1", b"12")])

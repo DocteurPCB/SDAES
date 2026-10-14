@@ -162,13 +162,14 @@ def read_all(paths):
     return out
 
 
-def interleave_c(paths):
-    """c1,c2,c3,c4... -> (c1|c2 entrelacés) + (c3|c4 entrelacés) + ..."""
+def interleave_c(paths, align=False):
+    """c1,c2,c3,c4... -> (c1|c2 entrelacés) + (c3|c4 entrelacés) + ...
+    align : chaque paire occupe la taille de la plus grande (région de MAME)."""
     if not paths:
         return b""
     if len(paths) % 2:
         raise ValueError("les ROM C vont par paires (c1 c2, c3 c4, ...)")
-    out = bytearray()
+    pairs = []
     for i in range(0, len(paths), 2):
         odd = readb(paths[i])
         even = readb(paths[i + 1])
@@ -177,17 +178,61 @@ def interleave_c(paths):
         pair = bytearray(len(odd) * 2)
         pair[0::2] = odd
         pair[1::2] = even
+        pairs.append(pair)
+    size = max(len(x) for x in pairs) if align else 0
+    out = bytearray()
+    for k, pair in enumerate(pairs):
         out += pair
+        if align and k + 1 < len(pairs):
+            out += bytes(size - len(pair))
     return bytes(out)
 
 
+def bitswap8(x, *bits):
+    """MAME bitswap<8>(x, b7, ..., b0) : le bit i du résultat vient du bit bits[7 - i]."""
+    return sum(((x >> b) & 1) << (7 - i) for i, b in enumerate(bits))
+
+
+def descramble(kind, s, v, c):
+    """Données brouillées de bootlegs, d'après MAME (prot_misc.cpp) ; v = V1 + V2."""
+    s, v, c = bytearray(s), bytearray(v), bytearray(c)
+    if kind == "mslug5b":
+        t = bytes(bitswap8(i, 7, 6, 0, 4, 3, 2, 1, 5) for i in range(256))      # sx_decrypt(2)
+        s = bytearray(s.translate(t))
+        t = bytes(bitswap8(i, 3, 2, 4, 1, 5, 0, 6, 7) for i in range(256))      # mslug5b_vx_decrypt
+        v[1::2] = bytes(v[1::2]).translate(t)
+        blk = 0x80000                                                            # mslug5b_cx_decrypt
+        for i in range(1, 128, 4):
+            a, b = i * blk, (i + 1) * blk
+            if b + blk <= len(c):
+                c[a:a + blk], c[b:b + blk] = c[b:b + blk], c[a:a + blk]
+    elif kind == "ms5plus":
+        out = bytearray(s)                                                       # sx_decrypt(1)
+        for i in range(0, len(s) - 15, 16):
+            out[i:i + 8], out[i + 8:i + 16] = s[i + 8:i + 16], s[i:i + 8]
+        s = out
+    else:
+        raise ValueError(f"désembrouillage inconnu : {kind}")
+    return bytes(s), bytes(v), bytes(c)
+
+
 def cmd_build(args):
-    p = read_all(args.p)
+    base = {}
+    if args.base:
+        data = readb(args.base)
+        bh = NeoHeader.unpack(data)
+        base = {n: data[o:o + sz] for n, o, sz in bh.regions()}
+    p = read_all(args.p) if args.p else base.get("P", b"")
     if args.p_swap:
         p = swap16(p)
-    s, m = read_all(args.s), read_all(args.m)
-    v1, v2 = read_all(args.v1), read_all(args.v2)
-    c = interleave_c(args.c)
+    s = read_all(args.s) if args.s else base.get("S", b"")
+    m = read_all(args.m) if args.m else base.get("M", b"")
+    v1 = read_all(args.v1) if args.v1 else base.get("V1", b"")
+    v2 = read_all(args.v2) if args.v2 else base.get("V2", b"")
+    c = interleave_c(args.c, args.c_align) if args.c else base.get("C", b"")
+    if args.descramble:
+        s, v, c = descramble(args.descramble, s, v1 + v2, c)
+        v1, v2 = v[:len(v1)], v[len(v1):]
     h = NeoHeader(len(p), len(s), len(m), len(v1), len(v2), len(c),
                   args.year, args.genre, 0, args.ngh, args.name, args.manu)
     with open(args.output, "wb") as f:
@@ -309,7 +354,7 @@ def cmd_bramhex16(args):
 # Protections (format .map / MAPPERS.TXT, cf. firmware/rp2350/src/mapper.c)
 # ---------------------------------------------------------------------------
 PORT_BASE = 0x200000
-MAP_MODES = {"std": 0, "sma": 1, "pvc": 2, "ct0": 3}
+MAP_MODES = {"std": 0, "sma": 1, "pvc": 2, "ct0": 3, "ms5p": 4}
 
 
 def _nums(text):
@@ -538,6 +583,12 @@ def main(argv=None):
     s.add_argument("--v1", nargs="+")
     s.add_argument("--v2", nargs="+")
     s.add_argument("--c", nargs="+", help="c1 c2 c3 c4 ... (par paires)")
+    s.add_argument("--c-align", action="store_true",
+                   help="chaque paire C occupe la taille de la plus grande (comme la région de MAME)")
+    s.add_argument("--from", dest="base", metavar="JEU.NEO",
+                   help="reprend d'un .neo existant les régions non fournies")
+    s.add_argument("--descramble", choices=["mslug5b", "ms5plus"],
+                   help="désembrouille les données d'un bootleg (d'après MAME)")
     s.add_argument("--name", default="")
     s.add_argument("--manu", default="")
     s.add_argument("--year", type=int, default=0)

@@ -21,6 +21,10 @@
 //                 0x2xxxxx = un front d'horloge, avec LOAD = A1, EVEN = A2,
 //                 H = A3 et le mot C = {A19..A4, D15..D0} permutés ; une
 //                 lecture renvoie GAD/GBD sur D7..D0 (EVEN = A2, H = A3).
+//   mode 4  MS5P : (Metal Slug 5 Plus, MAME boot_ms5plus) lecture en
+//                 0x2FFFF0-0x2FFFFF = 0x00A0 ; écriture de 0xA0 en 0x2FFFF0 :
+//                 fenêtre P2 à l'octet 0xA0 ; écriture en 0x2FFFF4 : fenêtre
+//                 à (donnée >> 4) x 1 Mo.
 //   superposition (KOF 98) : une écriture d'un code à une adresse donnée
 //                 remplace deux mots de la zone P1 par d'autres valeurs.
 //
@@ -62,9 +66,9 @@ module p_mapper (
     output reg  [15:0] gw_data,
     output reg  [1:0]  gw_mask
 );
-    localparam M_STD = 2'd0, M_SMA = 2'd1, M_PVC = 2'd2, M_CT0 = 2'd3;
+    localparam M_STD = 3'd0, M_SMA = 3'd1, M_PVC = 3'd2, M_CT0 = 3'd3, M_MS5P = 3'd4;
 
-    reg [1:0]  mode = M_STD;
+    reg [2:0]  mode = M_STD;
     assign pvc_mode = (mode == M_PVC);
     reg        ovl_en = 1'b0;
     reg [18:0] sma_bank_addr = 19'h7FFF8;
@@ -84,7 +88,7 @@ module p_mapper (
             mode <= M_STD; ovl_en <= 1'b0; prot_en <= 1'b0; rng_en0 <= 1'b0; rng_en1 <= 1'b0;
         end else if (reg_wr) begin
             case (reg_addr)
-            8'h0A: begin mode <= reg_wdata[1:0]; ovl_en <= reg_wdata[8]; end
+            8'h0A: begin mode <= reg_wdata[2:0]; ovl_en <= reg_wdata[8]; end
             8'h0B: sma_bank_addr <= reg_wdata[18:0];
             8'h0C: sma_perm <= reg_wdata[23:0];
             8'h0D: begin prot_addr <= reg_wdata[18:0]; prot_en <= reg_wdata[31]; end
@@ -104,7 +108,7 @@ module p_mapper (
     always @* begin
         case (reg_addr)
         8'h08: cfg_rdata = {9'd0, p2_base_w};
-        8'h0A: cfg_rdata = {23'd0, ovl_en, 6'd0, mode};
+        8'h0A: cfg_rdata = {23'd0, ovl_en, 5'd0, mode};
         8'h0C: cfg_rdata = {8'd0, sma_perm};
         default: cfg_rdata = 32'hDEADBEEF;
         endcase
@@ -174,7 +178,7 @@ module p_mapper (
     wire        in_pvc_regs   = in_pvc_region && (a[11:4] == 8'hFF) && (a[3:0] <= 4'd9);
     reg  f_prot = 1'b0, f_rng0 = 1'b0, f_rng1 = 1'b0, f_pvcr = 1'b0, f_pvcram = 1'b0;
     reg  f_ovl0 = 1'b0, f_ovl1 = 1'b0, f_bank = 1'b0, f_trig = 1'b0, f_std = 1'b0;
-    reg  f_ct0 = 1'b0;
+    reg  f_ct0 = 1'b0, f_ms5p = 1'b0;
     reg  [1:0] ct0_eh = 2'b00;    // {EVEN, H} = {A2, A3} de la lecture
     always @(posedge clk) begin
         f_prot   <= mode == M_SMA && prot_en && a == prot_addr;
@@ -188,16 +192,18 @@ module p_mapper (
         f_trig   <= ovl_en && a == ovl_trig;
         f_std    <= mode == M_STD && a[18:3] == 16'hFFFF;    // 0x2FFFF0-0x2FFFFF
         f_ct0    <= mode == M_CT0;
+        f_ms5p   <= mode == M_MS5P && a[18:3] == 16'hFFFF;   // 0x2FFFF0-0x2FFFFF
         ct0_eh   <= {a[1], a[2]};
     end
 
     always @(posedge clk) begin
-        sp_port_hit <= f_prot || f_rng0 || f_rng1 || f_pvcr || f_ct0;
+        sp_port_hit <= f_prot || f_rng0 || f_rng1 || f_pvcr || f_ct0 || f_ms5p;
         sp_rom_hit  <= ovl_active && (f_ovl0 || f_ovl1);
         if (f_pvcr)                  sp_data <= sh[a[3:0]];
         else if (f_prot)             sp_data <= prot_val;
         else if (f_rng0 || f_rng1)   sp_data <= rng;
         else if (f_ct0)              sp_data <= {8'h00, ct0_out(ct0_sr, ct0_eh[1], ct0_eh[0])};
+        else if (f_ms5p)             sp_data <= 16'h00A0;
         else if (f_ovl0)             sp_data <= ovl_v0;
         else                         sp_data <= ovl_v1;
     end
@@ -241,6 +247,14 @@ module p_mapper (
                 if (f_bank) begin
                     tbl_ridx <= sma_idx(d, sma_perm);
                     sma_pend <= 2'd2;
+                end
+                if (f_ms5p && a[2:0] == 3'd0 && d == 16'h00A0) begin   // 0x2FFFF0
+                    p2_base_w <= 23'h000050;                            // octet 0xA0
+                    base_chg  <= 1'b1;
+                end
+                if (f_ms5p && a[2:0] == 3'd2) begin                     // 0x2FFFF4
+                    p2_base_w <= {d[7:4], 19'd0};                       // (d >> 4) Mo
+                    base_chg  <= 1'b1;
                 end
                 if (f_ct0) begin
                     if (a[0])            // LOAD = A1

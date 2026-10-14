@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef enum { MAP_STD = 0, MAP_SMA = 1, MAP_PVC = 2, MAP_CT0 = 3 } map_mode_t;
+typedef enum { MAP_STD = 0, MAP_SMA = 1, MAP_PVC = 2, MAP_CT0 = 3, MAP_MS5P = 4 } map_mode_t;
 
 typedef struct {
     char       name[32];
@@ -41,12 +41,23 @@ typedef struct {
     /* correctif appliqué à P au chargement */
     uint8_t    patch;          /* PATCH_NONE, PATCH_MSLUGX */
     bool       by_name;        /* section de MAPPERS.TXT trouvée par son nom */
+    bool       builtin;        /* description de la table interne (d'après le NGH) */
+    uint32_t   ngh_seen;       /* NGH du jeu pour lequel la description a été choisie */
 } mapper_t;
 
 /* Les jeux SMA ont une zone P de 9 Mo (ROM interne de la puce comprise) ;
  * leurs versions sans SMA (prototype de Garou, Metal Slug 3 « h »,
  * KOF 2000 « n »...) ont le même NGH et une zone P de 5 Mo au plus. */
 #define SMA_MIN_PSIZE  0x500001u
+
+/* Metal Slug 5 (NGH 268) : l'original (PVC) a une zone P de 8 Mo ; Metal
+ * Slug 5 Plus et le bootleg mslug5b en ont 5 Mo. Le premier Mo de P de
+ * Metal Slug 5 Plus (MAME : ms5-p1p.bin) a ce CRC32. */
+#define MS5_PVC_MIN_PSIZE  0x500001u
+#define MS5PLUS_P1_CRC     0x106B276Fu
+
+/* Choix final pour le NGH 268, une fois P lu (crc_p1 : CRC32 du 1er Mo). */
+void mapper_ms5_resolve(mapper_t *m, uint32_t psize, uint32_t crc_p1);
 
 enum { PATCH_NONE = 0, PATCH_MSLUGX = 1 };
 

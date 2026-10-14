@@ -396,6 +396,24 @@ module tb_prog;
         m68k_read(24'h200004, w); check("PRO-CT0 rechargement, EVEN=1", w, 16'h007B);
         lk_reg_wr(8'h01, 32'h0);
 
+        // ---- Metal Slug 5 Plus (MAME : write_bankprot_ms5p, mslug5p_prot_r)
+        $display("--- Metal Slug 5 Plus");
+        load_pwords(32'h000050, 1);
+        load_pwords(32'h100000 + 32'h40, 1);
+        lk_reg_wr(8'h0A, 32'h4);
+        lk_reg_wr(8'h01, 32'h1);
+        m68k_write(24'h2FFFE2, 16'h5A5A);
+        check("mode jeu MS5P", mode, 1);
+        m68k_read(24'h2FFFF0, w); check("MS5P lecture de protection", w, 16'h00A0);
+        m68k_read(24'h2FFFFE, w); check("MS5P lecture de protection (fin)", w, 16'h00A0);
+        m68k_write(24'h2FFFF4, 16'h0020);      // (0x20 >> 4) Mo = 2 Mo
+        m68k_read(24'h200080, w); check("MS5P banque 2 Mo [200080]", w, pword(32'h100000 + 32'h40));
+        m68k_write(24'h2FFFF0, 16'h00A0);      // fenêtre à l'octet 0xA0
+        m68k_read(24'h200000, w); check("MS5P fenetre a 0xA0 [200000]", w, pword(32'h000050));
+        m68k_write(24'h2FFFF0, 16'h0012);      // autre valeur : sans effet
+        m68k_read(24'h200000, w); check("MS5P ecriture ignoree", w, pword(32'h000050));
+        lk_reg_wr(8'h01, 32'h0);
+
         errors = errors + u_p.errors + u_v.errors;
         if (errors == 0) $display("RESULTAT tb_prog : SUCCES");
         else             $display("RESULTAT tb_prog : %0d ERREUR(S)", errors);

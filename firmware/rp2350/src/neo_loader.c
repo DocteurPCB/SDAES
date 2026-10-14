@@ -67,8 +67,24 @@ int neo_parse_header(const uint8_t *raw, neo_header_t *h)
  * Slug X à neutraliser (cf. msx_patch_apply). Mots 68000 ; le .neo stocke P
  * en petit-boutiste. */
 #define MSX_MAX_HITS 64
+/* CRC32 (polynôme 0xEDB88320), table de 16 entrées */
+static uint32_t crc32_upd(uint32_t c, const uint8_t *b, uint32_t n)
+{
+    static const uint32_t t[16] = {
+        0x00000000, 0x1DB71064, 0x3B6E20C8, 0x26D930AC, 0x76DC4190, 0x6B6B51F4, 0x4DB26158, 0x5005713C,
+        0xEDB88320, 0xF00F9344, 0xD6D6A3E8, 0xCB61B38C, 0x9B64C2B0, 0x86D3D2D4, 0xA00AE278, 0xBDBDF21C };
+    c = ~c;
+    while (n--) {
+        c ^= *b++;
+        c = (c >> 4) ^ t[c & 15];
+        c = (c >> 4) ^ t[c & 15];
+    }
+    return ~c;
+}
+
 typedef struct {
     bool     on;
+    uint32_t crc_p1;            /* CRC32 du premier Mo de P (toujours calculé) */
     uint16_t w0, w1;            /* deux mots précédents */
     uint32_t hits[MSX_MAX_HITS];
     int      n;
@@ -110,7 +126,11 @@ static int stream(xfer_t *x, link_id_t l, uint8_t space, uint32_t addr, uint32_t
             return -1;
         }
         if (pending) qlink_mem_write_finish(pend_link);
-        if (x->scan && x->scan->on) msx_scan(x->scan, addr, buf[cur], n);
+        if (x->scan && l == LINK_P && space == SP_P_SDRAM && addr < 0x100000u)
+            x->scan->crc_p1 = crc32_upd(x->scan->crc_p1, buf[cur],
+                                        n < 0x100000u - addr ? n : 0x100000u - addr);
+        if (x->scan && x->scan->on && l == LINK_P && space == SP_P_SDRAM)
+            msx_scan(x->scan, addr, buf[cur], n);
         qlink_mem_write_start(l, space, addr, buf[cur], n);
         pending = true;
         pend_link = l;
@@ -257,6 +277,7 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     int r = 0;
     r |= stream(&x, LINK_P,  SP_P_SDRAM, 0,            h->psize);
     if (!r && scan.on) msx_patch_apply(&scan);
+    mapper_ms5_resolve(&m, h->psize, scan.crc_p1);
     r |= stream(&x, LINK_SM, SP_SM_SRAM, 0,            h->ssize);
     r |= stream(&x, LINK_SM, SP_SM_SRAM, SRAM_M1_BASE, h->msize);
     r |= stream(&x, LINK_V,  SP_V_SDRAM, 0,            h->v1size);
@@ -312,7 +333,7 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     qlink_reg_write(LINK_P,  REG_CTRL, CTRL_ARM |
                     (m.mode == MAP_STD && h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
 
-    static const char *const kind[] = { "", " (SMA)", " (PVC)", " (PRO-CT0)" };
+    static const char *const kind[] = { "", " (SMA)", " (PVC)", " (PRO-CT0)", " (MS5 PLUS)" };
     if (scan.on)
         snprintf(msg, msglen, "%.30s (P1 CORRIGEE: %d)", h->name[0] ? h->name : "JEU", scan.n);
     else

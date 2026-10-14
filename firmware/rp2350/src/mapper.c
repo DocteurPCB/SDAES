@@ -47,6 +47,8 @@ bool mapper_builtin(uint32_t ngh, mapper_t *out)
         if (ngh == pvc[i]) {
             mapper_default(out);
             out->mode = MAP_PVC;
+            out->builtin = true;
+            out->ngh_seen = ngh;
             snprintf(out->name, sizeof(out->name), "pvc-%x", (unsigned)ngh);
             return true;
         }
@@ -72,6 +74,16 @@ bool mapper_builtin(uint32_t ngh, mapper_t *out)
         }
     }
     return false;
+}
+
+void mapper_ms5_resolve(mapper_t *m, uint32_t psize, uint32_t crc_p1)
+{
+    if (!m->builtin || m->mode != MAP_PVC || psize >= MS5_PVC_MIN_PSIZE) return;
+    if (!ngh_match(0x268, m->ngh_seen)) return;
+    /* Metal Slug 5 Plus : banques propres ; sinon (bootleg mslug5b...) :
+     * aucune protection en jeu, banques standard */
+    m->mode = (crc_p1 == MS5PLUS_P1_CRC) ? MAP_MS5P : MAP_STD;
+    snprintf(m->name, sizeof(m->name), m->mode == MAP_MS5P ? "ms5plus" : "mslug5-5mo");
 }
 
 /* NGH écrit en hexadécimal "à la SNK" (0x251) ou en décimal (251) */
@@ -124,6 +136,7 @@ static bool apply_key(sect_t *st, const char *key, const char *val, char *err, i
         else if (!strncmp(val, "pvc", 3)) m->mode = MAP_PVC;
         else if (!strncmp(val, "std", 3)) m->mode = MAP_STD;
         else if (!strncmp(val, "ct0", 3)) m->mode = MAP_CT0;
+        else if (!strncmp(val, "ms5p", 4)) m->mode = MAP_MS5P;
         else goto bad;
     } else if (ieq(key, "bank_addr")) {
         if (parse_nums(val, v, 1) != 1) goto bad;

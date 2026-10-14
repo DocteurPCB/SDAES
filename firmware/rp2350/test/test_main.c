@@ -161,6 +161,16 @@ int main(void)
     for (int i = 0; i < 8192; i++) if (mem[LINK_P][SP_P_SDRAM][0x18FE000 + i]) zero = 0;
     expect(zero, "PVC : RAM de protection remise a zero");
 
+    /* Metal Slug 5 Plus (reconnu par le CRC de P1) et bootleg (P de 5 Mo) */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("ms5plus")) == ST_OK, "Metal Slug 5 Plus");
+    printf("info  message : %s\n", mbstr(MB_RSP_MSG));
+    expect(regs[LINK_P][0x0A] == 4, "MS5 Plus : mode MS5P");
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("mslug5b")) == ST_OK, "Metal Slug 5 bootleg");
+    expect(regs[LINK_P][0x0A] == 0, "MS5 bootleg : banques standard");
+    expect((regs[LINK_P][REG_CTRL] & CTRL_BANK_EN) == 0, "MS5 bootleg : petit P, pas de banque");
+
     /* Metal Slug X : correctif de P1 */
     memset(regs, 0, sizeof(regs));
     expect(send(CMD_OPEN, (uint32_t)find("mslugx")) == ST_OK, "Metal Slug X");

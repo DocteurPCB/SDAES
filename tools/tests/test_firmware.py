@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -19,6 +20,30 @@ import neotool  # noqa: E402
 
 
 @unittest.skipUnless(shutil.which("gcc"), "gcc absent")
+
+def forge_crc32(data, target):
+    """4 octets à ajouter à data pour que crc32(data + x) == target."""
+    tab = []
+    for i in range(256):
+        c = i
+        for _ in range(8):
+            c = (c >> 1) ^ 0xEDB88320 if c & 1 else c >> 1
+        tab.append(c)
+    rev = {t >> 24: i for i, t in enumerate(tab)}
+    c = zlib.crc32(data) ^ 0xFFFFFFFF
+    t = target ^ 0xFFFFFFFF
+    idx = []
+    for _ in range(4):
+        i = rev[t >> 24]
+        idx.append(i)
+        t = ((t ^ tab[i]) << 8) & 0xFFFFFFFF
+    out = bytearray()
+    for i in reversed(idx):
+        b = (c ^ i) & 0xFF
+        out.append(b)
+        c = (c >> 8) ^ tab[(c ^ b) & 0xFF]
+    return bytes(out)
+
 class FirmwareHostTest(unittest.TestCase):
     def test_load_neo(self):
         rnd = random.Random(1234)
@@ -62,7 +87,17 @@ class FirmwareHostTest(unittest.TestCase):
             small_neo("kof99b", 0x251)
             small_neo("garou", 0x253)
             small_neo("roi98", 0x242)
-            small_neo("mslug5", 0x268)
+            def neo_with_p(name, ngh, pdata):
+                with open(os.path.join(d, "p_" + name), "wb") as f:
+                    f.write(pdata)
+                self.assertEqual(neotool.main(["build", "-o", os.path.join(sd, "Jeux", name + ".neo"),
+                                               "--p", os.path.join(d, "p_" + name),
+                                               "--name", name.upper(), "--ngh", hex(ngh)]), 0)
+            # Metal Slug 5 : original PVC (P de 8 Mo), Plus (P1 au CRC de MAME), bootleg
+            neo_with_p("mslug5", 0x268, bytes(0x800000))
+            p1 = bytes(range(256)) * (0x100000 // 256 - 1) + bytes(252)
+            neo_with_p("ms5plus", 0x268, p1 + forge_crc32(p1, 0x106B276F))
+            neo_with_p("mslug5b", 0x268, bytes(range(256)) * 16)
             small_neo("fatfury2", 0x047)
             # Metal Slug X : P1 avec deux séquences andi.w #1,D3 ; bne, dont une
             # à cheval sur deux blocs de 32 Ko (ordre petit-boutiste du .neo)
