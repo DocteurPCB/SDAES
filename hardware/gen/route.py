@@ -34,7 +34,8 @@ def find(x, key):
 def export_dsn(pcb, dsn):
     b = pcbnew.LoadBoard(pcb)
     for t in list(b.GetTracks()):
-        b.Remove(t)
+        if not t.IsLocked():
+            b.Remove(t)
     if not pcbnew.ExportSpecctraDSN(b, dsn):
         raise SystemExit("export DSN impossible")
     # couches internes = plans d'alimentation : Freerouting n'y route rien
@@ -47,7 +48,10 @@ def export_dsn(pcb, dsn):
 def run_freerouting(dsn, ses, passes):
     cp = os.environ.get("FREEROUTING_CP", os.path.join(os.getcwd(), "freerouting", "lib", "*"))
     java = os.environ.get("JAVA", "java")
+    # sortie des broches et vias vers les plans : posés par pcb.py ;
+    # optimisation finale : trop longue pour ce qu'elle apporte
     cmd = [java, "-cp", cp, "app.freerouting.Freerouting", "--gui.enabled=false",
+           "--router.fanout.enabled=false", "--router.optimizer.enabled=false",
            "-de", dsn, "-do", ses, "-mp", str(passes)]
     subprocess.run(cmd, check=True)
 
@@ -64,7 +68,8 @@ def import_ses(pcb, ses):
     k = unit / float(res[2])                  # unité de la session -> mm
     b = pcbnew.LoadBoard(pcb)
     for t in list(b.GetTracks()):
-        b.Remove(t)
+        if not t.IsLocked():                  # vias vers les plans (pcb.py) : gardés
+            b.Remove(t)
     vias = {}
     for ps in find(find(routes, "library_out")[0], "padstack") if find(routes, "library_out") else []:
         name = unq(ps[1])
@@ -106,16 +111,21 @@ def import_ses(pcb, ses):
             b.Add(via)
             n_via += 1
     b.Save(pcb)
-    b = pcbnew.LoadBoard(pcb)                 # remplissage sur la carte relue
-    pcbnew.ZONE_FILLER(b).Fill(b.Zones())
-    b.Save(pcb)
+    # remplissage sur la carte relue, dans un processus à part (un second
+    # LoadBoard dans le même processus renvoie un objet inutilisable)
+    subprocess.run([sys.executable, "-c",
+                    "import pcbnew,sys; b=pcbnew.LoadBoard(sys.argv[1]); "
+                    "pcbnew.ZONE_FILLER(b).Fill(b.Zones()); b.Save(sys.argv[1])", pcb],
+                   check=True, capture_output=True)
     print(f"{pcb} : {n_tr} segments, {n_via} vias")
 
 
 def drc(pcb, report):
     """DRC de KiCad (module pcbnew : kicad-cli 7 n'a pas de commande drc)."""
-    b = pcbnew.LoadBoard(pcb)
-    pcbnew.WriteDRCReport(b, report, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    subprocess.run([sys.executable, "-c",
+                    "import pcbnew,sys; b=pcbnew.LoadBoard(sys.argv[1]); "
+                    "pcbnew.WriteDRCReport(b, sys.argv[2], pcbnew.EDA_UNITS_MILLIMETRES, True)", pcb, report],
+                   check=True, capture_output=True)
     text = open(report).read()
     for line in text.splitlines():
         if line.startswith("**") and ("Found" in line or "unconnected" in line.lower()):

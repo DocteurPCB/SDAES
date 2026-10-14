@@ -341,7 +341,7 @@ class Layout:
             b.Add(z)
 
         # zones interdites (pistes, vias, plans) autour des trous
-        for (x, y), r in [(h, outline.HOLE_D / 2 + 0.8) for h in HOLES] + \
+        for (x, y), r in [(h, outline.HOLE_D / 2 + 0.5) for h in HOLES] + \
                          [(h, STANDOFF_KEEP) for h in STANDOFFS]:
             k = pcbnew.ZONE(b)
             k.SetIsRuleArea(True)
@@ -350,7 +350,10 @@ class Layout:
             k.SetDoNotAllowCopperPour(True)
             k.SetDoNotAllowPads(False)
             k.SetDoNotAllowFootprints(False)
-            k.SetLayerSet(pcbnew.LSET.AllCuMask())
+            ls = pcbnew.LSET()
+            for l in (pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu, pcbnew.B_Cu):
+                ls.AddLayer(l)
+            k.SetLayerSet(ls)
             ol = k.Outline()
             ol.NewOutline()
             for i in range(24):
@@ -421,6 +424,7 @@ class Layout:
                             via.SetWidth(pcbnew.FromMM(via_d))
                             via.SetDrill(pcbnew.FromMM(via_drill))
                             via.SetNet(p.GetNet())
+                            via.SetLocked(True)
                             b.Add(via)
                             t = pcbnew.PCB_TRACK(b)
                             t.SetStart(v)
@@ -428,6 +432,7 @@ class Layout:
                             t.SetWidth(pcbnew.FromMM(0.25 if half < 0.6 else 0.3))
                             t.SetLayer(layer)
                             t.SetNet(p.GetNet())
+                            t.SetLocked(True)
                             b.Add(t)
                             vias.append((x, y))
                             done = True
