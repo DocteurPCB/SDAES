@@ -222,8 +222,22 @@ module cha_c_core #(
         .sd_cke(sd_cke), .sd_cs_n(sd_cs_n), .sd_ras_n(sd_ras_n), .sd_cas_n(sd_cas_n), .sd_we_n(sd_we_n),
         .sd_ba(sd_ba), .sd_a(sd_a), .sd_dqm(sd_dqm), .sd_dq_o(sd_dq_o), .sd_dq_oe(sd_dq_oe), .sd_dq_i(sd_dq_i));
 
-    // ZMC2 : bus CR = moitié choisie par CA4 (combinatoire, comme une ROM)
-    wire [31:0] cr = ca4 ? c_half1 : c_half0;
+    // ZMC2 : bus CR = moitié choisie par CA4.
+    // Le LSPC fait basculer CA4 au même instant que le front descendant de
+    // 12M où le ZMC2 prend la donnée (LOAD) : avec une vraie ROM (temps
+    // d'accès >= 100 ns), le ZMC2 prend alors la moitié de l'ANCIEN CA4
+    // (chronogrammes du LSPC de Furrtek, cœur MiSTer, simulés). On ne change
+    // donc de moitié qu'au front MONTANT de 12M, 41 ns après chaque prise de
+    // donnée : marge de +-30 ns sur le décalage entre CA4 (LSPC) et 12M (NEO-D0).
+    wire c12_s, ca4_s;
+    sync2 u_s12  (.clk(clk), .d(clk_12m), .q(c12_s));
+    sync2 u_sca4 (.clk(clk), .d(ca4), .q(ca4_s));
+    reg c12_d = 1'b0, ca4_sel = 1'b0;
+    always @(posedge clk) begin
+        c12_d <= c12_s;
+        if (c12_s & ~c12_d) ca4_sel <= ca4_s;
+    end
+    wire [31:0] cr = ca4_sel ? c_half1 : c_half0;
     zmc2_dot u_zmc2 (
         .clk_12m(clk_12m), .even(even), .load(load), .h(h), .cr(cr),
         .gad(gad), .gbd(gbd), .dota(dota), .dotb(dotb)

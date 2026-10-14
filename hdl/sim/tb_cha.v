@@ -148,6 +148,30 @@ module tb_cha;
         end
     endtask
 
+    // Chronogramme réel du LSPC : CA4 bascule au front descendant de 12M où
+    // le ZMC2 prend la donnée ; il doit prendre la moitié de l'ancien CA4.
+    task zmc2_race(input [31:0] cr_old);
+        integer n;
+        reg [3:0] ea, eb;
+        begin
+            h = 0; even = 0;
+            #10 load = 1;
+            #41.6 clk_12m = 1; #41.6 clk_12m = 0; ca4 = ~ca4;   // même instant
+            #2 load = 0;
+            for (n = 0; n < 4; n = n + 1) begin
+                #3;
+                ea = {cr_old[24+2*n], cr_old[16+2*n], cr_old[8+2*n], cr_old[2*n]};
+                eb = {cr_old[25+2*n], cr_old[17+2*n], cr_old[9+2*n], cr_old[2*n+1]};
+                if (gad !== ea || gbd !== eb) begin
+                    $display("ECHEC ZMC2 CA4 simultane, pixel %0d : GAD=%h GBD=%h attendu %h %h", 2*n, gad, gbd, ea, eb);
+                    errors = errors + 1;
+                end
+                #36.6 clk_12m = 1; #41.6 clk_12m = 0;
+            end
+            $display("ok    ZMC2 CA4 bascule avec LOAD : ancienne moitie %h", cr_old);
+        end
+    endtask
+
     real t0, zlat = 0;
     task z80_read(input [15:0] addr, output [7:0] v);
         begin
@@ -255,6 +279,8 @@ module tb_cha;
         ca4 = 1;
         zmc2_check(expected_cr(1), 0);
         zmc2_check(expected_cr(1), 1);
+        zmc2_race(expected_cr(1));            // CA4 passe à 0 au moment du LOAD
+        zmc2_check(expected_cr(0), 0);        // LOAD suivant : nouvelle moitié
 
         pbus = {8'd0, 1'b1, 3'd3, 12'h456};
         #50 pck2b = 0; #80 pck2b = 1;
