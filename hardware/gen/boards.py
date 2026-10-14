@@ -150,6 +150,23 @@ def _edge(board):
     return k.box_symbol(f"SDAES:AES_{board}", left, right, ref="J", width=30.48)
 
 
+def edge_x(board, net):
+    """Abscisse (mm, axe de la languette = 0, A1 à droite vu côté composants)
+    du contact AES d'un réseau AES_xxx : sert à ordonner les canaux des
+    tampons comme les contacts, pour un routage sans croisement."""
+    sig = net[4:] if net.startswith("AES_") else net
+    pins = [p for p, s in EDGE[board].items() if s == sig]
+    if not pins:
+        raise KeyError(f"{board} : contact {sig} inconnu")
+    return (25.5 - int(pins[0][1:])) * 2.54
+
+
+def by_edge(board, pairs, i):
+    """Trie des couples (réseau console, réseau FPGA) selon le contact AES de
+    l'élément i."""
+    return sorted(pairs, key=lambda c: edge_x(board, c[i]))
+
+
 def pin_of(sym, name):
     r = [p.number for p in sym.pins if p.name == name]
     if len(r) != 1:
@@ -370,13 +387,15 @@ def prog_board():
           [("AES_SDRMPX", "SDRMPX"), ("AES_SDROE", "SDROE_N")] + \
           [(f"AES_SDPA{i}", f"SDPA{i}") for i in (8, 9, 10, 11)] + \
           [("AES_SDPMPX", "SDPMPX"), ("AES_SDPOE", "SDPOE_N")]
+    ins = by_edge("PROG", ins, 0)
     for i in range(0, len(ins), 16):
         x16244(sh, ref, ins[i:i + 16], "XLAT_EN_N", "+3V3", "74LVC16244A")
-    x16245(sh, ref, [f"D{i}" for i in range(16)], [f"AES_D{i}" for i in range(16)], "D_DIR", "D_DIR",
-           "XLAT_EN_N")
-    x16245(sh, ref, [f"SDRAD{i}" for i in range(8)] + [f"SDPAD{i}" for i in range(8)],
-           [f"AES_SDRAD{i}" for i in range(8)] + [f"AES_SDPAD{i}" for i in range(8)],
-           "RAD_DIR", "PAD_DIR", "XLAT_EN_N")
+    dd = by_edge("PROG", [(f"D{i}", f"AES_D{i}") for i in range(16)], 1)
+    x16245(sh, ref, [a for a, _ in dd], [b for _, b in dd], "D_DIR", "D_DIR", "XLAT_EN_N")
+    # canaux 0-7 (sens RAD_DIR) et 8-15 (PAD_DIR) : tri dans chaque groupe
+    rad = by_edge("PROG", [(f"SDRAD{i}", f"AES_SDRAD{i}") for i in range(8)], 1)
+    pad = by_edge("PROG", [(f"SDPAD{i}", f"AES_SDPAD{i}") for i in range(8)], 1)
+    x16245(sh, ref, [a for a, _ in rad + pad], [b for _, b in rad + pad], "RAD_DIR", "PAD_DIR", "XLAT_EN_N")
     # sorties 5 V : attentes (74AHCT125), /OE commandé par 74LVC1G07 à drain ouvert
     sh.add(k.Part(ref("U"), X125, "74AHCT125", FP["tssop14"],
                   {1: "OE5_N", 2: "ROMWAIT_N", 3: "AES_ROMWAIT", 4: "OE5_N", 5: "PWAIT0_N", 6: "AES_PWAIT0",
@@ -444,10 +463,12 @@ def cha_board():
            ("AES_12M", "12M"), ("AES_EVEN", "EVEN"), ("AES_LOAD", "LOAD"), ("AES_H", "H")] + \
           [(f"AES_SDA{i}", f"SDA{i}") for i in range(16)] + \
           [("AES_SDMRD", "SDMRD_N"), ("AES_SDROM", "SDROM_N"), ("AES_SDRD0", "SDRD0_N")]
+    ins = by_edge("CHA", ins, 0)
     for i in range(0, len(ins), 16):
         x16244(sh, ref, ins[i:i + 16], "XLAT_EN_N", "+3V3", "74LVC16244A")
     outs = [(f"GAD{i}", f"AES_GAD{i}") for i in range(4)] + [(f"GBD{i}", f"AES_GBD{i}") for i in range(4)] + \
            [("DOTA", "AES_DOTA"), ("DOTB", "AES_DOTB")] + [(f"FIXD{i}", f"AES_FIXD{i}") for i in range(8)]
+    outs = by_edge("CHA", outs, 1)
     x16244(sh, ref, outs[:16], "OE5_N", "+5V", "74AHCT16244")
     x16244(sh, ref, outs[16:], "OE5_N", "+5V", "74AHCT16244")
     # bus de données Z80 : 74AHCT244, /OE = SDD_OE_N OU OE5_N

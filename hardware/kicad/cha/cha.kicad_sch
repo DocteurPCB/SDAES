@@ -1,7 +1,7 @@
 (kicad_sch
   (version 20230121)
   (generator eeschema)
-  (uuid 01906e86-6d11-45a9-a490-ce0e258eb52b)
+  (uuid 935eacec-16fe-43ad-aaac-db4f57d9ae4f)
   (paper A4)
   (title_block
     (title "SDAES - carte CHA (sprites, couche fixe, Z80, RP2350)")
@@ -16,7 +16,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 614a117d-ab5d-496e-a765-5716e39e4f3b)
+    (uuid 6a44296f-9412-4750-b290-f6fdf006aaa5)
     (property "Sheetname" "Connecteur et alimentations"
       (at 25.4 29.78 0)
       (effects
@@ -31,7 +31,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "2")))))
   (sheet
     (at 88.9 30.48)
@@ -42,7 +42,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid a4b87493-86ff-4594-99c4-0ac801d1fac7)
+    (uuid 25e17017-d98f-4c78-9bd5-ca1527fdc77d)
     (property "Sheetname" "Tampons de niveaux"
       (at 88.9 29.78 0)
       (effects
@@ -57,7 +57,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "3")))))
   (sheet
     (at 152.4 30.48)
@@ -68,7 +68,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 5a8341e7-5483-455a-a548-9f1471495087)
+    (uuid 064cafc8-929c-4e31-9ea0-7986b33fc8da)
     (property "Sheetname" "FPGA C"
       (at 152.4 29.78 0)
       (effects
@@ -83,7 +83,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "4")))))
   (sheet
     (at 215.9 30.48)
@@ -94,7 +94,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 999da24e-b5c6-47fa-bf3d-efdd66d35346)
+    (uuid 2cf4cddb-efe5-4e2a-8597-3b1983a8c859)
     (property "Sheetname" "SDRAM C"
       (at 215.9 29.78 0)
       (effects
@@ -109,7 +109,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "5")))))
   (sheet
     (at 25.4 68.58)
@@ -120,7 +120,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 8da3d3af-8248-4ad0-8699-24487a7b450e)
+    (uuid 240a950f-5f0f-4ede-8f36-c6f401cc165c)
     (property "Sheetname" "FPGA SM"
       (at 25.4 67.88 0)
       (effects
@@ -135,7 +135,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "6")))))
   (sheet
     (at 88.9 68.58)
@@ -146,7 +146,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid f922b055-467d-4e15-98a2-d86781d3d2a6)
+    (uuid e9c4da38-7b8b-4d49-aec9-3611d11de8d0)
     (property "Sheetname" "SRAM S + M1"
       (at 88.9 67.88 0)
       (effects
@@ -161,7 +161,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "7")))))
   (sheet
     (at 152.4 68.58)
@@ -172,7 +172,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 30bf3afb-66c0-46a5-aef2-3a4811167ce9)
+    (uuid fc24ea3e-591b-4590-b3a9-a2f0b7784405)
     (property "Sheetname" "RP2350, carte SD, câble"
       (at 152.4 67.88 0)
       (effects
@@ -187,7 +187,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/01906e86-6d11-45a9-a490-ce0e258eb52b"
+        (path "/935eacec-16fe-43ad-aaac-db4f57d9ae4f"
           (page "8")))))
   (sheet_instances
     (path "/"

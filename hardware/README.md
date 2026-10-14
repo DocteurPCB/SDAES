@@ -94,6 +94,32 @@ finition ENIG, contacts dorés chanfreinés à 45°. La carte CHA se loge
 derrière la carte PROG : hauteur des composants limitée (jwestfall69 :
 un support DIP ordinaire + EPROM est trop haut, un support bas passe).
 
+### Circuits imprimés (2 couches)
+
+```
+python3 hardware/gen/pcb.py --pins     # placement + affectation des broches FPGA
+python3 hardware/gen/fpga_pins.py      # .pcf (pins_opt.json prioritaire)
+python3 hardware/gen/boards.py --check # schémas à jour
+python3 hardware/gen/pcb.py            # placement final (répéter jusqu'à stabilité)
+python3 hardware/gen/route.py prog     # Freerouting puis DRC (idem cha)
+```
+
+* `pcb.py` : empreintes et réseaux depuis `boards.py`, contour depuis
+  `outline.py`. Ancres (circuits intégrés, connecteurs) à des positions
+  fixées : contacts en bas, tampons de niveaux en rangée au-dessus (canaux
+  dans l'ordre des contacts), FPGA au milieu, mémoires en haut ; carte CHA :
+  Pico 2 au milieu, microSD et bouton sur le bord supérieur (à rendre
+  accessibles dans la coque). Passifs placés au plus près de la broche de
+  leur circuit. Masse coulée sur les deux faces.
+* `--pins` : chaque signal d'un FPGA est affecté à la broche tournée vers
+  sa cible, en conservant l'ordre circulaire (pas de croisement à la
+  sortie du boîtier) ; horloges sur leurs entrées GBIN, broche 129 en
+  sortie seulement. Résultat dans `hardware/gen/pins_opt.json`, repris par
+  `fpga_pins.py` ; le placement-routage FPGA (`make -C hdl pnr`) doit être
+  relancé ensuite.
+* `route.py` : export Specctra, Freerouting (2.4.1, Java 25), relecture de
+  la session, remplissage des zones, DRC `kicad-cli`.
+
 **À vérifier avant le routage** : boucles audio L/R reliées par
 des résistances de 0 Ω (révision NEO-AES de la console), valeurs du filtre
 PLL (note Lattice sur l'iCE40), courant réel des régulateurs.

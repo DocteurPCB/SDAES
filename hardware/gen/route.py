@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Routage automatique des cartes PROG et CHA avec Freerouting.
+
+    python3 hardware/gen/route.py prog [--passes 60]   # DSN -> Freerouting -> SES -> .kicad_pcb
+    python3 hardware/gen/route.py prog --import x.ses  # import d'une session seulement
+
+Étapes : la carte placée (pcb.py) est exportée au format Specctra sans ses
+zones de masse, Freerouting route toutes les pistes (masse comprise), la
+session est relue ici (le module Python de KiCad 7 ne sait pas l'importer
+hors de l'interface) puis les zones sont remplies et la DRC de kicad-cli
+est lancée.
+
+Freerouting (>= 2.4, Java 25) : variables FREEROUTING_CP (classpath, par
+défaut ./freerouting/lib/*) et JAVA (par défaut java).
+"""
+import os
+import subprocess
+import sys
+
+import pcbnew
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from kicad import parse, unq   # noqa: E402
+
+KICAD = os.path.join(HERE, "..", "kicad")
+
+
+def find(x, key):
+    return [e for e in x if isinstance(e, list) and e and e[0] == key]
+
+
+def export_dsn(pcb, dsn):
+    b = pcbnew.LoadBoard(pcb)
+    for t in list(b.GetTracks()):
+        b.Remove(t)
+    for z in list(b.Zones()):
+        b.Remove(z)
+    if not pcbnew.ExportSpecctraDSN(b, dsn):
+        raise SystemExit("export DSN impossible")
+
+
+def run_freerouting(dsn, ses, passes):
+    cp = os.environ.get("FREEROUTING_CP", os.path.join(os.getcwd(), "freerouting", "lib", "*"))
+    java = os.environ.get("JAVA", "java")
+    cmd = [java, "-cp", cp, "app.freerouting.Freerouting", "--gui.enabled=false",
+           "-de", dsn, "-do", ses, "-mp", str(passes)]
+    subprocess.run(cmd, check=True)
+
+
+def import_ses(pcb, ses):
+    """Pistes et vias de la session dans la carte (les anciennes sont retirées)."""
+    s = parse(open(ses).read())
+    routes = find(s, "routes")[0]
+    res = find(routes, "resolution")[0]
+    unit = {"um": 1e-3, "mm": 1.0, "mil": 0.0254, "inch": 25.4}[res[1]]
+    k = unit / float(res[2])                  # unité de la session -> mm
+    b = pcbnew.LoadBoard(pcb)
+    for t in list(b.GetTracks()):
+        b.Remove(t)
+    vias = {}
+    for ps in find(find(routes, "library_out")[0], "padstack") if find(routes, "library_out") else []:
+        name = unq(ps[1])
+        shp = find(ps, "shape")[0][1]
+        vias[name] = float(shp[2]) * k
+    layers = {"F.Cu": pcbnew.F_Cu, "B.Cu": pcbnew.B_Cu}
+    ds = b.GetDesignSettings()
+    n_tr = n_via = 0
+
+    def pt(x, y):
+        return pcbnew.VECTOR2I(pcbnew.FromMM(float(x) * k), pcbnew.FromMM(-float(y) * k))
+
+    for net in find(find(routes, "network_out")[0], "net"):
+        ni = b.FindNet(unq(net[1]))
+        for w in find(net, "wire"):
+            path = find(w, "path")[0]
+            layer, width, xy = unq(path[1]), float(path[2]) * k, path[3:]
+            for i in range(0, len(xy) - 2, 2):
+                t = pcbnew.PCB_TRACK(b)
+                t.SetStart(pt(xy[i], xy[i + 1]))
+                t.SetEnd(pt(xy[i + 2], xy[i + 3]))
+                t.SetWidth(pcbnew.FromMM(width))
+                t.SetLayer(layers[layer])
+                t.SetNet(ni)
+                b.Add(t)
+                n_tr += 1
+        for v in find(net, "via"):
+            name = unq(v[1])
+            d = vias.get(name)
+            if d is None:                      # "Via[0-1]_600:300_um"
+                d = float(name.split("_")[1].split(":")[0]) / 1000
+            drill = float(name.split(":")[1].split("_")[0]) / 1000
+            via = pcbnew.PCB_VIA(b)
+            via.SetPosition(pt(v[2], v[3]))
+            via.SetWidth(pcbnew.FromMM(d))
+            via.SetDrill(pcbnew.FromMM(drill))
+            via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+            via.SetNet(ni)
+            b.Add(via)
+            n_via += 1
+    b.Save(pcb)
+    b = pcbnew.LoadBoard(pcb)                 # remplissage sur la carte relue
+    pcbnew.ZONE_FILLER(b).Fill(b.Zones())
+    b.Save(pcb)
+    print(f"{pcb} : {n_tr} segments, {n_via} vias")
+
+
+def drc(pcb, report):
+    subprocess.run(["kicad-cli", "pcb", "drc", "--schematic-parity", "-o", report, pcb],
+                   capture_output=True)
+    out = open(report).read()
+    for line in out.splitlines():
+        if line.startswith("**") and ("Found" in line or "violations" in line or "unconnected" in line):
+            print("  " + line.strip("* "))
+
+
+def main():
+    args = sys.argv[1:]
+    name = args[0]
+    pcb = os.path.join(KICAD, name, f"{name}.kicad_pcb")
+    work = os.environ.get("ROUTE_DIR", os.path.join(KICAD, name))
+    dsn, ses = os.path.join(work, f"{name}.dsn"), os.path.join(work, f"{name}.ses")
+    if "--import" in args:
+        ses = args[args.index("--import") + 1]
+    else:
+        passes = int(args[args.index("--passes") + 1]) if "--passes" in args else 60
+        export_dsn(pcb, dsn)
+        run_freerouting(dsn, ses, passes)
+    import_ses(pcb, ses)
+    drc(pcb, os.path.join(work, f"{name}-drc.rpt"))
+
+
+if __name__ == "__main__":
+    main()

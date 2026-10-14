@@ -53,7 +53,9 @@ def outline(width, notch):
             (r, top), (r, sh), (tr, sh), (tr, EDGE_Y)]
 
 
-def build(name, width, notch):
+def make(name):
+    """Carte nue : contour, trous, J1 placé (non enregistrée)."""
+    width, notch = BOARDS[name]
     b = pcbnew.BOARD()
     b.GetDesignSettings().SetBoardThickness(pcbnew.FromMM(1.6))
     pts = outline(width, notch)
@@ -77,6 +79,11 @@ def build(name, width, notch):
     fp.SetValue(f"AES_{name.upper()}")
     fp.SetPosition(mm(CX, EDGE_Y - PAD_FROM_EDGE))
     b.Add(fp)
+    return b
+
+
+def build(name, width, notch):
+    b = make(name)
     out = os.path.join(KICAD, name, f"{name}.kicad_pcb")
     b.Save(out)
     print(f"{out} : {width:g} x {BODY_H + TAB_H:g} mm")

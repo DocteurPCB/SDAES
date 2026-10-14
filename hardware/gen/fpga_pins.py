@@ -19,6 +19,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import gen_pcf  # noqa: E402  (ports des tops, contacts AES)
+import json  # noqa: E402
+
+# Affectation optimisée d'après le placement du circuit imprimé
+# (hardware/gen/pcb.py --pins) ; prioritaire sur la règle des bancs.
+PINS_OPT = os.path.join(HERE, "pins_opt.json")
 
 # broches d'E/S par banc, dans l'ordre du boîtier (sens trigonométrique)
 BANK = {
@@ -93,6 +98,11 @@ def assign(name):
     for sig, g in cfg["gbin"].items():
         pin[sig] = GBIN[g]
         used.add(GBIN[g])
+    if os.path.exists(PINS_OPT) and not getattr(assign, "raw", False):
+        for sig, p in json.load(open(PINS_OPT)).get(name, {}).items():
+            if sig in dirs and p not in used:
+                pin[sig] = p
+                used.add(p)
 
     def pour(signals, banks):
         free = [p for b in banks for p in BANK[b] if p not in used]

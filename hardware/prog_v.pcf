@@ -3,82 +3,82 @@
 # « AES ... » = contact du connecteur de cartouche relié à ce port à
 # travers un tampon de niveaux (hardware/aes_connector.csv).
 set_io CLK25 93    # input, banc 1, GBIN3
-set_io SDRAD[0] 1    # inout, banc 3, AES PROG dessous 32
-set_io SDRAD[1] 2    # inout, banc 3, AES PROG dessous 33
-set_io SDRAD[2] 3    # inout, banc 3, AES PROG dessous 34
-set_io SDRAD[3] 4    # inout, banc 3, AES PROG dessous 35
-set_io SDRAD[4] 7    # inout, banc 3, AES PROG dessous 36
-set_io SDRAD[5] 8    # inout, banc 3, AES PROG dessous 37
-set_io SDRAD[6] 9    # inout, banc 3, AES PROG dessous 38
-set_io SDRAD[7] 10    # inout, banc 3, AES PROG dessous 39
-set_io SDRA_L[8] 11    # input, banc 3, AES PROG dessous 40
-set_io SDRA_L[9] 12    # input, banc 3, AES PROG dessous 41
-set_io SDRA_U[20] 15    # input, banc 3, AES PROG dessous 42
-set_io SDRA_U[21] 16    # input, banc 3, AES PROG dessous 43
-set_io SDRA_U[22] 17    # input, banc 3, AES PROG dessous 44
-set_io SDRA_U[23] 18    # input, banc 3, AES PROG dessous 45
+set_io SDRAD[0] 63    # inout, banc 2, AES PROG dessous 32
+set_io SDRAD[1] 62    # inout, banc 2, AES PROG dessous 33
+set_io SDRAD[2] 61    # inout, banc 2, AES PROG dessous 34
+set_io SDRAD[3] 60    # inout, banc 2, AES PROG dessous 35
+set_io SDRAD[4] 56    # inout, banc 2, AES PROG dessous 36
+set_io SDRAD[5] 55    # inout, banc 2, AES PROG dessous 37
+set_io SDRAD[6] 52    # inout, banc 2, GBIN4, AES PROG dessous 38
+set_io SDRAD[7] 49    # inout, banc 2, GBIN5, AES PROG dessous 39
+set_io SDRA_L[8] 32    # input, banc 3, AES PROG dessous 40
+set_io SDRA_L[9] 33    # input, banc 3, AES PROG dessous 41
+set_io SDRA_U[20] 37    # input, banc 2, AES PROG dessous 42
+set_io SDRA_U[21] 39    # input, banc 2, AES PROG dessous 43
+set_io SDRA_U[22] 42    # input, banc 2, AES PROG dessous 44
+set_io SDRA_U[23] 44    # input, banc 2, AES PROG dessous 45
 set_io SDRMPX 20    # input, banc 3, GBIN7, AES PROG dessous 46
-set_io SDROE_N 19    # input, banc 3, AES PROG dessous 47
-set_io SDPAD[0] 23    # inout, banc 3, AES PROG dessus 34
-set_io SDPAD[1] 24    # inout, banc 3, AES PROG dessus 35
-set_io SDPAD[2] 25    # inout, banc 3, AES PROG dessus 36
-set_io SDPAD[3] 26    # inout, banc 3, AES PROG dessus 37
-set_io SDPAD[4] 28    # inout, banc 3, AES PROG dessus 38
-set_io SDPAD[5] 29    # inout, banc 3, AES PROG dessus 39
-set_io SDPAD[6] 31    # inout, banc 3, AES PROG dessus 40
-set_io SDPAD[7] 32    # inout, banc 3, AES PROG dessus 41
-set_io SDPA[8] 33    # input, banc 3, AES PROG dessus 42
-set_io SDPA[9] 34    # input, banc 3, AES PROG dessus 43
-set_io SDPA[10] 37    # input, banc 2, AES PROG dessus 44
-set_io SDPA[11] 38    # input, banc 2, AES PROG dessus 45
+set_io SDROE_N 47    # input, banc 2, AES PROG dessous 47
+set_io SDPAD[0] 81    # inout, banc 1, AES PROG dessus 34
+set_io SDPAD[1] 80    # inout, banc 1, AES PROG dessus 35
+set_io SDPAD[2] 79    # inout, banc 1, AES PROG dessus 36
+set_io SDPAD[3] 78    # inout, banc 1, AES PROG dessus 37
+set_io SDPAD[4] 75    # inout, banc 1, AES PROG dessus 38
+set_io SDPAD[5] 74    # inout, banc 1, AES PROG dessus 39
+set_io SDPAD[6] 73    # inout, banc 1, AES PROG dessus 40
+set_io SDPAD[7] 64    # inout, banc 2, AES PROG dessus 41
+set_io SDPA[8] 34    # input, banc 3, AES PROG dessus 42
+set_io SDPA[9] 38    # input, banc 2, AES PROG dessus 43
+set_io SDPA[10] 41    # input, banc 2, AES PROG dessus 44
+set_io SDPA[11] 43    # input, banc 2, AES PROG dessus 45
 set_io SDPMPX 21    # input, banc 3, GBIN6, AES PROG dessus 46
-set_io SDPOE_N 39    # input, banc 2, AES PROG dessus 47
-set_io RAD_DIR 22    # output, banc 3
-set_io PAD_DIR 41    # output, banc 2
-set_io LK_SCK 87    # input, banc 1
-set_io LK_CS_N 88    # input, banc 1
-set_io LK_IO[0] 90    # inout, banc 1
-set_io LK_IO[1] 91    # inout, banc 1
-set_io LK_IO[2] 94    # inout, banc 1, GBIN2
+set_io SDPOE_N 45    # input, banc 2, AES PROG dessus 47
+set_io RAD_DIR 48    # output, banc 2
+set_io PAD_DIR 76    # output, banc 1
+set_io LK_SCK 99    # input, banc 1
+set_io LK_CS_N 101    # input, banc 1
+set_io LK_IO[0] 98    # inout, banc 1
+set_io LK_IO[1] 97    # inout, banc 1
+set_io LK_IO[2] 96    # inout, banc 1
 set_io LK_IO[3] 95    # inout, banc 1
-set_io MODE 96    # input, banc 1
-set_io SD_CLK 85    # output, banc 1
-set_io SD_CKE 84    # output, banc 1
-set_io SD_CS_N 138    # output, banc 0
-set_io SD_RAS_N 137    # output, banc 0
-set_io SD_CAS_N 136    # output, banc 0
-set_io SD_WE_N 135    # output, banc 0
-set_io SD_BA[0] 139    # output, banc 0
-set_io SD_BA[1] 141    # output, banc 0
-set_io SD_A[0] 142    # output, banc 0
-set_io SD_A[1] 143    # output, banc 0
-set_io SD_A[2] 144    # output, banc 0
-set_io SD_A[3] 73    # output, banc 1
-set_io SD_A[4] 74    # output, banc 1
-set_io SD_A[5] 75    # output, banc 1
-set_io SD_A[6] 76    # output, banc 1
-set_io SD_A[7] 78    # output, banc 1
-set_io SD_A[8] 79    # output, banc 1
-set_io SD_A[9] 80    # output, banc 1
-set_io SD_A[10] 81    # output, banc 1
-set_io SD_A[11] 82    # output, banc 1
-set_io SD_A[12] 83    # output, banc 1
-set_io SD_DQM[0] 129    # output, banc 0, GBIN0
-set_io SD_DQM[1] 134    # output, banc 0
-set_io SD_DQ[0] 110    # inout, banc 0
-set_io SD_DQ[1] 112    # inout, banc 0
-set_io SD_DQ[2] 113    # inout, banc 0
-set_io SD_DQ[3] 114    # inout, banc 0
-set_io SD_DQ[4] 115    # inout, banc 0
-set_io SD_DQ[5] 116    # inout, banc 0
-set_io SD_DQ[6] 117    # inout, banc 0
-set_io SD_DQ[7] 118    # inout, banc 0
-set_io SD_DQ[8] 119    # inout, banc 0
-set_io SD_DQ[9] 120    # inout, banc 0
-set_io SD_DQ[10] 121    # inout, banc 0
-set_io SD_DQ[11] 122    # inout, banc 0
-set_io SD_DQ[12] 124    # inout, banc 0
-set_io SD_DQ[13] 125    # inout, banc 0
-set_io SD_DQ[14] 128    # inout, banc 0, GBIN1
-set_io SD_DQ[15] 130    # inout, banc 0
-set_io LED 97    # output, banc 1
+set_io MODE 94    # input, banc 1, GBIN2
+set_io SD_CLK 102    # output, banc 1
+set_io SD_CKE 115    # output, banc 0
+set_io SD_CS_N 1    # output, banc 3
+set_io SD_RAS_N 144    # output, banc 0
+set_io SD_CAS_N 143    # output, banc 0
+set_io SD_WE_N 142    # output, banc 0
+set_io SD_BA[0] 2    # output, banc 3
+set_io SD_BA[1] 3    # output, banc 3
+set_io SD_A[0] 7    # output, banc 3
+set_io SD_A[1] 8    # output, banc 3
+set_io SD_A[2] 9    # output, banc 3
+set_io SD_A[3] 10    # output, banc 3
+set_io SD_A[4] 104    # output, banc 1
+set_io SD_A[5] 105    # output, banc 1
+set_io SD_A[6] 106    # output, banc 1
+set_io SD_A[7] 107    # output, banc 1
+set_io SD_A[8] 110    # output, banc 0
+set_io SD_A[9] 112    # output, banc 0
+set_io SD_A[10] 4    # output, banc 3
+set_io SD_A[11] 113    # output, banc 0
+set_io SD_A[12] 114    # output, banc 0
+set_io SD_DQM[0] 141    # output, banc 0
+set_io SD_DQM[1] 116    # output, banc 0
+set_io SD_DQ[0] 128    # inout, banc 0, GBIN1
+set_io SD_DQ[1] 130    # inout, banc 0
+set_io SD_DQ[2] 134    # inout, banc 0
+set_io SD_DQ[3] 135    # inout, banc 0
+set_io SD_DQ[4] 136    # inout, banc 0
+set_io SD_DQ[5] 137    # inout, banc 0
+set_io SD_DQ[6] 138    # inout, banc 0
+set_io SD_DQ[7] 139    # inout, banc 0
+set_io SD_DQ[8] 117    # inout, banc 0
+set_io SD_DQ[9] 118    # inout, banc 0
+set_io SD_DQ[10] 119    # inout, banc 0
+set_io SD_DQ[11] 120    # inout, banc 0
+set_io SD_DQ[12] 121    # inout, banc 0
+set_io SD_DQ[13] 122    # inout, banc 0
+set_io SD_DQ[14] 124    # inout, banc 0
+set_io SD_DQ[15] 125    # inout, banc 0
+set_io LED 84    # output, banc 1
