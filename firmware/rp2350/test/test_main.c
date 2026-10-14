@@ -156,6 +156,12 @@ int main(void)
     for (int i = 0; i < 8192; i++) if (mem[LINK_P][SP_P_SDRAM][0x18FE000 + i]) zero = 0;
     expect(zero, "PVC : RAM de protection remise a zero");
 
+    /* PRO-CT0 reconnu par son NGH */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("fatfury2")) == ST_OK, "PRO-CT0 interne");
+    expect(regs[LINK_P][0x0A] == 3, "PRO-CT0 : mode");
+    expect((regs[LINK_P][REG_CTRL] & CTRL_BANK_EN) == 0, "PRO-CT0 : banque standard desactivee");
+
     printf("RESULTAT firmware : %s\n", failures ? "ECHEC" : "SUCCES");
     return failures ? 1 : 0;
 }

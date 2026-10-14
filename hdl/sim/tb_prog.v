@@ -373,6 +373,29 @@ module tb_prog;
         m68k_read(24'h2FE100, w); check("PVC RAM reecrite", w, 16'hBEEF);
         lk_reg_wr(8'h01, 32'h0);
 
+        // ---- PRO-CT0 (Fatal Fury 2) : valeurs attendues calculées avec un modèle
+        //      transcrit de MAME (prot_fatfury2.cpp + alpha_8921.cpp)
+        $display("--- PRO-CT0");
+        lk_reg_wr(8'h0A, 32'h3);
+        lk_reg_wr(8'h01, 32'h1);
+        m68k_write(24'h2FFFE2, 16'h5A5A);
+        check("mode jeu PRO-CT0", mode, 1);
+        m68k_write(24'h2A5C32, 16'h1234);
+        m68k_read(24'h200000, w); check("PRO-CT0 chargement, EVEN=0 H=0", w, 16'h00C3);
+        m68k_read(24'h200004, w); check("PRO-CT0 chargement, EVEN=1 H=0", w, 16'h003C);
+        m68k_read(24'h200008, w); check("PRO-CT0 chargement, EVEN=0 H=1", w, 16'h0003);
+        m68k_read(24'h20000C, w); check("PRO-CT0 chargement, EVEN=1 H=1", w, 16'h0030);
+        m68k_write(24'h200000, 16'h0000);
+        m68k_read(24'h200000, w); check("PRO-CT0 decalage a droite", w, 16'h0069);
+        m68k_write(24'h200008, 16'h0000);
+        m68k_write(24'h200008, 16'h0000);
+        m68k_read(24'h200008, w); check("PRO-CT0 decalage a gauche, H=1", w, 16'h0061);
+        m68k_read(24'h20000C, w); check("PRO-CT0 decalage a gauche, EVEN=1", w, 16'h0016);
+        m68k_write(24'h2FFFF2, 16'hBEEF);
+        m68k_read(24'h200000, w); check("PRO-CT0 rechargement", w, 16'h00B7);
+        m68k_read(24'h200004, w); check("PRO-CT0 rechargement, EVEN=1", w, 16'h007B);
+        lk_reg_wr(8'h01, 32'h0);
+
         errors = errors + u_p.errors + u_v.errors;
         if (errors == 0) $display("RESULTAT tb_prog : SUCCES");
         else             $display("RESULTAT tb_prog : %0d ERREUR(S)", errors);

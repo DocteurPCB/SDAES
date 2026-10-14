@@ -15,6 +15,12 @@
 //                 - écriture en 0x2FFFE8-0x2FFFEB : compactage d'une couleur
 //                 - écriture en 0x2FFFF0-0x2FFFF3 : banque P2 à un décalage
 //                   quelconque
+//   mode 3  PRO-CT0 : (Fatal Fury 2, Super Sidekicks) le sérialiseur de
+//                 pixels du ZMC2 (ALPHA-8921) câblé sur le bus 68000, comme
+//                 dans MAME (prot_fatfury2.cpp) : une écriture en zone
+//                 0x2xxxxx = un front d'horloge, avec LOAD = A1, EVEN = A2,
+//                 H = A3 et le mot C = {A19..A4, D15..D0} permutés ; une
+//                 lecture renvoie GAD/GBD sur D7..D0 (EVEN = A2, H = A3).
 //   superposition (KOF 98) : une écriture d'un code à une adresse donnée
 //                 remplace deux mots de la zone P1 par d'autres valeurs.
 //
@@ -56,7 +62,7 @@ module p_mapper (
     output reg  [15:0] gw_data,
     output reg  [1:0]  gw_mask
 );
-    localparam M_STD = 2'd0, M_SMA = 2'd1, M_PVC = 2'd2;
+    localparam M_STD = 2'd0, M_SMA = 2'd1, M_PVC = 2'd2, M_CT0 = 2'd3;
 
     reg [1:0]  mode = M_STD;
     assign pvc_mode = (mode == M_PVC);
@@ -142,11 +148,34 @@ module p_mapper (
     // ---- superposition ----
     reg         ovl_active = 1'b0;
 
+    // ---- PRO-CT0 : registre à décalage du sérialiseur (cf. cha/zmc2_dot.v) ----
+    reg  [31:0] ct0_sr = 32'h0;
+    // permutation des broches C (MAME : bitswap<16>(x, 15,11,14,10,13,9,12,8,7,3,6,2,5,1,4,0))
+    function [15:0] ct0_sw(input [15:0] x);
+        ct0_sw = {x[15], x[11], x[14], x[10], x[13], x[9], x[12], x[8],
+                  x[7],  x[3],  x[6],  x[2],  x[5],  x[1], x[4],  x[0]};
+    endfunction
+    // GAD/GBD selon EVEN et H, puis D7..D0 = {GBD1,GBD0,GBD3,GBD2,GAD1,GAD0,GAD3,GAD2}
+    function [7:0] ct0_out(input [31:0] sr, input even, input h);
+        reg [3:0] ga, gb;
+        begin
+            case ({even, h})
+            2'b11:   {gb, ga} = {sr[31], sr[23], sr[15], sr[7], sr[30], sr[22], sr[14], sr[6]};
+            2'b10:   {gb, ga} = {sr[24], sr[16], sr[8],  sr[0], sr[25], sr[17], sr[9],  sr[1]};
+            2'b01:   {gb, ga} = {sr[30], sr[22], sr[14], sr[6], sr[31], sr[23], sr[15], sr[7]};
+            default: {gb, ga} = {sr[25], sr[17], sr[9],  sr[1], sr[24], sr[16], sr[8],  sr[0]};
+            endcase
+            ct0_out = {gb[1:0], gb[3:2], ga[1:0], ga[3:2]};
+        end
+    endfunction
+
     // ---- décodage registré de l'adresse courante ----
     wire        in_pvc_region = (a[18:12] == 7'h7F);           // 0x2FE000-0x2FFFFF
     wire        in_pvc_regs   = in_pvc_region && (a[11:4] == 8'hFF) && (a[3:0] <= 4'd9);
     reg  f_prot = 1'b0, f_rng0 = 1'b0, f_rng1 = 1'b0, f_pvcr = 1'b0, f_pvcram = 1'b0;
     reg  f_ovl0 = 1'b0, f_ovl1 = 1'b0, f_bank = 1'b0, f_trig = 1'b0, f_std = 1'b0;
+    reg  f_ct0 = 1'b0;
+    reg  [1:0] ct0_eh = 2'b00;    // {EVEN, H} = {A2, A3} de la lecture
     always @(posedge clk) begin
         f_prot   <= mode == M_SMA && prot_en && a == prot_addr;
         f_rng0   <= mode == M_SMA && rng_en0 && a == rng_addr0;
@@ -158,14 +187,17 @@ module p_mapper (
         f_bank   <= mode == M_SMA && a == sma_bank_addr;
         f_trig   <= ovl_en && a == ovl_trig;
         f_std    <= mode == M_STD && a[18:3] == 16'hFFFF;    // 0x2FFFF0-0x2FFFFF
+        f_ct0    <= mode == M_CT0;
+        ct0_eh   <= {a[1], a[2]};
     end
 
     always @(posedge clk) begin
-        sp_port_hit <= f_prot || f_rng0 || f_rng1 || f_pvcr;
+        sp_port_hit <= f_prot || f_rng0 || f_rng1 || f_pvcr || f_ct0;
         sp_rom_hit  <= ovl_active && (f_ovl0 || f_ovl1);
         if (f_pvcr)                  sp_data <= sh[a[3:0]];
         else if (f_prot)             sp_data <= prot_val;
         else if (f_rng0 || f_rng1)   sp_data <= rng;
+        else if (f_ct0)              sp_data <= {8'h00, ct0_out(ct0_sr, ct0_eh[1], ct0_eh[0])};
         else if (f_ovl0)             sp_data <= ovl_v0;
         else                         sp_data <= ovl_v1;
     end
@@ -194,6 +226,7 @@ module p_mapper (
             pvc_op     <= 1'b0;
             pvc_wr     <= 1'b0;
             for (k = 0; k < 10; k = k + 1) sh[k] <= 16'h0000;
+            ct0_sr     <= 32'h0;
         end else begin
             // lecture du générateur : avance d'un pas
             if (port_rd_ev && (f_rng0 || f_rng1)) rng <= {rng[14:0], rng_fb};
@@ -208,6 +241,14 @@ module p_mapper (
                 if (f_bank) begin
                     tbl_ridx <= sma_idx(d, sma_perm);
                     sma_pend <= 2'd2;
+                end
+                if (f_ct0) begin
+                    if (a[0])            // LOAD = A1
+                        ct0_sr <= {ct0_sw(a[18:3]), ct0_sw(d)};
+                    else if (a[2])       // H = A3 : deux pixels vers la gauche
+                        ct0_sr <= {ct0_sr[29:24], 2'b00, ct0_sr[21:16], 2'b00, ct0_sr[13:8], 2'b00, ct0_sr[5:0], 2'b00};
+                    else
+                        ct0_sr <= {2'b00, ct0_sr[31:26], 2'b00, ct0_sr[23:18], 2'b00, ct0_sr[15:10], 2'b00, ct0_sr[7:2]};
                 end
                 if (f_trig) begin
                     if (d == ovl_on)  ovl_active <= 1'b1;

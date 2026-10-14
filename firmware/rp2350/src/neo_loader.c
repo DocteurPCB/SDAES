@@ -261,7 +261,7 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     qlink_reg_write(LINK_P,  REG_CTRL, CTRL_ARM |
                     (m.mode == MAP_STD && h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
 
-    static const char *const kind[] = { "", " (SMA)", " (PVC)" };
+    static const char *const kind[] = { "", " (SMA)", " (PVC)", " (PRO-CT0)" };
     snprintf(msg, msglen, "%.40s%s", h->name[0] ? h->name : "JEU", kind[m.mode]);
     return ST_OK;
 }

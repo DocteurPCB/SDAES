@@ -5,7 +5,8 @@
  *   1. fichier <jeu>.map à côté de <jeu>.neo
  *   2. section du fichier 0:/SDAES/MAPPERS.TXT dont le nom est celui du
  *      fichier (sans .neo) ou dont "ngh" correspond à l'en-tête du .neo
- *   3. table interne (PVC : Metal Slug 5, SVC Chaos, KOF 2003)
+ *   3. table interne (PVC : Metal Slug 5, SVC Chaos, KOF 2003 ;
+ *      PRO-CT0 : Fatal Fury 2, Super Sidekicks)
  *   4. sinon : schéma de banque standard
  */
 #ifndef SDAES_MAPPER_H
@@ -14,7 +15,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef enum { MAP_STD = 0, MAP_SMA = 1, MAP_PVC = 2 } map_mode_t;
+typedef enum { MAP_STD = 0, MAP_SMA = 1, MAP_PVC = 2, MAP_CT0 = 3 } map_mode_t;
 
 typedef struct {
     char       name[32];

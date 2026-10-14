@@ -18,7 +18,8 @@ D'autres agissent pendant le jeu (puce sur la cartouche qui répond au
 | **Superposition KOF 98** : un code écrit en 0x20AAAA remplace deux mots en 0x000100 | KOF 98 | ✅ intégré, paramètres dans un fichier `.map` |
 | **Banques de couche fixe**, type 2 (ROM S de 512 Ko, CMC50) | KOF 2000, SVC Chaos, KOF 2003 (Matrimelee) | ✅ intégré (FPGA SM), reconnu par le NGH |
 | **Banques de couche fixe**, type 1 (CMC42/50) | Metal Slug 3, Metal Slug 4 ; Garou | ✅ banque constante ; ⚠️ **approché** pour Garou (voir plus bas) |
-| PRO-CT0 (Fatal Fury 2, Super Sidekicks), protection de Metal Slug X | — | ❌ non traité |
+| **PRO-CT0** : le sérialiseur de pixels du ZMC2 câblé sur le bus 68000 | Fatal Fury 2, Super Sidekicks | ✅ intégré (mode 3), reconnu par le NGH (047, 052) |
+| Metal Slug X (puce Altera sur la carte PROG) | Metal Slug X | ❌ non traité (voir plus bas) |
 
 
 ## Fichiers de description (`.map` et `MAPPERS.TXT`)
@@ -28,7 +29,7 @@ Le firmware cherche la description d'un jeu dans cet ordre :
 1. `<jeu>.map` dans le même dossier que `<jeu>.neo` ;
 2. une section de `SDAES/MAPPERS.TXT` dont le nom est celui du fichier
    (sans `.neo`), ou dont `ngh` correspond à l'en-tête du `.neo` ;
-3. la table interne (PVC) ;
+3. la table interne (PVC, PRO-CT0) ;
 4. sinon le schéma de banques standard.
 
 Un jeu SMA connu (NGH 0x251, 0x253, 0x256, 0x257) sans description est
@@ -40,7 +41,7 @@ Syntaxe (`#` ou `;` commencent un commentaire, nombres en hexadécimal
 ```
 [kof99]                       ; pas de section dans un fichier .map
 ngh        = 0x251            ; numéro de jeu (en-tête du .neo)
-mapper     = sma              ; std | sma | pvc
+mapper     = sma              ; std | sma | pvc | ct0
 bank_addr  = 0x2ffff0         ; adresse 68000 du registre de banque
 bank_bits  = 14 6 8 10 12 5   ; bit de la donnée qui devient le bit 0, 1, ... 5 du numéro
 bank_table = 0x000000 0x100000 0x200000 ...   ; jusqu'à 64 décalages (octets),
@@ -171,3 +172,35 @@ vérifier le repérage sur console.
 **À valider sur matériel** : le repérage par changement de P[14:12] repose
 sur le LSPC du cœur MiSTer ; la simulation (`hdl/sim/tb_cha.v`) rejoue cette
 séquence.
+
+## PRO-CT0 (Fatal Fury 2, Super Sidekicks)
+
+Le PRO-CT0 (alias ALPHA-8921, SNK-9201) est le sérialiseur de pixels de
+sprites des premières cartes CHA, ancêtre de la partie « sérialiseur » du
+NEO-ZMC2. Sur Fatal Fury 2 et le premier Super Sidekicks, SNK en a placé
+un sur la carte PROG, câblé sur le bus 68000, comme protection : le jeu y
+charge des valeurs et vérifie les « pixels » relus. D'après MAME
+(`prot_fatfury2.cpp`, `alpha_8921.cpp`) :
+
+* chaque écriture en zone 0x200000-0x2FFFFF est un front d'horloge du
+  sérialiseur, avec LOAD = A1, EVEN = A2, H = A3 ; le mot C de 32 bits est
+  formé de A19..A4 (moitié haute) et D15..D0 (moitié basse), chaque moitié
+  permutée (C1 = D4, C2 = D1...) ;
+* une lecture dans la même zone renvoie GAD/GBD sur D7..D0
+  (D0-D7 = GAD2, GAD3, GAD0, GAD1, GBD2, GBD3, GBD0, GBD1), avec EVEN = A2
+  et H = A3 de l'adresse lue ;
+* ces jeux n'ont pas de zone P2 (P de 1 Mo au plus) : toute la zone
+  0x2xxxxx est la protection.
+
+Le FPGA P reprend la logique de `hdl/cha/zmc2_dot.v` (décalages et sorties
+identiques au modèle de MAME) ; le banc de test compare ses lectures à un
+modèle transcrit de MAME.
+
+## Metal Slug X
+
+La carte PROGEOP de Metal Slug X porte une puce Altera reliée à la ROM P1.
+Le modèle de MAME (`prot_mslugx.cpp`) lit la ROM P et une variable de la RAM
+de travail du 68000 (0x10F00A), avec un commentaire « How should this be
+calculated? » : le comportement réel n'est pas connu. La carte PROG voit le
+bus 68000 (A1-A19, D0-D15, /AS, R/W), mais pas A20-A23 : imiter cette
+lecture de RAM serait fragile. Pas de prise en charge pour l'instant.

@@ -51,6 +51,16 @@ bool mapper_builtin(uint32_t ngh, mapper_t *out)
             return true;
         }
     }
+    /* PRO-CT0 (sérialiseur du ZMC2 sur le bus 68000) : aucun paramètre */
+    static const uint32_t ct0[] = { 0x047, 0x052, 47, 52 };   /* Fatal Fury 2, Super Sidekicks */
+    for (unsigned i = 0; i < sizeof(ct0) / sizeof(ct0[0]); i++) {
+        if (ngh == ct0[i]) {
+            mapper_default(out);
+            out->mode = MAP_CT0;
+            snprintf(out->name, sizeof(out->name), "pro-ct0-%03x", (unsigned)ngh);
+            return true;
+        }
+    }
     return false;
 }
 
@@ -103,6 +113,7 @@ static bool apply_key(sect_t *st, const char *key, const char *val, char *err, i
         if      (!strncmp(val, "sma", 3)) m->mode = MAP_SMA;
         else if (!strncmp(val, "pvc", 3)) m->mode = MAP_PVC;
         else if (!strncmp(val, "std", 3)) m->mode = MAP_STD;
+        else if (!strncmp(val, "ct0", 3)) m->mode = MAP_CT0;
         else goto bad;
     } else if (ieq(key, "bank_addr")) {
         if (parse_nums(val, v, 1) != 1) goto bad;

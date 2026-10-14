@@ -58,6 +58,7 @@ class FirmwareHostTest(unittest.TestCase):
             small_neo("garou", 0x253)
             small_neo("roi98", 0x242)
             small_neo("mslug5", 0x268)
+            small_neo("fatfury2", 0x047)
             with open(os.path.join(sd, "Jeux", "kof99b.map"), "w") as f:
                 f.write("# description de test\n"
                         "mapper = sma\n"
@@ -80,7 +81,8 @@ class FirmwareHostTest(unittest.TestCase):
             exe = os.path.join(d, "fwtest")
             src = os.path.join(FW, "src")
             tst = os.path.join(FW, "test")
-            subprocess.run(["gcc", "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-O1",
+            subprocess.run(["gcc", "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-O1", "-g",
+                            "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                             "-I", tst, "-I", src, "-o", exe,
                             os.path.join(tst, "test_main.c"), os.path.join(tst, "fakes.c"),
                             os.path.join(src, "browser.c"), os.path.join(src, "neo_loader.c"),

@@ -309,7 +309,7 @@ def cmd_bramhex16(args):
 # Protections (format .map / MAPPERS.TXT, cf. firmware/rp2350/src/mapper.c)
 # ---------------------------------------------------------------------------
 PORT_BASE = 0x200000
-MAP_MODES = {"std": 0, "sma": 1, "pvc": 2}
+MAP_MODES = {"std": 0, "sma": 1, "pvc": 2, "ct0": 3}
 
 
 def _nums(text):
