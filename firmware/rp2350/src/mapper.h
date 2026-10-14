@@ -38,7 +38,11 @@ typedef struct {
     /* banques de couche fixe NEO-CMC (FPGA SM) : 0 aucune, 1 type Garou,
      * 2 type KOF 2000 ; FIX_BANK_AUTO = selon le NGH (mapper_fix_bank) */
     uint8_t    fix_bank;
+    /* correctif appliqué à P au chargement */
+    uint8_t    patch;          /* PATCH_NONE, PATCH_MSLUGX */
 } mapper_t;
+
+enum { PATCH_NONE = 0, PATCH_MSLUGX = 1 };
 
 #define FIX_BANK_AUTO 0xFF
 

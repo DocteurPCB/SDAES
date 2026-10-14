@@ -59,6 +59,16 @@ class FirmwareHostTest(unittest.TestCase):
             small_neo("roi98", 0x242)
             small_neo("mslug5", 0x268)
             small_neo("fatfury2", 0x047)
+            # Metal Slug X : P1 avec deux séquences andi.w #1,D3 ; bne, dont une
+            # à cheval sur deux blocs de 32 Ko (ordre petit-boutiste du .neo)
+            msx = bytearray(0x10000)
+            for a in (0x1000, 0x7FFC):
+                msx[a:a + 8] = bytes([0x43, 0x02, 0x01, 0x00, 0x00, 0x66, 0x34, 0x12])
+            with open(os.path.join(d, "p_msx"), "wb") as f:
+                f.write(msx)
+            self.assertEqual(neotool.main(["build", "-o", os.path.join(sd, "Jeux", "mslugx.neo"),
+                                           "--p", os.path.join(d, "p_msx"),
+                                           "--name", "MSLUGX", "--ngh", "0x250"]), 0)
             with open(os.path.join(sd, "Jeux", "kof99b.map"), "w") as f:
                 f.write("# description de test\n"
                         "mapper = sma\n"

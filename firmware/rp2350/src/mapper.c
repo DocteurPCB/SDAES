@@ -51,6 +51,16 @@ bool mapper_builtin(uint32_t ngh, mapper_t *out)
             return true;
         }
     }
+    /* Metal Slug X : banques standard + correctif de P1 (neo_loader.c) */
+    static const uint32_t msx[] = { 0x250, 250, 0x2500, 2500 };
+    for (unsigned i = 0; i < sizeof(msx) / sizeof(msx[0]); i++) {
+        if (ngh == msx[i]) {
+            mapper_default(out);
+            out->patch = PATCH_MSLUGX;
+            snprintf(out->name, sizeof(out->name), "mslugx");
+            return true;
+        }
+    }
     /* PRO-CT0 (sérialiseur du ZMC2 sur le bus 68000) : aucun paramètre */
     static const uint32_t ct0[] = { 0x047, 0x052, 47, 52 };   /* Fatal Fury 2, Super Sidekicks */
     for (unsigned i = 0; i < sizeof(ct0) / sizeof(ct0[0]); i++) {
@@ -144,6 +154,11 @@ static bool apply_key(sect_t *st, const char *key, const char *val, char *err, i
         /* banques de couche fixe NEO-CMC : 0, 1 (Garou) ou 2 (KOF 2000) */
         if (parse_nums(val, v, 1) != 1 || v[0] > 2) goto bad;
         m->fix_bank = (uint8_t)v[0];
+    } else if (ieq(key, "patch")) {
+        while (*val == ' ' || *val == '\t') val++;
+        if      (!strncmp(val, "mslugx", 6)) m->patch = PATCH_MSLUGX;
+        else if (!strncmp(val, "none", 4))   m->patch = PATCH_NONE;
+        else goto bad;
     } else if (ieq(key, "wait")) {
         /* cycles d'attente : zone ROM (0-1), zone PORT (0-2) */
         if (parse_nums(val, v, 2) != 2 || v[0] > 1 || v[1] > 2) goto bad;

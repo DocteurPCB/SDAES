@@ -19,7 +19,7 @@ D'autres agissent pendant le jeu (puce sur la cartouche qui répond au
 | **Banques de couche fixe**, type 2 (ROM S de 512 Ko, CMC50) | KOF 2000, SVC Chaos, KOF 2003 (Matrimelee) | ✅ intégré (FPGA SM), reconnu par le NGH |
 | **Banques de couche fixe**, type 1 (CMC42/50) | Metal Slug 3, Metal Slug 4 ; Garou | ✅ banque constante ; ⚠️ **approché** pour Garou (voir plus bas) |
 | **PRO-CT0** : le sérialiseur de pixels du ZMC2 câblé sur le bus 68000 | Fatal Fury 2, Super Sidekicks | ✅ intégré (mode 3), reconnu par le NGH (047, 052) |
-| Metal Slug X (puce Altera sur la carte PROG) | Metal Slug X | ❌ non traité (voir plus bas) |
+| Metal Slug X (puce Altera sur la carte PROG) | Metal Slug X | ✅ contrôles neutralisés dans P1 au chargement, reconnu par le NGH (250) |
 
 
 ## Fichiers de description (`.map` et `MAPPERS.TXT`)
@@ -29,7 +29,7 @@ Le firmware cherche la description d'un jeu dans cet ordre :
 1. `<jeu>.map` dans le même dossier que `<jeu>.neo` ;
 2. une section de `SDAES/MAPPERS.TXT` dont le nom est celui du fichier
    (sans `.neo`), ou dont `ngh` correspond à l'en-tête du `.neo` ;
-3. la table interne (PVC, PRO-CT0) ;
+3. la table interne (PVC, PRO-CT0, Metal Slug X) ;
 4. sinon le schéma de banques standard.
 
 Un jeu SMA connu (NGH 0x251, 0x253, 0x256, 0x257) sans description est
@@ -57,6 +57,7 @@ wait       = 0 0              ; cycles d'attente 68000 : zone ROM (0-1), zone PO
              ; accès VRAM grâce à l'attente de leur cartouche d'origine.
 fix_bank   = 2                ; banques de couche fixe NEO-CMC : 0, 1 (Garou), 2 (KOF 2000)
              ; par défaut : d'après le NGH
+patch      = mslugx           ; correctif de P au chargement : none | mslugx
 ```
 
 Le décalage de la table est ajouté à 0x100000 : la fenêtre 0x200000-0x2FFFFF
@@ -198,9 +199,24 @@ modèle transcrit de MAME.
 
 ## Metal Slug X
 
-La carte PROGEOP de Metal Slug X porte une puce Altera reliée à la ROM P1.
-Le modèle de MAME (`prot_mslugx.cpp`) lit la ROM P et une variable de la RAM
-de travail du 68000 (0x10F00A), avec un commentaire « How should this be
-calculated? » : le comportement réel n'est pas connu. La carte PROG voit le
-bus 68000 (A1-A19, D0-D15, /AS, R/W), mais pas A20-A23 : imiter cette
-lecture de RAM serait fragile. Pas de prise en charge pour l'instant.
+La carte PROGEOP de Metal Slug X porte une puce Altera (EPM7128) reliée à
+la ROM P1, dont la configuration n'est pas connue. Le modèle actuel de MAME
+(`prot_mslugx.cpp`) lit une variable de la RAM de travail du 68000, avec un
+commentaire « How should this be calculated? » : la carte PROG ne voit pas
+A20-A23, l'imiter serait fragile.
+
+SDAES fait comme la réparation décrite sur le wiki neogeodev (« Repairing
+Metal Slug X ») : une ROM P1 **modifiée**, sans contrôle de protection, sur
+une carte à banques standard (PROGBK1). Le firmware applique la modification
+pendant le chargement, avec les mêmes changements que MAME 0.145
+(`mslugx_install_protection`, dans `neoprot.c`) :
+
+* dans P1 (premier Mo), chaque `andi.w #$1,D3` suivi d'un `bne` voit ce
+  `bne` (deux mots) remplacé par deux NOP (0x4E71) ;
+* les mots 0x3BDC, 0x3BDE, 0x3BE0, 0x3C0C, 0x3C0E, 0x3C10, 0x3C36 et
+  0x3C38 deviennent des NOP.
+
+Le message de chargement indique le nombre de séquences trouvées
+(« P1 CORRIGEE: n »). Le fichier `.neo` n'est pas modifié. Reconnu par le
+NGH 250 ; ailleurs, `patch = mslugx` dans un fichier `.map`. À vérifier sur
+console : ces modifications viennent de l'émulation.

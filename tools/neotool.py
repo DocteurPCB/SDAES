@@ -325,7 +325,7 @@ def _nums(text):
 def default_mapper(name=""):
     return {"name": name, "ngh": 0, "mode": 0, "bank_addr": 0, "bank_bits": list(range(6)),
             "bank_table": [], "prot": None, "rng": [], "rng_seed": 0x2345, "overlay": None,
-            "wait": (0, 0), "fix_bank": None}
+            "wait": (0, 0), "fix_bank": None, "patch": "none"}
 
 
 def parse_mappers(text, whole_file=False, name=""):
@@ -352,7 +352,7 @@ def parse_mappers(text, whole_file=False, name=""):
             raise ValueError(f"ligne invalide : {line}")
         key, val = (x.strip() for x in line.split("=", 1))
         in_table = False
-        v = _nums(val) if key not in ("mapper",) else None
+        v = _nums(val) if key not in ("mapper", "patch") else None
         if key == "ngh":
             cur["ngh"] = v[0]
         elif key == "mapper":
@@ -378,6 +378,10 @@ def parse_mappers(text, whole_file=False, name=""):
             if len(v) != 6:
                 raise ValueError("overlay : 6 valeurs")
             cur["overlay"] = v
+        elif key == "patch":
+            if val not in ("none", "mslugx"):
+                raise ValueError(f"correctif inconnu : {val}")
+            cur["patch"] = val
         elif key == "fix_bank":
             if len(v) != 1 or v[0] > 2:
                 raise ValueError("fix_bank : 0, 1 (type Garou) ou 2 (type KOF 2000)")

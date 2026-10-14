@@ -63,11 +63,37 @@ int neo_parse_header(const uint8_t *raw, neo_header_t *h)
     return 0;
 }
 
+/* Recherche, pendant l'envoi de P1, des contrôles de protection de Metal
+ * Slug X à neutraliser (cf. msx_patch_apply). Mots 68000 ; le .neo stocke P
+ * en petit-boutiste. */
+#define MSX_MAX_HITS 64
+typedef struct {
+    bool     on;
+    uint16_t w0, w1;            /* deux mots précédents */
+    uint32_t hits[MSX_MAX_HITS];
+    int      n;
+} msx_scan_t;
+
+static void msx_scan(msx_scan_t *s, uint32_t addr, const uint8_t *b, uint32_t n)
+{
+    for (uint32_t i = 0; i + 1 < n; i += 2) {
+        uint32_t a = addr + i;
+        if (a >= 0x100000u) return;                 /* P1 seulement, comme MAME */
+        uint16_t w = (uint16_t)(b[i] | (b[i + 1] << 8));
+        /* andi.w #$1, D3 ; bne xxxx */
+        if (s->w0 == 0x0243 && s->w1 == 0x0001 && w == 0x6600 && s->n < MSX_MAX_HITS)
+            s->hits[s->n++] = a;
+        s->w0 = s->w1;
+        s->w1 = w;
+    }
+}
+
 typedef struct {
     FIL            *f;
     uint32_t        done, total;
     neo_progress_cb cb;
     uint16_t        last;
+    msx_scan_t     *scan;       /* NULL : pas de recherche */
 } xfer_t;
 
 /* envoie 'size' octets du fichier vers (lien, espace, adresse) */
@@ -84,6 +110,7 @@ static int stream(xfer_t *x, link_id_t l, uint8_t space, uint32_t addr, uint32_t
             return -1;
         }
         if (pending) qlink_mem_write_finish(pend_link);
+        if (x->scan && x->scan->on) msx_scan(x->scan, addr, buf[cur], n);
         qlink_mem_write_start(l, space, addr, buf[cur], n);
         pending = true;
         pend_link = l;
@@ -101,6 +128,23 @@ static int stream(xfer_t *x, link_id_t l, uint8_t space, uint32_t addr, uint32_t
     }
     if (pending) qlink_mem_write_finish(pend_link);
     return 0;
+}
+
+/* Metal Slug X : la carte PROGEOP porte une puce Altera dont le
+ * comportement n'est pas connu. Comme la réparation décrite sur le wiki
+ * neogeodev (« Repairing Metal Slug X » : ROM P1 modifiée sur une carte
+ * standard), on neutralise les contrôles dans P1, avec les mêmes
+ * modifications que MAME 0.145 (mslugx_install_protection) : le bne qui
+ * suit chaque andi.w #$1,D3, et huit mots à des adresses fixes, deviennent
+ * des NOP (0x4E71). */
+static void msx_patch_apply(const msx_scan_t *s)
+{
+    static const uint8_t nop2[4] = { 0x71, 0x4E, 0x71, 0x4E };
+    static const uint32_t fixed[] = { 0x3BDC, 0x3BDE, 0x3BE0, 0x3C0C, 0x3C0E, 0x3C10, 0x3C36, 0x3C38 };
+    for (int i = 0; i < s->n; i++)
+        qlink_mem_write(LINK_P, SP_P_SDRAM, s->hits[i], nop2, 4);
+    for (unsigned i = 0; i < sizeof(fixed) / sizeof(fixed[0]); i++)
+        qlink_mem_write(LINK_P, SP_P_SDRAM, fixed[i], nop2, 2);
 }
 
 static char map_text[MAP_TEXT_MAX + 1];
@@ -203,9 +247,13 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
     for (int i = 0; i < 4; i++)
         qlink_reg_write((link_id_t)i, REG_CTRL, 0);
 
-    xfer_t x = { &f, 0, expected - NEO_HEADER_SIZE, cb, 0 };
+    static msx_scan_t scan;
+    memset(&scan, 0, sizeof(scan));
+    scan.on = (m.patch == PATCH_MSLUGX);
+    xfer_t x = { &f, 0, expected - NEO_HEADER_SIZE, cb, 0, &scan };
     int r = 0;
     r |= stream(&x, LINK_P,  SP_P_SDRAM, 0,            h->psize);
+    if (!r && scan.on) msx_patch_apply(&scan);
     r |= stream(&x, LINK_SM, SP_SM_SRAM, 0,            h->ssize);
     r |= stream(&x, LINK_SM, SP_SM_SRAM, SRAM_M1_BASE, h->msize);
     r |= stream(&x, LINK_V,  SP_V_SDRAM, 0,            h->v1size);
@@ -262,6 +310,9 @@ uint16_t neo_load(const char *path, neo_progress_cb cb, neo_header_t *h, char *m
                     (m.mode == MAP_STD && h->psize > (2u << 20) ? CTRL_BANK_EN : 0));
 
     static const char *const kind[] = { "", " (SMA)", " (PVC)", " (PRO-CT0)" };
-    snprintf(msg, msglen, "%.40s%s", h->name[0] ? h->name : "JEU", kind[m.mode]);
+    if (scan.on)
+        snprintf(msg, msglen, "%.30s (P1 CORRIGEE: %d)", h->name[0] ? h->name : "JEU", scan.n);
+    else
+        snprintf(msg, msglen, "%.40s%s", h->name[0] ? h->name : "JEU", kind[m.mode]);
     return ST_OK;
 }

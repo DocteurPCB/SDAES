@@ -48,8 +48,8 @@
 
 * Protections : SMA, PVC et superposition KOF 98 sont intégrées (voir
   `docs/08-cartouches-protegees.md`), ainsi que les banques de couche fixe
-  NEO-CMC (type 2 complet, type 1 approché pour Garou) et le PRO-CT0 ;
-  reste Metal Slug X (comportement réel inconnu).
+  NEO-CMC (type 2 complet, type 1 approché pour Garou), le PRO-CT0 et
+  Metal Slug X (contrôles neutralisés dans P1 au chargement).
 * Pas de retour au menu sans le bouton de la cartouche.
 * Mise à jour des bitstreams depuis la carte SD (le RP2350 peut écrire les
   flash SPI des FPGA) : à ajouter.

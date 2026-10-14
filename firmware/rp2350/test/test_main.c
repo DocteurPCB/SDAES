@@ -156,6 +156,21 @@ int main(void)
     for (int i = 0; i < 8192; i++) if (mem[LINK_P][SP_P_SDRAM][0x18FE000 + i]) zero = 0;
     expect(zero, "PVC : RAM de protection remise a zero");
 
+    /* Metal Slug X : correctif de P1 */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("mslugx")) == ST_OK, "Metal Slug X");
+    printf("info  message : %s\n", mbstr(MB_RSP_MSG));
+    {
+        const uint8_t *p = mem[LINK_P][SP_P_SDRAM];
+        static const uint8_t nop2[4] = { 0x71, 0x4E, 0x71, 0x4E };
+        expect(!memcmp(p + 0x1004, nop2, 4), "MSX : bne neutralise (0x1004)");
+        expect(!memcmp(p + 0x8000, nop2, 4), "MSX : bne neutralise a cheval sur deux blocs (0x8000)");
+        expect(p[0x1000] == 0x43 && p[0x1002] == 0x01, "MSX : andi.w conserve");
+        expect(!memcmp(p + 0x3BDC, nop2, 4) && !memcmp(p + 0x3C36, nop2, 4), "MSX : adresses fixes");
+        expect(p[0x3BE2] == 0 && p[0x3C3A] == 0, "MSX : rien d'autre");
+        expect(regs[LINK_P][0x0A] == 0, "MSX : banques standard");
+    }
+
     /* PRO-CT0 reconnu par son NGH */
     memset(regs, 0, sizeof(regs));
     expect(send(CMD_OPEN, (uint32_t)find("fatfury2")) == ST_OK, "PRO-CT0 interne");
