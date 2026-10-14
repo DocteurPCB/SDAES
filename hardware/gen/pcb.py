@@ -422,6 +422,11 @@ class Layout:
             for vx, vy, n in vias:            # perçages : écart même entre vias d'un réseau
                 if math.hypot(x - vx, y - vy) < via_d + 0.2:
                     return False
+            # Freerouting refuse un via sur une pastille CMS, même de son
+            # réseau (« attach off ») : écart à toutes les pastilles
+            for x0, y0, x1, y1, n, p in pads:
+                if d_rect(x, y, (x0, y0, x1, y1)) < via_d / 2 + clr:
+                    return False
             return point_ok(x, y, via_d / 2, net, pad)
 
         def track_ok(x1, y1, x2, y2, w, net, pad):
