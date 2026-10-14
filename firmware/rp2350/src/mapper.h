@@ -40,7 +40,13 @@ typedef struct {
     uint8_t    fix_bank;
     /* correctif appliqué à P au chargement */
     uint8_t    patch;          /* PATCH_NONE, PATCH_MSLUGX */
+    bool       by_name;        /* section de MAPPERS.TXT trouvée par son nom */
 } mapper_t;
+
+/* Les jeux SMA ont une zone P de 9 Mo (ROM interne de la puce comprise) ;
+ * leurs versions sans SMA (prototype de Garou, Metal Slug 3 « h »,
+ * KOF 2000 « n »...) ont le même NGH et une zone P de 5 Mo au plus. */
+#define SMA_MIN_PSIZE  0x500001u
 
 enum { PATCH_NONE = 0, PATCH_MSLUGX = 1 };
 

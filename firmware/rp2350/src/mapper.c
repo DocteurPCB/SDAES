@@ -188,7 +188,8 @@ bool mapper_parse(const char *text, const char *game_name, uint32_t ngh,
         if (active && !whole_file) { \
             bool nm = game_name && ieq(cur.m.name, game_name); \
             bool nn = ngh_match(cur.m.ngh, ngh); \
-            if ((nm && !by_name) || (nn && !found)) { *out = cur.m; found = true; by_name = by_name || nm; } \
+            if ((nm && !by_name) || (nn && !found)) { \
+                *out = cur.m; out->by_name = nm; found = true; by_name = by_name || nm; } \
         } } while (0)
 
     const char *p = text;

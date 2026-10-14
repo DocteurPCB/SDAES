@@ -188,11 +188,14 @@ static uint16_t find_mapper(const char *path, const neo_header_t *h, mapper_t *m
         return ST_OK;
     }
     if (read_text("0:/SDAES/MAPPERS.TXT")) {
-        if (mapper_parse(map_text, base, h->ngh, false, m, err, sizeof(err))) return ST_OK;
-        if (err[0]) { snprintf(msg, msglen, "MAPPERS.TXT: %s", err); return ST_ERR_FORMAT; }
+        if (mapper_parse(map_text, base, h->ngh, false, m, err, sizeof(err))) {
+            /* section SMA trouvée seulement par le NGH : pas pour une version
+             * sans SMA du même jeu */
+            if (m->by_name || m->mode != MAP_SMA || h->psize >= SMA_MIN_PSIZE) return ST_OK;
+        } else if (err[0]) { snprintf(msg, msglen, "MAPPERS.TXT: %s", err); return ST_ERR_FORMAT; }
     }
     if (mapper_builtin(h->ngh, m)) return ST_OK;
-    if (is_sma_ngh(h->ngh)) {
+    if (is_sma_ngh(h->ngh) && h->psize >= SMA_MIN_PSIZE) {
         snprintf(msg, msglen, "PROTECTION SMA: FICHIER .MAP REQUIS");
         return ST_ERR_UNSUPPORTED;
     }

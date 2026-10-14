@@ -35,6 +35,14 @@ Le firmware cherche la description d'un jeu dans cet ordre :
 Un jeu SMA connu (NGH 0x251, 0x253, 0x256, 0x257) sans description est
 refusé avec le message « PROTECTION SMA: FICHIER .MAP REQUIS ».
 
+Les versions **sans SMA** de ces jeux portent le même NGH : prototype de
+Garou (`garoup`), Metal Slug 3 « h », KOF 2000 « n »... Dans MAME, les
+versions SMA ont une zone P de 9 Mo (ROM interne de la puce comprise), les
+autres 5 Mo au plus. Le firmware s'en sert : en dessous de 5 Mo, pas de
+refus, et une section SMA de `MAPPERS.TXT` trouvée seulement par le NGH est
+ignorée (une section trouvée par le nom du fichier, ou un `.map`, reste
+appliquée).
+
 Syntaxe (`#` ou `;` commencent un commentaire, nombres en hexadécimal
 `0x...` ou en décimal) :
 
@@ -163,6 +171,11 @@ le FPGA SM retrouve ainsi la colonne de chaque impulsion
   d'une rangée à l'autre peuvent afficher du texte faux. La vraie puce CMC42
   a forcément un moyen de se synchroniser sur la trame : il reste à le
   trouver (analyseur logique sur une cartouche Garou d'origine).
+  **Alternative sûre : le prototype de Garou** (`garoup` dans MAME), complet
+  et jouable, n'a ni SMA ni banques de couche fixe (ROM S de 128 Ko, carte
+  standard) : il fonctionne entièrement avec SDAES. Mélanger sa ROM S avec
+  le programme de la version finale ne marcherait pas : le programme final
+  utilise d'autres numéros de tuiles, répartis sur 512 Ko.
 
 Le type est choisi d'après le NGH (table de `firmware/rp2350/src/mapper.c`)
 ou par la clé `fix_bank = 0|1|2` d'un fichier `.map` / `MAPPERS.TXT`. Il est

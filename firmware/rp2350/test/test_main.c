@@ -137,6 +137,11 @@ int main(void)
     expect(regs[LINK_P][0x0B] == 0x7FFE0, "SMA garou : banque 0x2FFFC0");
     expect(regs[LINK_SM][REG_SM_FIX_BANK] == 1, "couche fixe garou : type 1 d'apres le NGH");
 
+    /* prototype de Garou : même NGH, zone P de 5 Mo au plus -> pas de SMA */
+    memset(regs, 0, sizeof(regs));
+    expect(send(CMD_OPEN, (uint32_t)find("garoup")) == ST_OK, "Garou prototype accepte (sans SMA)");
+    expect(regs[LINK_P][0x0A] == 0, "Garou prototype : banques standard");
+
     /* superposition KOF 98 décrite dans MAPPERS.TXT (trouvée par le NGH) */
     memset(regs, 0, sizeof(regs));
     expect(send(CMD_OPEN, (uint32_t)find("roi98")) == ST_OK, "superposition via NGH");

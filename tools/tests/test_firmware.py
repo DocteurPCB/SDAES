@@ -54,6 +54,11 @@ class FirmwareHostTest(unittest.TestCase):
                 self.assertEqual(neotool.main(["build", "-o", pth, "--p", os.path.join(d, "p_small"),
                                                "--name", name.upper(), "--ngh", hex(ngh)]), 0)
             small_neo("kof99", 0x251)
+            # en-tête d'un vrai jeu SMA (zone P de 9 Mo) : refusé avant la lecture
+            with open(os.path.join(sd, "Jeux", "kof99.neo"), "r+b") as f:
+                f.seek(4)
+                f.write((0x900000).to_bytes(4, "little"))
+            small_neo("garoup", 0x253)          # prototype sans SMA, même NGH que garou
             small_neo("kof99b", 0x251)
             small_neo("garou", 0x253)
             small_neo("roi98", 0x242)
