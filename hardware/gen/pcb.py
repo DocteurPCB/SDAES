@@ -70,7 +70,7 @@ PLACE = {
 # 9 trous d'entretoise M3 reliant les deux cartes : mêmes coordonnées sur
 # PROG et CHA (repère commun : axe de la languette), hors composants.
 STANDOFFS = [(70, 55), (230, 55), (70, 100), (230, 100), (70, 150), (230, 150),
-             (130, 100), (170, 100), (150, 124)]
+             (130, 75), (170, 75), (150, 124)]
 STANDOFF_FP = "MountingHole:MountingHole_3.2mm_M3"
 STANDOFF_KEEP = 3.5            # rayon sans composant ni cuivre autour (mm)
 MARGIN = 0.3       # écart minimal entre deux composants (mm)
