@@ -40,32 +40,32 @@ $(HEX): | $(BUILD)
 	[ -f $@ ] || : > $@
 
 .SECONDEXPANSION:
+PCF_prog_p_top = ../hardware/prog_p.pcf
+PCF_prog_v_top = ../hardware/prog_v.pcf
+PCF_cha_c_top  = ../hardware/cha_c.pcf
+PCF_cha_sm_top = ../hardware/cha_sm.pcf
 $(BUILD)/%.json: $(HEX) $(COMMON) $$(SRC_$$*)
 	cd $(BUILD) && $(YOSYS) -q -p "read_verilog $(addprefix ../,$(COMMON) $(SRC_$*)); synth_ice40 -top $* -json $*.json; tee -q -o $*_stat.txt stat" > $*_synth.log
 
 lint: $(addprefix $(BUILD)/,$(addsuffix .json,$(TOPS)))
 	@for t in $(TOPS); do echo "== $$t"; grep -E "SB_LUT4|SB_DFF|SB_RAM40|SB_IO |SB_PLL|SB_CARRY" $(BUILD)/$${t}_stat.txt | awk '{s[$$2]+=$$1} END {for (k in s) printf "   %-14s %d\n", k, s[k]}'; done
 
-# Placement-routage sans contraintes de broches (estimation de fréquence) :
-# essaie plusieurs graines et garde la première qui tient 100 MHz.
-SEEDS ?= 1 2 3 4 5
-$(BUILD)/%.asc: $(BUILD)/%.json
+# Placement-routage avec les broches réelles (hardware/*.pcf, produits par
+# hardware/gen/fpga_pins.py) : essaie plusieurs graines et garde la première
+# qui tient 100 MHz.
+SEEDS ?= 1 2 3 4 5 6 7 8
+$(BUILD)/%.asc: $(BUILD)/%.json $$(PCF_$$*)
 	cd $(BUILD) && for s in $(SEEDS); do \
-	    $(NEXTPNR) --hx8k --package tq144:4k --json $*.json --asc $*.asc --freq 100 \
-	        --pcf-allow-unconstrained --ignore-rel-clk --seed $$s > $*_pnr.log 2>&1 && break; \
+	    $(NEXTPNR) --hx8k --package tq144:4k --json $*.json --pcf ../$(PCF_$*) --asc $*.asc --freq 100 \
+	        --ignore-rel-clk --seed $$s > $*_pnr.log 2>&1 && break; \
 	done; grep -q "PASS at 100" $*_pnr.log || (tail -5 $*_pnr.log; false)
 
 pnr: $(addprefix $(BUILD)/,$(addsuffix .asc,$(TOPS)))
 	@for t in $(TOPS); do echo "== $$t"; grep -E "Max frequency for clock +'clk'|ICESTORM_LC:|ICESTORM_RAM:|SB_IO:" $(BUILD)/$${t}_pnr.log | tail -4; done
 
-# Bitstreams définitifs : nécessite les numéros de broches dans ../hardware/*.pcf
-PCF_prog_p_top = ../hardware/prog_p.pcf
-PCF_prog_v_top = ../hardware/prog_v.pcf
-PCF_cha_c_top  = ../hardware/cha_c.pcf
-PCF_cha_sm_top = ../hardware/cha_sm.pcf
-$(BUILD)/%.bin: $(BUILD)/%.json
-	cd $(BUILD) && $(NEXTPNR) --hx8k --package tq144:4k --json $*.json --pcf $(PCF_$*) \
-	    --asc $*_final.asc --freq 100 --ignore-rel-clk > $*_final.log 2>&1 && $(ICEPACK) $*_final.asc $*.bin
+# Bitstreams (icepack)
+$(BUILD)/%.bin: $(BUILD)/%.asc
+	$(ICEPACK) $< $@
 
 bits: $(addprefix $(BUILD)/,$(addsuffix .bin,$(TOPS)))
 

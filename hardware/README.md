@@ -1,30 +1,30 @@
 # Matériel
 
-Ce dossier accueillera les projets KiCad des deux cartes (PROG et CHA).
-Pour l'instant il contient les gabarits de contraintes des 4 FPGA iCE40,
-générés à partir des tops Verilog :
+Contraintes des 4 FPGA iCE40HX4K-TQ144 avec les **vrais numéros de
+broches**, produites par `hardware/gen/fpga_pins.py` (ne pas modifier les
+`.pcf` à la main) :
 
 ```
-python3 tools/gen_pcf.py hdl/prog/prog_p_top.v prog_p_top hardware/prog_p.pcf
-python3 tools/gen_pcf.py hdl/prog/prog_v_top.v prog_v_top hardware/prog_v.pcf
-python3 tools/gen_pcf.py hdl/cha/cha_c_top.v   cha_c_top  hardware/cha_c.pcf
-python3 tools/gen_pcf.py hdl/cha/cha_sm_top.v  cha_sm_top hardware/cha_sm.pcf
+python3 hardware/gen/fpga_pins.py
+make -C hdl pnr YOSYS=yowasp-yosys NEXTPNR=yowasp-nextpnr-ice40
 ```
 
-| FPGA | Carte | E/S utilisées |
-|---|---|---|
-| P | PROG | 90 |
-| V | PROG | 80 |
-| C | CHA | 89 |
-| SM | CHA | 92 |
-
-Le boîtier TQ144 de l'iCE40HX4K offre une centaine d'E/S (la fiche
-technique Lattice fait foi ; certaines broches sont des entrées seules,
-utilisables pour les signaux venant de la console).
+| FPGA | Carte | E/S utilisées | Fréquence max (broches réelles) |
+|---|---|---|---|
+| P | PROG | 94 / 107 | 103,3 MHz |
+| V | PROG | 80 / 107 | 102,2 MHz |
+| C | CHA | 89 / 107 | 107,6 MHz |
+| SM | CHA | 92 / 107 | 108,8 MHz |
 
 ## Règles de placement des broches
 
-* `CLK25` sur une entrée globale (GBIN) utilisable par la PLL.
+* Signaux du connecteur (via les tampons de niveaux) sur les bancs 3 et 2
+  (côtés gauche et bas du boîtier) ; mémoire, liaison RP2350, MODE et LED
+  sur les bancs 0 et 1.
+* `CLK25` sur l'entrée globale GBIN3 (broche 93).
+* Broche 129 réservée à une sortie : la PLL du haut, utilisée par le
+  design, réquisitionne son chemin d'entrée (de même la broche 49 pour la
+  PLL du bas). Broches SPI 67, 68, 70, 71 réservées à la flash.
 * Signaux utilisés **comme horloges** dans le HDL — à placer sur des
   entrées globales (GBIN) : `CLK_12M`, `PCK1B` (FPGA C) ; `PCK2B` (SM) ;
   `SDRMPX`, `SDPMPX` (V).
@@ -39,4 +39,4 @@ utilisables pour les signaux venant de la console).
 2. Schémas : alimentations, FPGA + flash SPI, SDRAM, SRAM, tampons de niveaux,
    Pico 2 + microSD (CHA), câble inter-cartes.
 3. Routage 4 couches, contacts dorés chanfreinés.
-4. Compléter les fichiers `.pcf` puis `make -C hdl bits`.
+4. `make -C hdl bits` (bitstreams avec les broches réelles).

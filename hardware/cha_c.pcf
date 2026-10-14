@@ -1,94 +1,93 @@
 # Contraintes cha_c_top - iCE40HX4K-TQ144 (puce HX8K, outils libres)
-# Gabarit généré par tools/gen_pcf.py : compléter les numéros de broches.
-# CLK25 sur une entrée globale (GBIN) ; voir hardware/README.md pour les
-# signaux utilisés comme horloges. « AES ... » = contact du connecteur de
-# cartouche relié à ce port à travers un tampon de niveaux (hardware/aes_connector.csv).
-# set_io CLK25 ?    # input
-# set_io P[0] ?    # input, AES CHA dessus 40
-# set_io P[1] ?    # input, AES CHA dessous 11
-# set_io P[2] ?    # input, AES CHA dessus 39
-# set_io P[3] ?    # input, AES CHA dessous 12
-# set_io P[4] ?    # input, AES CHA dessus 38
-# set_io P[5] ?    # input, AES CHA dessous 13
-# set_io P[6] ?    # input, AES CHA dessus 37
-# set_io P[7] ?    # input, AES CHA dessous 14
-# set_io P[8] ?    # input, AES CHA dessus 36
-# set_io P[9] ?    # input, AES CHA dessous 15
-# set_io P[10] ?    # input, AES CHA dessus 35
-# set_io P[11] ?    # input, AES CHA dessous 16
-# set_io P[12] ?    # input, AES CHA dessus 34
-# set_io P[13] ?    # input, AES CHA dessous 17
-# set_io P[14] ?    # input, AES CHA dessus 33
-# set_io P[15] ?    # input, AES CHA dessous 18
-# set_io P[16] ?    # input, AES CHA dessus 32
-# set_io P[17] ?    # input, AES CHA dessous 19
-# set_io P[18] ?    # input, AES CHA dessus 31
-# set_io P[19] ?    # input, AES CHA dessous 20
-# set_io P[20] ?    # input, AES CHA dessus 30
-# set_io P[21] ?    # input, AES CHA dessous 21
-# set_io P[22] ?    # input, AES CHA dessus 29
-# set_io P[23] ?    # input, AES CHA dessous 22
-# set_io PCK1B ?    # input, AES CHA dessus 48
-# set_io CA4 ?    # input, AES CHA dessus 41
-# set_io CLK_12M ?    # input, AES CHA dessus 46
-# set_io EVEN ?    # input, AES CHA dessus 44
-# set_io LOAD ?    # input, AES CHA dessus 42
-# set_io H ?    # input, AES CHA dessus 43
-# set_io GAD[0] ?    # output, AES CHA dessous 32
-# set_io GAD[1] ?    # output, AES CHA dessous 33
-# set_io GAD[2] ?    # output, AES CHA dessous 34
-# set_io GAD[3] ?    # output, AES CHA dessous 35
-# set_io GBD[0] ?    # output, AES CHA dessous 36
-# set_io GBD[1] ?    # output, AES CHA dessous 37
-# set_io GBD[2] ?    # output, AES CHA dessous 38
-# set_io GBD[3] ?    # output, AES CHA dessous 39
-# set_io DOTA ?    # output, AES CHA dessous 30
-# set_io DOTB ?    # output, AES CHA dessous 31
-# set_io XLAT_EN_N ?    # output
-# set_io LK_SCK ?    # input
-# set_io LK_CS_N ?    # input
-# set_io LK_IO[0] ?    # inout
-# set_io LK_IO[1] ?    # inout
-# set_io LK_IO[2] ?    # inout
-# set_io LK_IO[3] ?    # inout
-# set_io MODE ?    # input
-# set_io SD_CLK ?    # output
-# set_io SD_CKE ?    # output
-# set_io SD_CS_N ?    # output
-# set_io SD_RAS_N ?    # output
-# set_io SD_CAS_N ?    # output
-# set_io SD_WE_N ?    # output
-# set_io SD_BA[0] ?    # output
-# set_io SD_BA[1] ?    # output
-# set_io SD_A[0] ?    # output
-# set_io SD_A[1] ?    # output
-# set_io SD_A[2] ?    # output
-# set_io SD_A[3] ?    # output
-# set_io SD_A[4] ?    # output
-# set_io SD_A[5] ?    # output
-# set_io SD_A[6] ?    # output
-# set_io SD_A[7] ?    # output
-# set_io SD_A[8] ?    # output
-# set_io SD_A[9] ?    # output
-# set_io SD_A[10] ?    # output
-# set_io SD_A[11] ?    # output
-# set_io SD_A[12] ?    # output
-# set_io SD_DQM[0] ?    # output
-# set_io SD_DQM[1] ?    # output
-# set_io SD_DQ[0] ?    # inout
-# set_io SD_DQ[1] ?    # inout
-# set_io SD_DQ[2] ?    # inout
-# set_io SD_DQ[3] ?    # inout
-# set_io SD_DQ[4] ?    # inout
-# set_io SD_DQ[5] ?    # inout
-# set_io SD_DQ[6] ?    # inout
-# set_io SD_DQ[7] ?    # inout
-# set_io SD_DQ[8] ?    # inout
-# set_io SD_DQ[9] ?    # inout
-# set_io SD_DQ[10] ?    # inout
-# set_io SD_DQ[11] ?    # inout
-# set_io SD_DQ[12] ?    # inout
-# set_io SD_DQ[13] ?    # inout
-# set_io SD_DQ[14] ?    # inout
-# set_io SD_DQ[15] ?    # inout
-# set_io LED ?    # output
+# Généré par hardware/gen/fpga_pins.py (ne pas modifier à la main).
+# « AES ... » = contact du connecteur de cartouche relié à ce port à
+# travers un tampon de niveaux (hardware/aes_connector.csv).
+set_io CLK25 93    # input, banc 1, GBIN3
+set_io P[0] 1    # input, banc 3, AES CHA dessus 40
+set_io P[1] 2    # input, banc 3, AES CHA dessous 11
+set_io P[2] 3    # input, banc 3, AES CHA dessus 39
+set_io P[3] 4    # input, banc 3, AES CHA dessous 12
+set_io P[4] 7    # input, banc 3, AES CHA dessus 38
+set_io P[5] 8    # input, banc 3, AES CHA dessous 13
+set_io P[6] 9    # input, banc 3, AES CHA dessus 37
+set_io P[7] 10    # input, banc 3, AES CHA dessous 14
+set_io P[8] 11    # input, banc 3, AES CHA dessus 36
+set_io P[9] 12    # input, banc 3, AES CHA dessous 15
+set_io P[10] 15    # input, banc 3, AES CHA dessus 35
+set_io P[11] 16    # input, banc 3, AES CHA dessous 16
+set_io P[12] 17    # input, banc 3, AES CHA dessus 34
+set_io P[13] 18    # input, banc 3, AES CHA dessous 17
+set_io P[14] 19    # input, banc 3, AES CHA dessus 33
+set_io P[15] 22    # input, banc 3, AES CHA dessous 18
+set_io P[16] 23    # input, banc 3, AES CHA dessus 32
+set_io P[17] 24    # input, banc 3, AES CHA dessous 19
+set_io P[18] 25    # input, banc 3, AES CHA dessus 31
+set_io P[19] 26    # input, banc 3, AES CHA dessous 20
+set_io P[20] 28    # input, banc 3, AES CHA dessus 30
+set_io P[21] 29    # input, banc 3, AES CHA dessous 21
+set_io P[22] 31    # input, banc 3, AES CHA dessus 29
+set_io P[23] 32    # input, banc 3, AES CHA dessous 22
+set_io PCK1B 20    # input, banc 3, GBIN7, AES CHA dessus 48
+set_io CA4 33    # input, banc 3, AES CHA dessus 41
+set_io CLK_12M 21    # input, banc 3, GBIN6, AES CHA dessus 46
+set_io EVEN 34    # input, banc 3, AES CHA dessus 44
+set_io LOAD 37    # input, banc 2, AES CHA dessus 42
+set_io H 38    # input, banc 2, AES CHA dessus 43
+set_io GAD[0] 39    # output, banc 2, AES CHA dessous 32
+set_io GAD[1] 41    # output, banc 2, AES CHA dessous 33
+set_io GAD[2] 42    # output, banc 2, AES CHA dessous 34
+set_io GAD[3] 43    # output, banc 2, AES CHA dessous 35
+set_io GBD[0] 44    # output, banc 2, AES CHA dessous 36
+set_io GBD[1] 45    # output, banc 2, AES CHA dessous 37
+set_io GBD[2] 47    # output, banc 2, AES CHA dessous 38
+set_io GBD[3] 48    # output, banc 2, AES CHA dessous 39
+set_io DOTA 49    # output, banc 2, GBIN5, AES CHA dessous 30
+set_io DOTB 52    # output, banc 2, GBIN4, AES CHA dessous 31
+set_io XLAT_EN_N 55    # output, banc 2
+set_io LK_SCK 87    # input, banc 1
+set_io LK_CS_N 88    # input, banc 1
+set_io LK_IO[0] 90    # inout, banc 1
+set_io LK_IO[1] 91    # inout, banc 1
+set_io LK_IO[2] 94    # inout, banc 1, GBIN2
+set_io LK_IO[3] 95    # inout, banc 1
+set_io MODE 96    # input, banc 1
+set_io SD_CLK 85    # output, banc 1
+set_io SD_CKE 84    # output, banc 1
+set_io SD_CS_N 138    # output, banc 0
+set_io SD_RAS_N 137    # output, banc 0
+set_io SD_CAS_N 136    # output, banc 0
+set_io SD_WE_N 135    # output, banc 0
+set_io SD_BA[0] 139    # output, banc 0
+set_io SD_BA[1] 141    # output, banc 0
+set_io SD_A[0] 142    # output, banc 0
+set_io SD_A[1] 143    # output, banc 0
+set_io SD_A[2] 144    # output, banc 0
+set_io SD_A[3] 73    # output, banc 1
+set_io SD_A[4] 74    # output, banc 1
+set_io SD_A[5] 75    # output, banc 1
+set_io SD_A[6] 76    # output, banc 1
+set_io SD_A[7] 78    # output, banc 1
+set_io SD_A[8] 79    # output, banc 1
+set_io SD_A[9] 80    # output, banc 1
+set_io SD_A[10] 81    # output, banc 1
+set_io SD_A[11] 82    # output, banc 1
+set_io SD_A[12] 83    # output, banc 1
+set_io SD_DQM[0] 129    # output, banc 0, GBIN0
+set_io SD_DQM[1] 134    # output, banc 0
+set_io SD_DQ[0] 110    # inout, banc 0
+set_io SD_DQ[1] 112    # inout, banc 0
+set_io SD_DQ[2] 113    # inout, banc 0
+set_io SD_DQ[3] 114    # inout, banc 0
+set_io SD_DQ[4] 115    # inout, banc 0
+set_io SD_DQ[5] 116    # inout, banc 0
+set_io SD_DQ[6] 117    # inout, banc 0
+set_io SD_DQ[7] 118    # inout, banc 0
+set_io SD_DQ[8] 119    # inout, banc 0
+set_io SD_DQ[9] 120    # inout, banc 0
+set_io SD_DQ[10] 121    # inout, banc 0
+set_io SD_DQ[11] 122    # inout, banc 0
+set_io SD_DQ[12] 124    # inout, banc 0
+set_io SD_DQ[13] 125    # inout, banc 0
+set_io SD_DQ[14] 128    # inout, banc 0, GBIN1
+set_io SD_DQ[15] 130    # inout, banc 0
+set_io LED 97    # output, banc 1
