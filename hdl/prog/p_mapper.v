@@ -238,6 +238,21 @@ module p_mapper (
     // Plus), appliquée au cycle suivant (chemin critique)
     reg        nb_set = 1'b0;
     reg [22:0] nb_val = 23'h0;
+    // candidats précalculés à chaque cycle (a, d et wr_be sont stables
+    // avant wr_go) : wr_go ne fait plus que valider nb_hit
+    reg        nb_hit = 1'b0;
+    reg [22:0] nb_cand = 23'h0;
+    always @(posedge clk) begin
+        nb_hit  <= (f_std && bank_en && wr_be[0])
+                || (f_ms5p && ((a[2:0] == 3'd0 && d == 16'h00A0) || a[2:0] == 3'd2));
+        if (f_std)
+            // 3 bits, comme le verrou des cartes PROG (MAME write_banksel : data & 7)
+            nb_cand <= 23'h080000 + {d[2:0], 19'd0};
+        else if (a[2:0] == 3'd0)
+            nb_cand <= 23'h000050;                  // MS5 Plus, 0x2FFFF0 : octet 0xA0
+        else
+            nb_cand <= {d[7:4], 19'd0};             // MS5 Plus, 0x2FFFF4 : (d >> 4) Mo
+    end
 
     // remise à zéro au passage en mode jeu, registrée (chemin critique)
     reg start_r = 1'b0;
@@ -270,22 +285,14 @@ module p_mapper (
             pvc_wr <= 1'b0;
             op_unpack <= 1'b0; op_pack <= 1'b0; op_bank <= 1'b0;
             if (wr_go) begin
-                if (f_std && bank_en && wr_be[0]) begin
-                    // 3 bits, comme le verrou des cartes PROG (MAME write_banksel : data & 7)
-                    nb_val <= 23'h080000 + {d[2:0], 19'd0};
+                if (nb_hit) begin
+                    // banques standard ou Metal Slug 5 Plus (nb_cand)
+                    nb_val <= nb_cand;
                     nb_set <= 1'b1;
                 end
                 if (f_bank) begin
                     tbl_ridx <= sma_idx(d, sma_perm);
                     sma_pend <= 2'd2;
-                end
-                if (f_ms5p && a[2:0] == 3'd0 && d == 16'h00A0) begin   // 0x2FFFF0
-                    nb_val <= 23'h000050;                               // octet 0xA0
-                    nb_set <= 1'b1;
-                end
-                if (f_ms5p && a[2:0] == 3'd2) begin                     // 0x2FFFF4
-                    nb_val <= {d[7:4], 19'd0};                          // (d >> 4) Mo
-                    nb_set <= 1'b1;
                 end
                 if (f_ct0) begin
                     if (a[0])            // LOAD = A1
