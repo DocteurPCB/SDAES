@@ -94,7 +94,7 @@ finition ENIG, contacts dorés chanfreinés à 45°. La carte CHA se loge
 derrière la carte PROG : hauteur des composants limitée (jwestfall69 :
 un support DIP ordinaire + EPROM est trop haut, un support bas passe).
 
-### Circuits imprimés (2 couches)
+### Circuits imprimés (4 couches)
 
 ```
 python3 hardware/gen/pcb.py --pins     # placement + affectation des broches FPGA
@@ -110,15 +110,20 @@ python3 hardware/gen/route.py prog     # Freerouting puis DRC (idem cha)
   dans l'ordre des contacts), FPGA au milieu, mémoires en haut ; carte CHA :
   Pico 2 au milieu, microSD et bouton sur le bord supérieur (à rendre
   accessibles dans la coque). Passifs placés au plus près de la broche de
-  leur circuit. Masse coulée sur les deux faces.
+  leur circuit. Empilement : F.Cu signaux, In1 plan de masse continu,
+  In2 plan +3V3, B.Cu signaux ; +5V et +1V2 en pistes larges. Le 4
+  couches est retenu pour la SDRAM à 100 MHz (fronts ~1 ns : chemin de
+  retour sous chaque piste) et le découplage des FPGA ; surcoût de quelques
+  euros par cartouche.
 * `--pins` : chaque signal d'un FPGA est affecté à la broche tournée vers
   sa cible, en conservant l'ordre circulaire (pas de croisement à la
   sortie du boîtier) ; horloges sur leurs entrées GBIN, broche 129 en
   sortie seulement. Résultat dans `hardware/gen/pins_opt.json`, repris par
   `fpga_pins.py` ; le placement-routage FPGA (`make -C hdl pnr`) doit être
   relancé ensuite.
-* `route.py` : export Specctra, Freerouting (2.4.1, Java 25), relecture de
-  la session, remplissage des zones, DRC `kicad-cli`.
+* `route.py` : export Specctra (couches internes déclarées « power »),
+  Freerouting (2.4.1, Java 25), relecture de la session, remplissage des
+  zones, DRC `kicad-cli`.
 
 **À vérifier avant le routage** : boucles audio L/R reliées par
 des résistances de 0 Ω (révision NEO-AES de la console), valeurs du filtre
@@ -128,5 +133,5 @@ PLL (note Lattice sur l'iCE40), courant réel des régulateurs.
 
 1. ~~Brochage et cotes des cartes AES PROG/CHA~~ (fait, voir plus haut).
 2. ~~Schémas~~, ~~contours~~ (faits).
-3. Routage 4 couches, contacts dorés chanfreinés.
+3. Routage 4 couches (en cours, `route.py`), contacts dorés chanfreinés.
 4. `make -C hdl bits` (bitstreams avec les broches réelles).

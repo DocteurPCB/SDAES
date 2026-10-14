@@ -4,8 +4,9 @@
     python3 hardware/gen/route.py prog [--passes 60]   # DSN -> Freerouting -> SES -> .kicad_pcb
     python3 hardware/gen/route.py prog --import x.ses  # import d'une session seulement
 
-Étapes : la carte placée (pcb.py) est exportée au format Specctra sans ses
-zones de masse, Freerouting route toutes les pistes (masse comprise), la
+Étapes : la carte placée (pcb.py) est exportée au format Specctra avec ses
+plans internes (masse, +3V3), Freerouting route les pistes et relie les
+broches des plans par des vias, la
 session est relue ici (le module Python de KiCad 7 ne sait pas l'importer
 hors de l'interface) puis les zones sont remplies et la DRC de kicad-cli
 est lancée.
@@ -34,10 +35,13 @@ def export_dsn(pcb, dsn):
     b = pcbnew.LoadBoard(pcb)
     for t in list(b.GetTracks()):
         b.Remove(t)
-    for z in list(b.Zones()):
-        b.Remove(z)
     if not pcbnew.ExportSpecctraDSN(b, dsn):
         raise SystemExit("export DSN impossible")
+    # couches internes = plans d'alimentation : Freerouting n'y route rien
+    text = open(dsn).read()
+    for layer in ("In1.Cu", "In2.Cu"):
+        text = text.replace(f"(layer {layer}\n      (type signal)", f"(layer {layer}\n      (type power)")
+    open(dsn, "w").write(text)
 
 
 def run_freerouting(dsn, ses, passes):
@@ -63,7 +67,7 @@ def import_ses(pcb, ses):
         name = unq(ps[1])
         shp = find(ps, "shape")[0][1]
         vias[name] = float(shp[2]) * k
-    layers = {"F.Cu": pcbnew.F_Cu, "B.Cu": pcbnew.B_Cu}
+    layers = {"F.Cu": pcbnew.F_Cu, "B.Cu": pcbnew.B_Cu, "In1.Cu": pcbnew.In1_Cu, "In2.Cu": pcbnew.In2_Cu}
     ds = b.GetDesignSettings()
     n_tr = n_via = 0
 
@@ -94,7 +98,7 @@ def import_ses(pcb, ses):
             via.SetPosition(pt(v[2], v[3]))
             via.SetWidth(pcbnew.FromMM(d))
             via.SetDrill(pcbnew.FromMM(drill))
-            via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+            via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)      # vias traversants
             via.SetNet(ni)
             b.Add(via)
             n_via += 1

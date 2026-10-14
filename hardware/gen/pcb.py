@@ -13,9 +13,8 @@ l'interface de KiCad. Placement :
     description (découplage après son circuit, etc.) et se place au plus
     près de la broche de l'ancre avec laquelle il partage un réseau.
 
-Circuit 2 couches (comme les cartouches d'origine) : signaux et
-alimentations (+5V, +3V3, +1V2) routés en pistes sur les deux faces, masse
-coulée sur les deux faces.
+Circuit 4 couches : signaux sur les faces externes, In1 = plan de masse
+continu, In2 = plan +3V3 ; +5V et +1V2 routés en pistes larges.
 Nécessite le module Python de KiCad (pcbnew).
 
     python3 hardware/gen/pcb.py [prog|cha]
@@ -37,7 +36,7 @@ CX, EDGE_Y = outline.CX, outline.EDGE_Y
 SHOULDER = EDGE_Y - outline.TAB_H                     # haut de la languette
 TOP = SHOULDER - outline.BODY_H                       # bord supérieur
 HOLES = [(CX + dx, SHOULDER - outline.HOLE_DY) for dx in (-outline.HOLE_DX, outline.HOLE_DX)]
-PLANES = {"GND": (pcbnew.F_Cu, pcbnew.B_Cu)}       # réseaux coulés
+PLANES = {"GND": (pcbnew.In1_Cu,), "+3V3": (pcbnew.In2_Cu,)}    # plans internes
 
 # Ancres : référence -> (x, y, rotation en degrés ou None = automatique).
 # Repère : axe de la languette x = 150, bord des contacts y = 180, haut de
@@ -264,7 +263,7 @@ class Layout:
     # -- plans, règles ----------------------------------------------------
     def finish(self):
         b = self.board
-        b.SetCopperLayerCount(2)
+        b.SetCopperLayerCount(4)
         ds = b.GetDesignSettings()
         nc = ds.m_NetSettings.m_DefaultNetClass
         nc.SetTrackWidth(pcbnew.FromMM(0.15))

@@ -99,17 +99,18 @@ d'où les sorties /ROMWAIT, /PWAIT0 et /PWAIT1 réglables (registre 0x04).
 S'y ajoutent les délais des tampons de niveaux (~3-5 ns pour les 74LVC en 3,3 V, ~5-8 ns pour les 74AHCT en 5 V) et des
 pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 
-## Placement-routage (nextpnr, broches non affectées)
+## Placement-routage (nextpnr, broches du circuit imprimé)
 
 | FPGA | Cellules logiques | BRAM | E/S | Fréquence max |
 |---|---|---|---|---|
-| P (avec protections) | 3 531 | 28 / 32 | 94 | 105,7 MHz (broches réelles) |
-| V | 1 881 | 0 | 80 | 101 MHz |
-| C | 1 785 | 0 | 89 | 105 MHz (broches réelles) |
-| SM (avec banques CMC) | 1 621 | 20 / 32 | 92 | 114 MHz |
+| P (avec protections) | 3 531 | 28 / 32 | 94 | 100,2 MHz |
+| V | 1 881 | 0 | 80 | 102,9 MHz |
+| C | 1 785 | 0 | 89 | 103,5 MHz |
+| SM (avec banques CMC) | 1 621 | 20 / 32 | 92 | 101,8 MHz |
 
-La marge à 100 MHz est faible (1 à 18 %) et dépend de la graine de
-placement ; l'affectation réelle des broches la fera varier. Si besoin, la
+Avec les broches affectées d'après le placement du circuit imprimé
+(`hardware/gen/pins_opt.json`), la marge à 100 MHz est faible (0,2 à
+3,5 %, meilleure de 8 graines) ; le FPGA P est à la limite. Si besoin, la
 PLL peut être réglée à 90 MHz : les latences augmentent d'environ 10 % et
 restent dans les budgets ci-dessus, sauf le pire cas 68000 (~140 ns), qui
 devient limite.
