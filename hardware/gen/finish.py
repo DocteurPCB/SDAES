@@ -48,9 +48,10 @@ def read_unconnected(report):
             continue
         items = []
         for k in (i + 2, i + 3):
-            m = re.match(r"\s+@\(([-\d.]+) mm, ([-\d.]+) mm\): (\w+).*?\[([^\]]+)\].* on ([A-Za-z0-9.]+)", lines[k])
+            m = re.match(r"\s+@\(([-\d.]+) mm, ([-\d.]+) mm\): (\w+).*?\[([^\]]+)\](?:.* on ([A-Za-z0-9.]+))?", lines[k])
             if m:
-                items.append((m.group(3), float(m.group(1)), float(m.group(2)), m.group(5), m.group(4)))
+                kind = "Pad" if m.group(3) == "PTH" else m.group(3)    # pastille traversante
+                items.append((kind, float(m.group(1)), float(m.group(2)), m.group(5) or "*", m.group(4)))
         if len(items) == 2 and items[0][4] == items[1][4]:
             out.append((items[0][4], items))
     return out
@@ -272,6 +273,38 @@ def astar(G, obst, via_bad, src, dst):
     return None
 
 
+def clear_line(G, obst, l, a, c):
+    """Segment entre deux cellules libre d'obstacle (échantillonné au demi-pas)."""
+    (y0, x0), (y1, x1) = a, c
+    n = int(max(abs(y1 - y0), abs(x1 - x0)) * 2) + 1
+    for k in range(n + 1):
+        iy = int(round(y0 + (y1 - y0) * k / n))
+        ix = int(round(x0 + (x1 - x0) * k / n))
+        if obst[l][iy, ix]:
+            return False
+    return True
+
+
+def smooth(G, obst, path):
+    """Remplace les escaliers de la grille par des segments droits (à 45°
+    près ou quelconques) tant que la vue est dégagée, couche par couche."""
+    out = [path[0]]
+    i = 0
+    while i < len(path) - 1:
+        l = path[i][0]
+        j = i + 1
+        k = i + 1
+        while k < len(path) and path[k][0] == l:
+            if clear_line(G, obst, l, path[i][1:], path[k][1:]):
+                j = k
+            k += 1
+        if path[j][0] != l:                   # changement de couche (via)
+            j = i + 1
+        out.append(path[j])
+        i = j
+    return out
+
+
 def emit(b, G, path, net, start_xy, end_xy):
     """Pistes et vias le long du chemin (points alignés fusionnés)."""
     ni = b.FindNet(net)
@@ -368,6 +401,7 @@ def route_pairs(b, name, todo, order):
             print(f"    {net} : bloqué")
             fails.append((net, items))
             continue
+        path = smooth(G, obst, path)
         n_t, n_v = emit(b, G, path, net, sxy, dxy)
         print(f"    {net} : relié ({n_t} segments, {n_v} vias)")
     return fails
