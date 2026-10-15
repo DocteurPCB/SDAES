@@ -31,10 +31,11 @@ def find(x, key):
     return [e for e in x if isinstance(e, list) and e and e[0] == key]
 
 
-def export_dsn(pcb, dsn):
+def export_dsn(pcb, dsn, keep=False):
+    """keep : garde les pistes déjà routées (reprise d'un routage)."""
     b = pcbnew.LoadBoard(pcb)
     for t in list(b.GetTracks()):
-        if not t.IsLocked():
+        if not t.IsLocked() and not keep:
             b.Remove(t)
     if not pcbnew.ExportSpecctraDSN(b, dsn):
         raise SystemExit("export DSN impossible")
@@ -180,7 +181,8 @@ def main():
         ses = args[args.index("--import") + 1]
     else:
         passes = int(args[args.index("--passes") + 1]) if "--passes" in args else 60
-        export_dsn(pcb, dsn)
+        # --continue : reprise sur la carte déjà routée (liaisons restantes)
+        export_dsn(pcb, dsn, keep="--continue" in args)
         run_freerouting(dsn, ses, passes)
     import_ses(pcb, ses)
     drc(pcb, os.path.join(work, f"{name}-drc.rpt"))
