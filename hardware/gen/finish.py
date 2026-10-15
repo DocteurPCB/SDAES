@@ -290,9 +290,26 @@ def clear_line(G, obst, l, a, c):
     return True
 
 
+def dilate(m):
+    """Obstacles grossis d'une cellule (vérification des segments droits)."""
+    d = m.copy()
+    d[1:, :] |= m[:-1, :]
+    d[:-1, :] |= m[1:, :]
+    d[:, 1:] |= m[:, :-1]
+    d[:, :-1] |= m[:, 1:]
+    return d
+
+
 def smooth(G, obst, path):
     """Remplace les escaliers de la grille par des segments droits (à 45°
-    près ou quelconques) tant que la vue est dégagée, couche par couche."""
+    près ou quelconques) tant que la vue est dégagée, couche par couche ;
+    vérification sur les obstacles grossis d'une cellule (un segment
+    quelconque passe entre les centres des cellules)."""
+    obst = {l: dilate(m) for l, m in obst.items()}
+    for l in obst:                            # les extrémités du chemin restent permises
+        for q in (path[0], path[-1]):
+            if q[0] == l:
+                obst[l][q[1], q[2]] = False
     out = [path[0]]
     i = 0
     while i < len(path) - 1:
@@ -305,6 +322,8 @@ def smooth(G, obst, path):
             k += 1
         if path[j][0] != l:                   # changement de couche (via)
             j = i + 1
+        elif j == i + 1:
+            pass                              # pas voisin : toujours sûr (chemin A*)
         out.append(path[j])
         i = j
     return out
@@ -446,6 +465,16 @@ def one_round(name, report, state_file, rip_ok=True):
     route.drc(pcb, report)
 
 
+def defects(report):
+    """Liaisons manquantes + violations de cuivre (isolement, courts-circuits,
+    trous) d'un rapport DRC : un tour n'est gardé que s'il fait baisser ce
+    total."""
+    t = open(report).read()
+    bad = sum(t.count(f"[{k}]") for k in ("clearance", "shorting_items", "hole_clearance",
+                                           "copper_edge_clearance", "tracks_crossing", "track_dangling"))
+    return len(read_unconnected(report)) + 10 * bad
+
+
 def finish(name, report, rounds=6):
     """Premier tour sans arrachage, puis tours avec arrachage ; on garde la
     meilleure carte (le moins de liaisons restantes), jamais une pire."""
@@ -455,7 +484,7 @@ def finish(name, report, rounds=6):
     best_pcb, best_rpt = pcb + ".meilleure", report + ".meilleure"
     if os.path.exists(state):
         os.remove(state)
-    best = len(read_unconnected(report))
+    best = defects(report)
     shutil.copy(pcb, best_pcb)
     shutil.copy(report, best_rpt)
     for k in range(rounds):
@@ -466,7 +495,7 @@ def finish(name, report, rounds=6):
         if k == 0:
             cmd.append("--no-rip")
         subprocess.run(cmd, check=True)
-        n = len(read_unconnected(report))
+        n = defects(report)
         if n < best:
             best = n
             shutil.copy(pcb, best_pcb)
@@ -475,7 +504,7 @@ def finish(name, report, rounds=6):
     shutil.copy(best_rpt, report)
     os.remove(best_pcb)
     os.remove(best_rpt)
-    print(f"{pcb} : {best} liaison(s) restante(s)")
+    print(f"{pcb} : {len(read_unconnected(report))} liaison(s) restante(s), score {best}")
     for net, items in read_unconnected(report):
         print(f"    reste : {net} ({items[0][0]} {items[0][1]:.2f},{items[0][2]:.2f} -> "
               f"{items[1][0]} {items[1][1]:.2f},{items[1][2]:.2f})")
