@@ -194,6 +194,11 @@ def item_cells(G, b, it, net):
                     G.mark_rect(m, (mm(bb.GetLeft()), mm(bb.GetTop()), mm(bb.GetRight()), mm(bb.GetBottom())), 0.0)
                     ls = [l for l in LAYERS if p.IsOnLayer(l)]
                     for iy, ix in zip(*np.nonzero(m)):
+                        cx, cy = G.xy(iy, ix)
+                        # forme réelle de la pastille (une pastille ronde ne
+                        # remplit pas son rectangle englobant)
+                        if not p.HitTest(pcbnew.VECTOR2I(pcbnew.FromMM(cx), pcbnew.FromMM(cy)), 0):
+                            continue
                         for l in ls:
                             out.add((l, iy, ix))
                     return out, (x, y)
