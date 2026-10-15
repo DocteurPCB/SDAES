@@ -373,7 +373,7 @@ def route_pairs(b, name, todo, order):
     return fails
 
 
-def one_round(name, report, state_file):
+def one_round(name, report, state_file, rip_ok=True):
     """Un tour (processus à part : après Save, la carte chargée devient
     inutilisable dans le même processus)."""
     import json
@@ -386,7 +386,7 @@ def one_round(name, report, state_file):
         return
     b = pcbnew.LoadBoard(pcb)
     fails = route_pairs(b, name, todo, order)
-    if fails:
+    if fails and rip_ok:
         counts = pad_count(b)
         rip = set()
         for net, items in fails:
@@ -407,18 +407,39 @@ def one_round(name, report, state_file):
     route.drc(pcb, report)
 
 
-def finish(name, report, rounds=8):
+def finish(name, report, rounds=6):
+    """Premier tour sans arrachage, puis tours avec arrachage ; on garde la
+    meilleure carte (le moins de liaisons restantes), jamais une pire."""
+    import shutil
     pcb = os.path.join(KICAD, name, f"{name}.kicad_pcb")
     state = report + ".ordre.json"
+    best_pcb, best_rpt = pcb + ".meilleure", report + ".meilleure"
     if os.path.exists(state):
         os.remove(state)
+    best = len(read_unconnected(report))
+    shutil.copy(pcb, best_pcb)
+    shutil.copy(report, best_rpt)
     for k in range(rounds):
         if not read_unconnected(report):
             break
-        print(f"  tour {k + 1}")
-        subprocess.run([sys.executable, os.path.abspath(__file__), name, "--report", report,
-                        "--one-round", state], check=True)
-    print(f"{pcb} : {len(read_unconnected(report))} liaison(s) restante(s)")
+        print(f"  tour {k + 1}{' (sans arrachage)' if k == 0 else ''}")
+        cmd = [sys.executable, os.path.abspath(__file__), name, "--report", report, "--one-round", state]
+        if k == 0:
+            cmd.append("--no-rip")
+        subprocess.run(cmd, check=True)
+        n = len(read_unconnected(report))
+        if n < best:
+            best = n
+            shutil.copy(pcb, best_pcb)
+            shutil.copy(report, best_rpt)
+    shutil.copy(best_pcb, pcb)
+    shutil.copy(best_rpt, report)
+    os.remove(best_pcb)
+    os.remove(best_rpt)
+    print(f"{pcb} : {best} liaison(s) restante(s)")
+    for net, items in read_unconnected(report):
+        print(f"    reste : {net} ({items[0][0]} {items[0][1]:.2f},{items[0][2]:.2f} -> "
+              f"{items[1][0]} {items[1][1]:.2f},{items[1][2]:.2f})")
 
 
 def main():
@@ -427,7 +448,7 @@ def main():
     work = os.environ.get("ROUTE_DIR", os.path.join(KICAD, name))
     report = args[args.index("--report") + 1] if "--report" in args else os.path.join(work, f"{name}-drc.rpt")
     if "--one-round" in args:
-        one_round(name, report, args[args.index("--one-round") + 1])
+        one_round(name, report, args[args.index("--one-round") + 1], rip_ok="--no-rip" not in args)
     else:
         finish(name, report)
 
