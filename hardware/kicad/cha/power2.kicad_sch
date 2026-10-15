@@ -1,7 +1,7 @@
 (kicad_sch
   (version 20230121)
   (generator eeschema)
-  (uuid b9bb8e05-6ed4-454e-a005-90c9c2b15688)
+  (uuid e0058004-e55a-433f-95b8-b823d7148735)
   (paper A1)
   (title_block
     (title "SDAES - carte CHA (sprites, couche fixe, Z80, RP2350) - Connecteur et alimentations (suite)"))
@@ -328,7 +328,7 @@
     (in_bom yes)
     (on_board yes)
     (dnp no)
-    (uuid 2c055025-6b9b-483a-b75b-ff9a5e78884b)
+    (uuid 809366c5-4a64-417f-b35d-175b2b6df599)
     (property "Reference" "J4"
       (at 60.96 28.1 0)
       (effects
@@ -350,36 +350,36 @@
         (font
           (size 1.27 1.27)) hide))
     (pin "1"
-      (uuid ee298f05-9395-4838-8bae-634c310f1371))
+      (uuid d44a697f-4eb0-48a1-adaa-a3ee16ea7208))
     (pin "10"
-      (uuid 57054c1f-794f-4eb4-bb7a-a088f0da38a3))
+      (uuid 13195ad4-fc2f-4976-b546-c9d0821fd7d9))
     (pin "11"
-      (uuid e8cc4060-4e48-4b39-a981-749a2dc42cf9))
+      (uuid c02c6fe2-2441-4df6-99c3-c29f669469f4))
     (pin "12"
-      (uuid 39fc6350-e0f1-44e0-bd69-139f7e2fe322))
+      (uuid 70b4fdbe-bbcc-4926-ae6b-4a26c0f8a804))
     (pin "13"
-      (uuid 644dc677-e6cb-493b-873e-0d8dd41153f2))
+      (uuid c7ef3957-c16d-47ba-8c66-5f1c83e258b0))
     (pin "14"
-      (uuid d410ba03-6f5f-4174-89bc-4af550d8e727))
+      (uuid 2771a321-06ee-428d-9422-83a2f09b6a59))
     (pin "2"
-      (uuid 636ec06e-b575-4b6c-a40d-e337b61c4931))
+      (uuid 007af1b8-d3e7-4c90-9f99-30b9c12ae2bc))
     (pin "3"
-      (uuid 8562fe56-ddcd-4560-82b0-1f437ba8f3d1))
+      (uuid 0463fed7-16f6-46ee-a957-edf20b9bf8e0))
     (pin "4"
-      (uuid 8f17b2f3-4519-4e3a-85d2-8862acffba5c))
+      (uuid f6ed5d63-fc3a-41b9-a464-7335b2382192))
     (pin "5"
-      (uuid 59727c36-994f-4b75-978d-15ed37483d25))
+      (uuid e8b4ecf0-a437-4fb2-9cc1-290cf047722d))
     (pin "6"
-      (uuid 1bf8c22b-fe8a-4e86-a4f8-add948ea163f))
+      (uuid d98146bb-d91d-4298-ba8d-1771d3beecb3))
     (pin "7"
-      (uuid eb93b11f-e874-4ddf-b2f2-322ea1ba89cd))
+      (uuid c0592592-a539-4b30-88a6-50c7887c4b54))
     (pin "8"
-      (uuid 97f26e03-cbd7-466f-aadf-61fbbdaa7d79))
+      (uuid 679b59fa-c6ae-4a1f-92c8-8d1eea5c3c0b))
     (pin "9"
-      (uuid 797c0e17-0a51-4b54-8256-211e3851cce9))
+      (uuid 9fa16850-6dbc-4557-9dbe-50d0e0fd6c5d))
     (instances
       (project "cha"
-        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211/5da3b511-28f9-4d90-8fde-71f7a8ad3655"
+        (path "/e3e9b29e-cfdd-41d0-b129-236ec434a7fe/ed2ee038-68f2-480b-a091-b4eee93f1cf6"
           (reference "J4")
           (unit 1)))))
   (global_label "CHA_SCK"
@@ -390,7 +390,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid cbba5363-1f12-4214-b288-9fb7988aab5d)
+    (uuid c0a2fa59-b452-4e1a-87be-cd5689d34adf)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 38.1 0)
       (effects
@@ -404,7 +404,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid f5a72993-1208-4ec2-b731-729a61a8a55f)
+    (uuid 4a2bc017-3b67-4f2e-8196-58f02d8336f7)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 48.26 0)
       (effects
@@ -418,7 +418,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid 1b11b66e-611b-4b4f-b43f-0c23160d4340)
+    (uuid 74c918f2-b41f-4099-86b7-4d5b8eb93f4e)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 50.8 0)
       (effects
@@ -432,7 +432,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid 1e6350d3-3c3c-42e3-bc6a-ec5b09595c6a)
+    (uuid a6a3b60a-3dd8-4498-9e7f-441adf174f36)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 50.8 0)
       (effects
@@ -446,7 +446,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid cf8b7cfa-e2a8-4a33-918d-bdb766639f4d)
+    (uuid 9106d9a5-4668-4cf2-97f1-893a0bff28d4)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 53.34 0)
       (effects
@@ -460,7 +460,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid d40e0a00-3aaa-4600-b43f-b25643ab6c06)
+    (uuid 850d47f2-f3d4-42d7-a777-a343f779912f)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 53.34 0)
       (effects
@@ -474,7 +474,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid bc8e342e-6ecb-4490-9335-aed07c8144b5)
+    (uuid 88c0e84a-d390-4400-b52c-772ae10994bb)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 38.1 0)
       (effects
@@ -488,7 +488,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid 6c69eac0-5c0b-40ce-984a-7f5f41f39518)
+    (uuid 53f2e419-32b0-40e4-b798-6b65cff2b6f9)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 40.64 0)
       (effects
@@ -502,7 +502,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid 8f214814-49a4-4e08-a751-383b575f9a79)
+    (uuid 604347f0-74e7-43ed-8789-7f44f29d65f5)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 40.64 0)
       (effects
@@ -516,7 +516,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid 88a3ceb8-6af3-44b1-b3bb-849558bbecf7)
+    (uuid 4608951a-acb3-4b42-a29c-b6afeaeef9b7)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 43.18 0)
       (effects
@@ -530,7 +530,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid 02221410-69ce-40a6-936b-0a8bf87a64a9)
+    (uuid 3be5ccf1-e235-4ced-9c89-b13a46eaf610)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 43.18 0)
       (effects
@@ -544,7 +544,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid f41cfd0a-324f-487b-814c-324ac7fffd7b)
+    (uuid cca7e7df-6a24-4365-8312-b7a7aa056b85)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 45.72 0)
       (effects
@@ -558,7 +558,7 @@
       (font
         (size 1.27 1.27))
       (justify left))
-    (uuid 9cc02875-c13b-439e-a3a9-849fca304cc7)
+    (uuid d946e461-90a1-4c49-a050-7d9a95dff6c7)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 68.58 45.72 0)
       (effects
@@ -572,7 +572,7 @@
       (font
         (size 1.27 1.27))
       (justify right))
-    (uuid 1bea9e0f-f5f0-436c-99a7-8d506300a58c)
+    (uuid 8ec7287b-fe90-4d92-bb7e-9a41aac6a5c7)
     (property "Intersheetrefs" "${INTERSHEET_REFS}"
       (at 55.88 48.26 0)
       (effects

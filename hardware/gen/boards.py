@@ -33,7 +33,8 @@ FP = {
     "tssop20": "Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm",
     "tssop14": "Package_SO:TSSOP-14_4.4x5mm_P0.65mm",
     "sot23-5": "Package_TO_SOT_SMD:SOT-23-5",
-    "sot223": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+    "tsot23-6": "Package_TO_SOT_SMD:TSOT-23-6",
+    "inductor": "Inductor_SMD:L_Bourns_SRP5030T",
     "sdram": "Package_SO:TSOP-II-54_22.2x10.16mm_P0.8mm",
     "sram": "Package_SO:TSOP-II-44_10.16x18.41mm_P0.8mm",
     "osc": "Oscillator:Oscillator_SMD_Abracon_ASE-4Pin_3.2x2.5mm_HandSoldering",
@@ -62,7 +63,8 @@ SW = k.kicad_symbol("Switch", "SW_Push")
 ICE40 = k.kicad_symbol("FPGA_Lattice", "ICE40HX4K-TQ144")
 SDRAM = k.kicad_symbol("Memory_RAM", "MT48LC16M16A2TG")
 OSC = k.kicad_symbol("Oscillator", "ASE-xxxMHz")
-LDO33 = k.kicad_symbol("Regulator_Linear", "AMS1117-3.3")
+BUCK33 = k.kicad_symbol("Regulator_Switching", "AP63203WU")   # 5 V -> 3,3 V, découpage
+IND = k.kicad_symbol("Device", "L")
 LDO12 = k.kicad_symbol("Regulator_Linear", "AP2112K-1.2")
 MSD = k.kicad_symbol("Connector", "Micro_SD_Card")
 X245 = k.kicad_symbol("74xx", "MC74LCX16245DT")        # brochage 16245 standard (= SN74LVC16245A)
@@ -210,12 +212,20 @@ def decouple(sh, ref, net, n100, bulk=None):
 
 
 def power(sh, ref, edge_ref):
-    """5 V du connecteur -> 3,3 V (AMS1117) et 1,2 V (AP2112K)."""
-    cap(sh, ref, "22u", "+5V")
+    """5 V du connecteur -> 3,3 V par régulateur à découpage AP63203 (sortie
+    fixe, ~90 % : ~0,15 W de pertes au lieu de ~0,75 W pour un linéaire, et
+    moins de courant tiré sur le 5 V de la console), puis 3,3 V -> 1,2 V
+    (AP2112K, cœurs des FPGA). Valeurs : fiche Diodes AP63200/1/3/5
+    (L 4,7 µH, Cin 10 µF, Cout 2 x 22 µF, Cboot 100 nF ; EN relié à VIN)."""
+    sh.add(k.Part(ref("U"), BUCK33, "AP63203WU", FP["tsot23-6"],
+                  {1: "+3V3", 2: "+5V", 3: "+5V", 4: "GND", 5: "SW33", 6: "BST33"}))
+    cap(sh, ref, "10u", "+5V")                 # entrée, contre VIN et GND
     cap(sh, ref, "100n", "+5V")
-    sh.add(k.Part(ref("U"), LDO33, "AMS1117-3.3", FP["sot223"], {1: "GND", 2: "+3V3", 3: "+5V"}))
+    cap(sh, ref, "22u", "+5V")                 # réserve à l'entrée
+    sh.add(k.Part(ref("C"), C, "100n", FP["c"], {1: "BST33", 2: "SW33"}))      # amorçage
+    sh.add(k.Part(ref("L"), IND, "4,7 µH 3 A", FP["inductor"], {1: "SW33", 2: "+3V3"}))
     cap(sh, ref, "22u", "+3V3")
-    cap(sh, ref, "100n", "+3V3")
+    cap(sh, ref, "22u", "+3V3")
     sh.add(k.Part(ref("U"), LDO12, "AP2112K-1.2", FP["sot23-5"], {1: "+3V3", 2: "GND", 3: "+3V3", 5: "+1V2"}))
     cap(sh, ref, "10u", "+1V2")
     cap(sh, ref, "1u", "+3V3")
@@ -253,6 +263,10 @@ def fpga(sh, ref, tag, pcf_name, portmap):
         cap(sh, ref, "10u", f"{tag}_{pll}")
         cap(sh, ref, "100n", f"{tag}_{pll}")
     res(sh, ref, "10k", "CRESET_N", "GND")
+    if "SD_CLK" in pins:
+        # résistance série d'horloge SDRAM : contre la broche du FPGA (adaptation
+        # à la source), déclarée ici pour être placée près de lui
+        res(sh, ref, "33", f"{tag}_SD_CLK", f"{tag}_SD_CLK_R")
     # secours : configuration directe (iceprog -S) par un programmateur USB,
     # RP2350 au repos (broches en haute impédance)
     sh.add(k.Part(ref("J"), HDR6, f"CONF {tag}", FP["hdr2x3"],
@@ -287,7 +301,6 @@ def sdram(sh, ref, tag, value):
         elif p.name in ("VSS", "VSSQ"):
             nets[p.number] = "GND"
     sh.add(k.Part(ref("U"), SDRAM, value, FP["sdram"], nets))
-    res(sh, ref, "33", f"{tag}_SD_CLK", f"{tag}_SD_CLK_R")      # résistance série d'horloge
     decouple(sh, ref, "+3V3", 7, "10u")
 
 
@@ -512,7 +525,13 @@ def cha_board():
     spr = by_edge("CHA", [o for o in outs if not o[0].startswith("FIXD")], 1)
     outs = fix + spr
     x16244(sh, ref, outs[:16], "OE5_N", "+5V", "74AHCT16244")
-    x16244(sh, ref, outs[16:], "OE5_N", "+5V", "74AHCT16244")
+    # 2 sorties restantes : 74AHCT125 (4 canaux) plutôt qu'un 16244 à 14
+    # entrées inutilisées (leurs vias de masse enfermaient l'alimentation)
+    (a1, y1), (a2, y2) = outs[16:18]
+    sh.add(k.Part(ref("U"), X125, "74AHCT125", FP["tssop14"],
+                  {1: "OE5_N", 2: a1, 3: y1, 4: "OE5_N", 5: a2, 6: y2,
+                   10: "+5V", 9: "GND", 13: "+5V", 12: "GND", 7: "GND", 14: "+5V"}))
+    cap(sh, ref, "100n", "+5V")
     # bus de données Z80 : 74AHCT244, /OE = SDD_OE_N OU OE5_N
     n244 = {pin_of(X244_8, f"{g}A{i}"): f"SDD{(g - 1) * 4 + i}" for g in (1, 2) for i in range(4)}
     n244.update({pin_of(X244_8, f"{g}Y{i}"): f"AES_SDD{(g - 1) * 4 + i}" for g in (1, 2) for i in range(4)})

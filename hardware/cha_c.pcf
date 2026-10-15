@@ -4,8 +4,8 @@
 # travers un tampon de niveaux (hardware/aes_connector.csv).
 set_io CLK25 93    # input, banc 1, GBIN3
 set_io P[0] 7    # input, banc 3, AES CHA dessus 11
-set_io P[1] 8    # input, banc 3, AES CHA dessous 11
-set_io P[2] 10    # input, banc 3, AES CHA dessus 12
+set_io P[1] 9    # input, banc 3, AES CHA dessous 11
+set_io P[2] 8    # input, banc 3, AES CHA dessus 12
 set_io P[3] 11    # input, banc 3, AES CHA dessous 12
 set_io P[4] 16    # input, banc 3, AES CHA dessus 13
 set_io P[5] 17    # input, banc 3, AES CHA dessous 13
@@ -13,9 +13,9 @@ set_io P[6] 22    # input, banc 3, AES CHA dessus 14
 set_io P[7] 24    # input, banc 3, AES CHA dessous 14
 set_io P[8] 23    # input, banc 3, AES CHA dessus 15
 set_io P[9] 25    # input, banc 3, AES CHA dessous 15
-set_io P[10] 9    # input, banc 3, AES CHA dessus 16
+set_io P[10] 12    # input, banc 3, AES CHA dessus 16
 set_io P[11] 26    # input, banc 3, AES CHA dessous 16
-set_io P[12] 12    # input, banc 3, AES CHA dessus 17
+set_io P[12] 10    # input, banc 3, AES CHA dessus 17
 set_io P[13] 15    # input, banc 3, AES CHA dessous 17
 set_io P[14] 18    # input, banc 3, AES CHA dessus 18
 set_io P[15] 19    # input, banc 3, AES CHA dessous 18
@@ -90,4 +90,4 @@ set_io SD_DQ[12] 114    # inout, banc 0
 set_io SD_DQ[13] 115    # inout, banc 0
 set_io SD_DQ[14] 116    # inout, banc 0
 set_io SD_DQ[15] 117    # inout, banc 0
-set_io LED 87    # output, banc 1
+set_io LED 81    # output, banc 1

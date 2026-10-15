@@ -56,7 +56,7 @@ set_io LK_IO[2] 10    # inout, banc 3
 set_io LK_IO[3] 11    # inout, banc 3
 set_io LK_IRQ 8    # output, banc 3
 set_io MODE 7    # output, banc 3
-set_io SD_CLK 97    # output, banc 1
+set_io SD_CLK 94    # output, banc 1, GBIN2
 set_io SD_CKE 110    # output, banc 0
 set_io SD_CS_N 141    # output, banc 0
 set_io SD_RAS_N 139    # output, banc 0
@@ -95,4 +95,4 @@ set_io SD_DQ[12] 117    # inout, banc 0
 set_io SD_DQ[13] 118    # inout, banc 0
 set_io SD_DQ[14] 119    # inout, banc 0
 set_io SD_DQ[15] 120    # inout, banc 0
-set_io LED 87    # output, banc 1
+set_io LED 81    # output, banc 1
