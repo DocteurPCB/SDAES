@@ -1,7 +1,7 @@
 (kicad_sch
   (version 20230121)
   (generator eeschema)
-  (uuid c2acc1ad-3350-4022-8990-314ed37b470d)
+  (uuid e0c94673-4de7-4c3d-ae38-3ad172bd9211)
   (paper A4)
   (title_block
     (title "SDAES - carte CHA (sprites, couche fixe, Z80, RP2350)")
@@ -16,7 +16,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid bbccdb96-9770-46de-a795-17eeb553a2eb)
+    (uuid 487ca0d9-8808-4fae-84e1-ce9a305056e7)
     (property "Sheetname" "Connecteur et alimentations"
       (at 25.4 29.78 0)
       (effects
@@ -31,7 +31,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "2")))))
   (sheet
     (at 88.9 30.48)
@@ -42,7 +42,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 10cde8cd-8d5c-48bb-847c-9f25f2091cd6)
+    (uuid f4a8d92f-a236-4592-b9ef-6f3cd077d998)
     (property "Sheetname" "Tampons de niveaux"
       (at 88.9 29.78 0)
       (effects
@@ -57,7 +57,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "3")))))
   (sheet
     (at 152.4 30.48)
@@ -68,7 +68,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid d17167f7-b237-4a58-be08-82e56b7ec823)
+    (uuid d08066da-77bb-4ccf-b3ef-c865234c9fe4)
     (property "Sheetname" "FPGA C"
       (at 152.4 29.78 0)
       (effects
@@ -83,7 +83,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "4")))))
   (sheet
     (at 215.9 30.48)
@@ -94,7 +94,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 2f727c2e-3627-4c28-92a0-a6104596b633)
+    (uuid 6888ebda-17d6-4344-9bf0-1f13622b6def)
     (property "Sheetname" "SDRAM C"
       (at 215.9 29.78 0)
       (effects
@@ -109,7 +109,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "5")))))
   (sheet
     (at 25.4 68.58)
@@ -120,7 +120,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 7c17e6ce-3dc1-4363-ae9a-1efd42617669)
+    (uuid 19c2e398-814e-49a6-a22b-587549b2e82f)
     (property "Sheetname" "FPGA SM"
       (at 25.4 67.88 0)
       (effects
@@ -135,7 +135,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "6")))))
   (sheet
     (at 88.9 68.58)
@@ -146,7 +146,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid e6c5c237-610b-41d6-be49-5455062a281a)
+    (uuid 4dccd2d1-3288-4479-ab73-7341d5d3a8d6)
     (property "Sheetname" "SRAM S + M1"
       (at 88.9 67.88 0)
       (effects
@@ -161,7 +161,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "7")))))
   (sheet
     (at 152.4 68.58)
@@ -172,14 +172,14 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid a69ffacb-b967-440c-b25c-583ec667189d)
-    (property "Sheetname" "RP2350, carte SD, câble"
+    (uuid 5da3b511-28f9-4d90-8fde-71f7a8ad3655)
+    (property "Sheetname" "Connecteur et alimentations (suite)"
       (at 152.4 67.88 0)
       (effects
         (font
           (size 1.27 1.27))
         (justify left bottom)))
-    (property "Sheetfile" "mcu.kicad_sch"
+    (property "Sheetfile" "power2.kicad_sch"
       (at 152.4 94.58 0)
       (effects
         (font
@@ -187,7 +187,7 @@
         (justify left top) hide))
     (instances
       (project "cha"
-        (path "/c2acc1ad-3350-4022-8990-314ed37b470d"
+        (path "/e0c94673-4de7-4c3d-ae38-3ad172bd9211"
           (page "8")))))
   (sheet_instances
     (path "/"

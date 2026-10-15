@@ -356,9 +356,42 @@ def edge(sh, ref, board, used):
         res(sh, ref, "0", f"AES_{a}", f"AES_{b}")
 
 
-CABLE = {1: "PROG_SCK", 2: "PROG_IO0", 3: "PROG_IO1", 4: "PROG_IO2", 5: "PROG_IO3", 6: "CS_P",
-         7: "CS_V", 8: "LK_IRQ", 9: "MODE", 10: "CDONE", 11: "GND", 12: "GND",
+# câble PROG-CHA : bus de liaison des FPGA C et SM (le RP2350 est sur PROG)
+CABLE = {1: "CHA_SCK", 2: "CHA_IO0", 3: "CHA_IO1", 4: "CHA_IO2", 5: "CHA_IO3", 6: "CS_C",
+         7: "CS_SM", 8: "GND", 9: "MODE", 10: "CDONE", 11: "GND", 12: "GND",
          13: "CRESET_N", 14: "GND"}
+
+
+def mcu(b, ref):
+    """RP2350 (Pico 2), carte SD et bouton : carte PROG, dont la face
+    composants est tournée vers l'avant de la cartouche (accès au lecteur
+    et au bouton). Le bus de liaison C/SM passe par le câble PROG-CHA."""
+    sh = b.sheet("RP2350, carte SD, bouton", "mcu.kicad_sch")
+    pico = {i: "GND" for i in (3, 8, 13, 18, 23, 28, 33, 38)}
+    gp = {2: "SD_CLK", 3: "SD_CMD", 4: "SD_D0", 5: "SD_D1", 6: "SD_D2", 7: "SD_D3",
+          8: "PROG_SCK_MCU", 9: "PROG_IO0_MCU", 10: "PROG_IO1_MCU", 11: "PROG_IO2_MCU", 12: "PROG_IO3_MCU",
+          13: "CS_P", 14: "CS_V", 15: "CHA_SCK_MCU", 16: "CHA_IO0_MCU", 17: "CHA_IO1_MCU",
+          18: "CHA_IO2_MCU", 19: "CHA_IO3_MCU", 20: "CS_C", 21: "CS_SM", 22: "LK_IRQ",
+          26: "CDONE", 27: "BUTTON_N", 28: "CRESET_N"}
+    for g, net in gp.items():
+        pico[pin_of(PICO, f"GP{g}")] = net
+    pico[pin_of(PICO, "VSYS")] = "PICO_VSYS"
+    sh.add(k.Part(ref("A"), PICO, "Raspberry Pi Pico 2", FP["pico"], pico))
+    # VSYS depuis le 5 V de la console, par une diode Schottky (fiche Pico 2)
+    sh.add(k.Part(ref("D"), DSCH, "SS14 / BAT60A", FP["schottky"], {2: "+5V", 1: "PICO_VSYS"}))
+    # résistances série côté émetteur sur les deux bus de liaison
+    for bus in ("PROG", "CHA"):
+        res(sh, ref, "33", f"{bus}_SCK_MCU", f"{bus}_SCK")
+        for i in range(4):
+            res(sh, ref, "33", f"{bus}_IO{i}_MCU", f"{bus}_IO{i}")
+    sh.add(k.Part(ref("SW"), SW, "Retour menu", FP["sw"], {1: "BUTTON_N", 2: "GND"}))
+    sh.add(k.Part(ref("J"), MSD, "microSD", FP["sd"],
+                  {1: "SD_D2", 2: "SD_D3", 3: "SD_CMD", 4: "+3V3", 5: "SD_CLK", 6: "GND",
+                   7: "SD_D0", 8: "SD_D1", 9: "GND"}))
+    for s in ("SD_CMD", "SD_D0", "SD_D1", "SD_D2", "SD_D3"):
+        res(sh, ref, "10k", "+3V3", s)
+    cap(sh, ref, "10u", "+3V3")
+    cap(sh, ref, "100n", "+3V3")
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +474,7 @@ def prog_board():
     fpga(sh, ref, "V", "prog_v", vmap)
     sh = b.sheet("SDRAM V", "sdram_v.kicad_sch")
     sdram(sh, ref, "V", "W9825G6KH-6")
+    mcu(b, ref)
     return b
 
 
@@ -532,33 +566,7 @@ def cha_board():
     sh.add(k.Part(ref("U"), SRAM, "IS61WV10248EDBLL-10TLI", FP["sram"], nets))
     decouple(sh, ref, "+3V3", 2, "10u")
 
-    sh = b.sheet("RP2350, carte SD, câble", "mcu.kicad_sch")
-    pico = {i: "GND" for i in (3, 8, 13, 18, 23, 28, 33, 38)}
-    gp = {2: "SD_CLK", 3: "SD_CMD", 4: "SD_D0", 5: "SD_D1", 6: "SD_D2", 7: "SD_D3",
-          8: "PROG_SCK_MCU", 9: "PROG_IO0_MCU", 10: "PROG_IO1_MCU", 11: "PROG_IO2_MCU", 12: "PROG_IO3_MCU",
-          13: "CS_P", 14: "CS_V", 15: "CHA_SCK_MCU", 16: "CHA_IO0_MCU", 17: "CHA_IO1_MCU",
-          18: "CHA_IO2_MCU", 19: "CHA_IO3_MCU", 20: "CS_C", 21: "CS_SM", 22: "LK_IRQ",
-          26: "CDONE", 27: "BUTTON_N", 28: "CRESET_N"}
-    for g, net in gp.items():
-        pico[pin_of(PICO, f"GP{g}")] = net
-    pico[pin_of(PICO, "VSYS")] = "PICO_VSYS"
-    sh.add(k.Part(ref("A"), PICO, "Raspberry Pi Pico 2", FP["pico"], pico))
-    # VSYS depuis le 5 V de la console, par une diode Schottky (fiche Pico 2)
-    sh.add(k.Part(ref("D"), DSCH, "SS14 / BAT60A", FP["schottky"], {2: "+5V", 1: "PICO_VSYS"}))
-    # résistances série côté émetteur sur les deux bus de liaison
-    for bus in ("PROG", "CHA"):
-        res(sh, ref, "33", f"{bus}_SCK_MCU", f"{bus}_SCK")
-        for i in range(4):
-            res(sh, ref, "33", f"{bus}_IO{i}_MCU", f"{bus}_IO{i}")
-    res(sh, ref, "10k", "+3V3", "CDONE")
-    sh.add(k.Part(ref("SW"), SW, "Retour menu", FP["sw"], {1: "BUTTON_N", 2: "GND"}))
-    sh.add(k.Part(ref("J"), MSD, "microSD", FP["sd"],
-                  {1: "SD_D2", 2: "SD_D3", 3: "SD_CMD", 4: "+3V3", 5: "SD_CLK", 6: "GND",
-                   7: "SD_D0", 8: "SD_D1", 9: "GND"}))
-    for s in ("SD_CMD", "SD_D0", "SD_D1", "SD_D2", "SD_D3"):
-        res(sh, ref, "10k", "+3V3", s)
-    cap(sh, ref, "10u", "+3V3")
-    cap(sh, ref, "100n", "+3V3")
+    sh = b.sheet("Connecteur et alimentations (suite)", "power2.kicad_sch")
     sh.add(k.Part(ref("J"), HDR14, "Câble PROG-CHA", FP["hdr2x7"], CABLE))
     return b
 

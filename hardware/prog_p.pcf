@@ -52,10 +52,10 @@ set_io LK_SCK 70    # input, configuration SPI
 set_io LK_CS_N 71    # input, configuration SPI
 set_io LK_IO[0] 68    # inout, configuration SPI
 set_io LK_IO[1] 9    # inout, banc 3
-set_io LK_IO[2] 8    # inout, banc 3
-set_io LK_IO[3] 10    # inout, banc 3
-set_io LK_IRQ 7    # output, banc 3
-set_io MODE 11    # output, banc 3
+set_io LK_IO[2] 10    # inout, banc 3
+set_io LK_IO[3] 11    # inout, banc 3
+set_io LK_IRQ 8    # output, banc 3
+set_io MODE 7    # output, banc 3
 set_io SD_CLK 97    # output, banc 1
 set_io SD_CKE 110    # output, banc 0
 set_io SD_CS_N 141    # output, banc 0

@@ -38,10 +38,10 @@ set_io PAD_DIR 76    # output, banc 1
 set_io LK_SCK 70    # input, configuration SPI
 set_io LK_CS_N 71    # input, configuration SPI
 set_io LK_IO[0] 68    # inout, configuration SPI
-set_io LK_IO[1] 99    # inout, banc 1
-set_io LK_IO[2] 98    # inout, banc 1
-set_io LK_IO[3] 97    # inout, banc 1
-set_io MODE 96    # input, banc 1
+set_io LK_IO[1] 91    # inout, banc 1
+set_io LK_IO[2] 90    # inout, banc 1
+set_io LK_IO[3] 88    # inout, banc 1
+set_io MODE 97    # input, banc 1
 set_io SD_CLK 101    # output, banc 1
 set_io SD_CKE 114    # output, banc 0
 set_io SD_CS_N 144    # output, banc 0
@@ -81,4 +81,4 @@ set_io SD_DQ[12] 120    # inout, banc 0
 set_io SD_DQ[13] 121    # inout, banc 0
 set_io SD_DQ[14] 122    # inout, banc 0
 set_io SD_DQ[15] 124    # inout, banc 0
-set_io LED 88    # output, banc 1
+set_io LED 87    # output, banc 1

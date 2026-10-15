@@ -51,7 +51,10 @@ PLACE = {
         "U1": (150, 150, 0), "U2": (138, 150, None),          # régulateurs, près des contacts VCC
         "U12": (110, 98, 0), "U13": (110, 62, None),        # FPGA V et sa SDRAM
         "U10": (190, 98, 0), "U11": (190, 62, None),        # FPGA P et sa SDRAM
-        "J2": (150, 52, 0),                                    # câble PROG-CHA
+        "A1": (150, 93, 0),                                    # Pico 2, au milieu
+        "J5": (150, 55, 0),                                    # microSD, ouverture vers le haut
+        "SW1": (128, 50, 0),                                   # bouton retour menu
+        "J2": (172, 52, 0),                                    # câble PROG-CHA (même place sur CHA)
     },
     "cha": {
         "J1": (CX, EDGE_Y - outline.PAD_FROM_EDGE, 0),
@@ -61,10 +64,7 @@ PLACE = {
         "U1": (150, 150, 0), "U2": (138, 150, None),
         "U14": (112, 98, 0), "U15": (100, 64, None),        # FPGA SM et SRAM
         "U12": (192, 98, 0), "U13": (192, 62, None),        # FPGA C et SDRAM
-        "A1": (150, 93, 0),                                    # Pico 2, au milieu
-        "J4": (150, 55, 0),                                    # microSD, ouverture vers le haut
-        "SW1": (128, 50, 0),                                   # bouton retour menu
-        "J5": (172, 52, 0),                                    # câble PROG-CHA
+        "J4": (172, 52, 0),                                    # câble PROG-CHA (même place sur PROG)
     },
 }
 # 9 trous d'entretoise M3 reliant les deux cartes : mêmes coordonnées sur
@@ -319,16 +319,6 @@ class Layout:
         ds.m_TrackMinWidth = pcbnew.FromMM(0.09)        # rétrécissement à l'entrée des broches
         ds.m_ViasMinSize = pcbnew.FromMM(0.45)
         ds.m_MinThroughDrill = pcbnew.FromMM(0.3)
-        pw = pcbnew.NETCLASS("Alim")
-        pw.SetTrackWidth(pcbnew.FromMM(0.5))
-        pw.SetClearance(pcbnew.FromMM(0.2))
-        pw.SetViaDiameter(pcbnew.FromMM(0.8))
-        pw.SetViaDrill(pcbnew.FromMM(0.4))
-        ds.m_NetSettings.m_NetClasses["Alim"] = pw
-        for n in ("+5V", "+1V2", "GND", "+3V3"):
-            ds.m_NetSettings.m_NetClassPatternAssignments.append(
-                (pcbnew.EDA_COMBINED_MATCHER(n, pcbnew.CTX_NETCLASS), "Alim")) \
-                if hasattr(ds.m_NetSettings, "m_NetClassPatternAssignments") else None
         w = outline.BOARDS[self.name][0]
         for net, layer in ((n, l) for n, ls in PLANES.items() for l in ls):
             z = pcbnew.ZONE(b)
@@ -347,6 +337,26 @@ class Layout:
                 ol.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
             b.Add(z)
 
+        # sous le Pico 2 : ni piste ni via sur la face composants (pastilles
+        # de test nues sous le module) ; les signaux passent par la face arrière
+        if "A1" in self.fps:
+            c = self.fps["A1"].GetPosition()
+            px, py = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
+            k = pcbnew.ZONE(b)
+            k.SetIsRuleArea(True)
+            k.SetDoNotAllowTracks(True)
+            k.SetDoNotAllowVias(True)
+            k.SetDoNotAllowCopperPour(False)
+            k.SetDoNotAllowPads(False)
+            k.SetDoNotAllowFootprints(False)
+            ls = pcbnew.LSET()
+            ls.AddLayer(pcbnew.F_Cu)
+            k.SetLayerSet(ls)
+            ol = k.Outline()
+            ol.NewOutline()
+            for x, y in ((px - 7.3, py - 25.0), (px + 7.3, py - 25.0), (px + 7.3, py + 25.0), (px - 7.3, py + 25.0)):
+                ol.Append(pcbnew.FromMM(x), pcbnew.FromMM(y))
+            b.Add(k)
         # zones interdites (pistes, vias, plans) autour des trous
         for (x, y), r in [(h, outline.HOLE_D / 2 + 0.5) for h in HOLES] + \
                          [(h, STANDOFF_KEEP) for h in STANDOFFS]:
@@ -379,7 +389,32 @@ class Layout:
         b = pcbnew.LoadBoard(out)
         pcbnew.ZONE_FILLER(b).Fill(b.Zones())
         b.Save(out)
+        set_netclasses(os.path.join(KICAD, self.name, f"{self.name}.kicad_pro"))
         return out
+
+
+# classes de réseaux d'alimentation routés en pistes (masse et +3V3 : plans)
+NETCLASSES = [("Alim5V", 0.5, 0.15, ["+5V", "PICO_VSYS"]), ("Coeur", 0.3, 0.15, ["+1V2"])]
+
+
+def set_netclasses(pro):
+    """Classes et affectations écrites dans le .kicad_pro (le module pcbnew
+    ne les enregistre pas) ; l'export Specctra les reprend."""
+    import json
+    d = json.load(open(pro))
+    ns = d.setdefault("net_settings", {})
+    names = [n for n, *_ in NETCLASSES]
+    classes = [c for c in ns.get("classes", []) if c.get("name") not in names + ["Alim"]]
+    base = next((c for c in classes if c.get("name") == "Default"), {})
+    pats = []
+    for name, w, clr, nets in NETCLASSES:
+        c = dict(base)
+        c.update({"name": name, "track_width": w, "clearance": clr, "via_diameter": 0.6, "via_drill": 0.3})
+        classes.append(c)
+        pats += [{"netclass": name, "pattern": n} for n in nets]
+    ns["classes"] = classes
+    ns["netclass_patterns"] = pats
+    json.dump(d, open(pro, "w"), indent=2)
 
 
 def plane_vias(b, only=None, quiet=False):
