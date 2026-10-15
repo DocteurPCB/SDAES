@@ -1,5 +1,5 @@
 /*
- * Affectation des broches du Raspberry Pi Pico 2 (RP2350) sur la carte CHA.
+ * Affectation des broches du Raspberry Pi Pico 2 (RP2350) sur la carte PROG.
  * Voir docs/04-liaison-rp2350.md et hardware/README.md.
  */
 #ifndef SDAES_BOARD_H
@@ -10,13 +10,13 @@
 #define PIN_SD_CMD      3
 #define PIN_SD_D0       4       /* D1 = 5, D2 = 6, D3 = 7 */
 
-/* Bus de liaison de la carte PROG (FPGA P et V), via le câble inter-cartes */
+/* Bus de liaison de la carte PROG (FPGA P et V), sur la même carte */
 #define PIN_PROG_SCK    8
 #define PIN_PROG_IO0    9       /* IO0..IO3 = 9..12 */
 #define PIN_CS_P        13
 #define PIN_CS_V        14
 
-/* Bus de liaison de la carte CHA (FPGA C et SM) */
+/* Bus de liaison de la carte CHA (FPGA C et SM), via le câble inter-cartes */
 #define PIN_CHA_SCK     15
 #define PIN_CHA_IO0     16      /* IO0..IO3 = 16..19 */
 #define PIN_CS_C        20

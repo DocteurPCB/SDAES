@@ -57,20 +57,22 @@ tient même dans la capacité officielle du HX4K (3 520).
   ZMC2, Z80)    │               ┌──────────┐  SRAM 1 Mo (S + M1)                │
                 │              ◄►│ FPGA SM  │◄►                                 │
                 │               └──────────┘                                    │
-                │        bus de liaison CHA ▲         ┌───────────────┐          │
-                │                           └─────────│ Pico 2 RP2350 │          │
-                │   microSD (SDIO) ◄────────────────► │ firmware      │──┐       │
-                └─────────────────────────────────────┴───────────────┴──┼───────┘
-                                                      câble inter-cartes │
-                ┌──────────────────────── Carte PROG ────────────────────┼───────┐
- Connecteur     │ translateurs  ┌──────────┐  SDRAM 32 Mo (P)            │       │
- PROG ◄────────►│ 5 V <-> 3,3 V ◄►│ FPGA P   │◄►      ◄── bus de liaison ─┘       │
- (68000,        │               └──────────┘──► MODE (vers V, C, SM)            │
-  YM2610)       │               ┌──────────┐  SDRAM 32 Mo (V)                    │
-                │              ◄►│ FPGA V   │◄►                                  │
-                │               └──────────┘                                    │
+                │        bus de liaison CHA ▲                                    │
+                └───────────────────────────┼────────────────────────────────────┘
+                              câble inter-cartes (bus CHA, MODE, CDONE, CRESET_N)
+                ┌──────────────────────── Carte PROG ┼───────────────────────────┐
+ Connecteur     │ translateurs  ┌──────────┐  SDRAM │32 Mo (P)                  │
+ PROG ◄────────►│ 5 V <-> 3,3 V ◄►│ FPGA P   │◄►     │   ┌───────────────┐       │
+ (68000,        │               └──────────┘◄──────┼───│ Pico 2 RP2350 │◄─► microSD
+  YM2610)       │               ┌──────────┐ bus de liaison PROG           │   bouton
+                │              ◄►│ FPGA V   │◄►        └───────────────┘       │
+                │               └──────────┘  SDRAM 32 Mo (V)                 │
                 └───────────────────────────────────────────────────────────────┘
 ```
+
+Le Pico 2, le lecteur microSD et le bouton sont sur la carte PROG : dans la
+cartouche, elle est côté avant (étiquette), composants tournés vers l'avant,
+ce qui rend le lecteur et le bouton accessibles.
 
 ## Deux modes de fonctionnement
 

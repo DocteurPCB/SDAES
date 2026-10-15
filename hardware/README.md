@@ -111,9 +111,10 @@ python3 hardware/gen/route.py prog     # Freerouting puis DRC (idem cha)
 * `pcb.py` : empreintes et réseaux depuis `boards.py`, contour depuis
   `outline.py`. Ancres (circuits intégrés, connecteurs) à des positions
   fixées : contacts en bas, tampons de niveaux en rangée au-dessus (canaux
-  dans l'ordre des contacts), FPGA au milieu, mémoires en haut ; carte CHA :
-  Pico 2 au milieu, microSD et bouton sur le bord supérieur (à rendre
-  accessibles dans la coque). Passifs placés au plus près de la broche de
+  dans l'ordre des contacts), FPGA au milieu, mémoires en haut ; carte PROG
+  (côté avant de la cartouche) : Pico 2 au milieu, microSD et bouton sur le
+  bord supérieur ; sous le Pico, ni piste ni via sur la face composants.
+  Câble PROG-CHA au même endroit sur les deux cartes (x = 172 mm). Passifs placés au plus près de la broche de
   leur circuit. Empilement : F.Cu signaux, In1 plan de masse continu,
   In2 plan +3V3, B.Cu signaux ; +5V et +1V2 en pistes larges. Le 4
   couches est retenu pour la SDRAM à 100 MHz (fronts ~1 ns : chemin de

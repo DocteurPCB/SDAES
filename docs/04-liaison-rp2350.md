@@ -1,7 +1,8 @@
 # 4. Liaison RP2350 ↔ FPGA
 
 Deux bus de liaison de 5 fils (`SCK`, `IO[3:0]`) : un pour la carte PROG
-(FPGA P et V), un pour la carte CHA (FPGA C et SM), avec une sélection
+(FPGA P et V, sur la même carte que le RP2350), un pour la carte CHA (FPGA
+C et SM, par le câble PROG-CHA), avec une sélection
 `CS_N` par FPGA. Le RP2350 est maître. Mode 0 : le maître change les données
 SCK bas, le FPGA échantillonne au front montant. Octets transmis en deux
 quartets, **poids fort d'abord**. Le FPGA sur-échantillonne la liaison à
