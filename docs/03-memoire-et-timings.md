@@ -110,7 +110,8 @@ pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 
 Avec les broches affectées d'après le placement du circuit imprimé
 (`hardware/gen/pins_opt.json`), la marge à 100 MHz va de 1,4 % (FPGA P) à 15 % (meilleure de 8
-graines). Si besoin, la
+graines sur 24 : le FPGA P n'en trouve qu'une partie qui passe, sa
+marge est la plus faible). Si besoin, la
 PLL peut être réglée à 90 MHz : les latences augmentent d'environ 10 % et
 restent dans les budgets ci-dessus, sauf le pire cas 68000 (~140 ns), qui
 devient limite.

@@ -57,7 +57,7 @@ lint: $(addprefix $(BUILD)/,$(addsuffix .json,$(TOPS)))
 # Placement-routage avec les broches réelles (hardware/*.pcf, produits par
 # hardware/gen/fpga_pins.py) : essaie plusieurs graines et garde la première
 # qui tient 100 MHz.
-SEEDS ?= 1 2 3 4 5 6 7 8
+SEEDS ?= $(shell seq 1 24)
 $(BUILD)/%.asc: $(BUILD)/%.json $$(PCF_$$*)
 	cd $(BUILD) && for s in $(SEEDS); do \
 	    $(NEXTPNR) --hx8k --package tq144:4k --json $*.json --pcf ../$(PCF_$*) --asc $*.asc --freq 100 \
