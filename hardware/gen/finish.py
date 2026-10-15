@@ -25,13 +25,13 @@ sys.path.insert(0, HERE)
 import outline  # noqa: E402
 
 KICAD = os.path.join(HERE, "..", "kicad")
-RES = 0.1                      # pas de la grille (mm)
-TRACK_W = 0.127
-CLR = 0.127 + 0.03             # isolement + marge de discrétisation
+RES = float(os.environ.get("FINISH_RES", "0.1"))      # pas de la grille (mm)
+TRACK_W = float(os.environ.get("FINISH_W", "0.127"))  # 0,1 mm admis en dernier recours
+CLR = 0.127 + float(os.environ.get("FINISH_MARGIN", "0.03"))   # isolement + marge de discrétisation
 VIA_D, VIA_DRILL = 0.6, 0.3
 HOLE_CLR = 0.25                # perçage à perçage
 VIA_COST = 20                  # coût d'un via, en pas de grille
-MARGIN = 40.0                  # marge de la fenêtre de recherche autour des extrémités (mm)
+MARGIN = float(os.environ.get("FINISH_WINDOW", "40"))   # fenêtre de recherche autour des extrémités (mm)
 LAYERS = (pcbnew.F_Cu, pcbnew.B_Cu)
 
 
