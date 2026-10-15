@@ -118,6 +118,8 @@ def import_ses(pcb, ses):
                     "import pcbnew,sys; b=pcbnew.LoadBoard(sys.argv[1]); "
                     "pcbnew.ZONE_FILLER(b).Fill(b.Zones()); b.Save(sys.argv[1])", pcb],
                    check=True, capture_output=True)
+    import outline
+    outline.fab_setup(pcb)                    # empilement, biseau, note de fabrication
     print(f"{pcb} : {n_tr} segments, {n_via} vias")
 
 

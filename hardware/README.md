@@ -94,7 +94,10 @@ recoupées sur la photo de la carte SNK NEO-AEG PROG-EP du wiki :
 Contacts : 1,5 x 10 mm au pas de 2,54 mm, centre à 7,1 mm du bord ; A1..A50
 (repères T) sur la face composants, B1..B50 sur l'autre ; vu côté
 composants, languette en bas, A1 et B1 à droite. Fabrication : 1,6 mm,
-finition ENIG, contacts dorés chanfreinés à 45°. La carte CHA se loge
+finition ENIG, contacts dorés chanfreinés à 45° : déclaré dans l'empilement
+de la carte (connecteur de bord biseauté, repris dans le fichier `.gbrjob`)
+et rappelé par une note sur la couche Cmts.User ; option « Gold fingers » +
+« Beveled » à cocher à la commande. La carte CHA se loge
 derrière la carte PROG : hauteur des composants limitée (jwestfall69 :
 un support DIP ordinaire + EPROM est trop haut, un support bas passe).
 
