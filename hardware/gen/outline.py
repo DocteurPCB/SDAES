@@ -82,6 +82,46 @@ def make(name):
     return b
 
 
+STACKUP = """    (stackup
+      (layer "F.SilkS" (type "Top Silk Screen"))
+      (layer "F.Paste" (type "Top Solder Paste"))
+      (layer "F.Mask" (type "Top Solder Mask") (thickness 0.01))
+      (layer "F.Cu" (type "copper") (thickness 0.035))
+      (layer "dielectric 1" (type "prepreg") (thickness 0.2104) (material "FR4") (epsilon_r 4.4) (loss_tangent 0.02))
+      (layer "In1.Cu" (type "copper") (thickness 0.0152))
+      (layer "dielectric 2" (type "core") (thickness 1.065) (material "FR4") (epsilon_r 4.6) (loss_tangent 0.02))
+      (layer "In2.Cu" (type "copper") (thickness 0.0152))
+      (layer "dielectric 3" (type "prepreg") (thickness 0.2104) (material "FR4") (epsilon_r 4.4) (loss_tangent 0.02))
+      (layer "B.Cu" (type "copper") (thickness 0.035))
+      (layer "B.Mask" (type "Bottom Solder Mask") (thickness 0.01))
+      (layer "B.Paste" (type "Bottom Solder Paste"))
+      (layer "B.SilkS" (type "Bottom Silk Screen"))
+      (copper_finish "ENIG")
+      (dielectric_constraints no)
+      (edge_connector bevelled)
+    )
+"""
+FAB_NOTE = "Contacts de bord : or dur, biseau 45° (chanfrein). Finition ENIG, 4 couches, 1,6 mm."
+
+
+def fab_setup(path):
+    """Empilement déclaré (4 couches, 1,6 mm, ENIG, connecteur de bord
+    biseauté : repris dans les fichiers de fabrication) et note de
+    fabrication près de la languette. Le module pcbnew n'expose pas ces
+    réglages : édition du fichier .kicad_pcb (idempotente)."""
+    t = open(path).read()
+    if "(edge_connector bevelled)" not in t:
+        i = t.index("(setup")
+        j = t.index("\n", i) + 1
+        t = t[:j] + STACKUP + t[j:]
+    if FAB_NOTE not in t:
+        note = (f'  (gr_text "{FAB_NOTE}" (at {CX:g} {EDGE_Y + 3:g}) (layer "Cmts.User")\n'
+                '    (effects (font (size 1.5 1.5) (thickness 0.2))))\n')
+        k = t.rstrip().rindex(")")
+        t = t[:k] + note + t[k:]
+    open(path, "w").write(t)
+
+
 def build(name, width, notch):
     b = make(name)
     out = os.path.join(KICAD, name, f"{name}.kicad_pcb")

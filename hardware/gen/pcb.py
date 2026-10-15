@@ -390,6 +390,7 @@ class Layout:
         pcbnew.ZONE_FILLER(b).Fill(b.Zones())
         b.Save(out)
         set_netclasses(os.path.join(KICAD, self.name, f"{self.name}.kicad_pro"))
+        outline.fab_setup(out)
         return out
 
 
