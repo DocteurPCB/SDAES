@@ -4,33 +4,33 @@
 # travers un tampon de niveaux (hardware/aes_connector.csv).
 set_io CLK25 93    # input, banc 1, GBIN3
 set_io P[0] 102    # input, banc 1, AES CHA dessus 11
-set_io P[1] 99    # input, banc 1, AES CHA dessous 11
-set_io P[2] 101    # input, banc 1, AES CHA dessus 12
+set_io P[1] 101    # input, banc 1, AES CHA dessous 11
+set_io P[2] 99    # input, banc 1, AES CHA dessus 12
 set_io P[3] 98    # input, banc 1, AES CHA dessous 12
 set_io P[4] 97    # input, banc 1, AES CHA dessus 13
 set_io P[5] 96    # input, banc 1, AES CHA dessous 13
 set_io P[6] 95    # input, banc 1, AES CHA dessus 14
 set_io P[7] 91    # input, banc 1, AES CHA dessous 14
 set_io P[8] 94    # input, banc 1, GBIN2, AES CHA dessus 15
-set_io P[9] 90    # input, banc 1, AES CHA dessous 15
-set_io P[10] 85    # input, banc 1, AES CHA dessus 16
+set_io P[9] 88    # input, banc 1, AES CHA dessous 15
+set_io P[10] 90    # input, banc 1, AES CHA dessus 16
 set_io P[11] 87    # input, banc 1, AES CHA dessous 16
-set_io P[12] 88    # input, banc 1, AES CHA dessus 17
+set_io P[12] 85    # input, banc 1, AES CHA dessus 17
 set_io P[13] 84    # input, banc 1, AES CHA dessous 17
 set_io P[14] 83    # input, banc 1, AES CHA dessus 18
 set_io P[15] 82    # input, banc 1, AES CHA dessous 18
 set_io PCK2B 20    # input, banc 3, GBIN7, AES CHA dessus 4
-set_io S2H1 78    # input, banc 1, AES CHA dessus 6
-set_io FIXD[0] 80    # output, banc 1, AES CHA dessous 3
-set_io FIXD[1] 79    # output, banc 1, AES CHA dessous 4
+set_io S2H1 80    # input, banc 1, AES CHA dessus 6
+set_io FIXD[0] 75    # output, banc 1, AES CHA dessous 3
+set_io FIXD[1] 74    # output, banc 1, AES CHA dessous 4
 set_io FIXD[2] 73    # output, banc 1, AES CHA dessous 5
 set_io FIXD[3] 64    # output, banc 2, AES CHA dessous 6
 set_io FIXD[4] 63    # output, banc 2, AES CHA dessous 7
 set_io FIXD[5] 62    # output, banc 2, AES CHA dessous 8
 set_io FIXD[6] 61    # output, banc 2, AES CHA dessous 9
 set_io FIXD[7] 60    # output, banc 2, AES CHA dessous 10
-set_io SDA[0] 75    # input, banc 1, AES CHA dessus 30
-set_io SDA[1] 76    # input, banc 1, AES CHA dessus 31
+set_io SDA[0] 78    # input, banc 1, AES CHA dessus 30
+set_io SDA[1] 79    # input, banc 1, AES CHA dessus 31
 set_io SDA[2] 33    # input, banc 3, AES CHA dessus 32
 set_io SDA[3] 34    # input, banc 3, AES CHA dessus 33
 set_io SDA[4] 37    # input, banc 2, AES CHA dessus 34
@@ -47,7 +47,7 @@ set_io SDA[14] 49    # input, banc 2, GBIN5, AES CHA dessus 44
 set_io SDA[15] 52    # input, banc 2, GBIN4, AES CHA dessus 45
 set_io SDMRD_N 55    # input, banc 2, AES CHA dessus 46
 set_io SDROM_N 56    # input, banc 2, AES CHA dessus 47
-set_io SDRD0_N 74    # input, banc 1, AES CHA dessus 28
+set_io SDRD0_N 76    # input, banc 1, AES CHA dessus 28
 set_io SDD[0] 23    # output, banc 3, AES CHA dessous 40
 set_io SDD[1] 24    # output, banc 3, AES CHA dessous 41
 set_io SDD[2] 25    # output, banc 3, AES CHA dessous 42

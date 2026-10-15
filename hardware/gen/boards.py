@@ -470,7 +470,13 @@ def cha_board():
         x16244(sh, ref, ins[i:i + 16], "XLAT_EN_N", "+3V3", "74LVC16244A")
     outs = [(f"GAD{i}", f"AES_GAD{i}") for i in range(4)] + [(f"GBD{i}", f"AES_GBD{i}") for i in range(4)] + \
            [("DOTA", "AES_DOTA"), ("DOTB", "AES_DOTB")] + [(f"FIXD{i}", f"AES_FIXD{i}") for i in range(8)]
-    outs = by_edge("CHA", outs, 1)
+    # canaux groupés par FPGA source (validation commune : permutation libre) :
+    # couche fixe (FPGA SM, à gauche) puis sprites (FPGA C, à droite), chaque
+    # groupe dans l'ordre des contacts ; sinon les deux groupes se croisent le
+    # long de la rangée d'entrée du tampon et l'enferment (routage CHA).
+    fix = by_edge("CHA", [o for o in outs if o[0].startswith("FIXD")], 1)
+    spr = by_edge("CHA", [o for o in outs if not o[0].startswith("FIXD")], 1)
+    outs = fix + spr
     x16244(sh, ref, outs[:16], "OE5_N", "+5V", "74AHCT16244")
     x16244(sh, ref, outs[16:], "OE5_N", "+5V", "74AHCT16244")
     # bus de données Z80 : 74AHCT244, /OE = SDD_OE_N OU OE5_N
