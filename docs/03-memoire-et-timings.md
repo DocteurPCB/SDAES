@@ -105,8 +105,8 @@ pistes. `RD_LAT` et la phase de l'horloge SDRAM sont paramétrables.
 |---|---|---|---|---|
 | P (avec protections) | 3 531 | 28 / 32 | 94 | 100,4 MHz |
 | V | 1 881 | 0 | 80 | 100,8 MHz |
-| C | 1 785 | 0 | 89 | 102,3 MHz |
-| SM (avec banques CMC) | 1 621 | 20 / 32 | 92 | 111,6 MHz |
+| C | 1 785 | 0 | 89 | 106,2 MHz |
+| SM (avec banques CMC) | 1 621 | 20 / 32 | 92 | 112,4 MHz |
 
 Avec les broches affectées d'après le placement du circuit imprimé
 (`hardware/gen/pins_opt.json`), la marge à 100 MHz va de 1,4 % (FPGA P) à 15 % (meilleure de 8
