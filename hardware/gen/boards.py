@@ -512,7 +512,19 @@ def cha_board():
            ("AES_12M", "12M"), ("AES_EVEN", "EVEN"), ("AES_LOAD", "LOAD"), ("AES_H", "H")] + \
           [(f"AES_SDA{i}", f"SDA{i}") for i in range(16)] + \
           [("AES_SDMRD", "SDMRD_N"), ("AES_SDROM", "SDROM_N"), ("AES_SDRD0", "SDRD0_N")]
-    ins = by_edge("CHA", ins, 0)
+    # canaux groupés par FPGA de destination, de gauche à droite comme sur la
+    # carte : SM seul (bus Z80, PCK2B, 2H1), bus P0-P15 (les deux), C seul
+    # (P16-P23, PCK1B, 12M, CA4, EVEN, LOAD, H) ; chaque groupe dans l'ordre
+    # des contacts. Triés seulement côté console, les canaux mêlaient les deux
+    # FPGA dans un même tampon et forçaient des croisements côté FPGA.
+    def dest(c):
+        n = c[1].rstrip("_N")
+        if n.startswith("SDA") or n in ("SDMRD", "SDROM", "SDRD0", "PCK2B", "2H1"):
+            return 0
+        if n.startswith("P") and n[1:].isdigit() and int(n[1:]) < 16:
+            return 1
+        return 2
+    ins = [c for g in (0, 1, 2) for c in by_edge("CHA", [c for c in ins if dest(c) == g], 0)]
     for i in range(0, len(ins), 16):
         x16244(sh, ref, ins[i:i + 16], "XLAT_EN_N", "+3V3", "74LVC16244A")
     outs = [(f"GAD{i}", f"AES_GAD{i}") for i in range(4)] + [(f"GBD{i}", f"AES_GBD{i}") for i in range(4)] + \

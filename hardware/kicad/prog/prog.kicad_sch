@@ -1,7 +1,7 @@
 (kicad_sch
   (version 20230121)
   (generator eeschema)
-  (uuid 3a034faf-f518-4ff2-b4c3-d71a1132e6ac)
+  (uuid 97051d04-c840-42b8-9556-1b88607b8ed7)
   (paper A4)
   (title_block
     (title "SDAES - carte PROG (programme 68000 + son ADPCM)")
@@ -16,7 +16,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid fba20357-9a22-401b-b0de-547294211e74)
+    (uuid 315730a5-e163-47aa-accd-5e662748dc62)
     (property "Sheetname" "Connecteur et alimentations"
       (at 25.4 29.78 0)
       (effects
@@ -31,7 +31,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "2")))))
   (sheet
     (at 88.9 30.48)
@@ -42,7 +42,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 148c5e2e-2d42-4944-9524-d6f8f44422c9)
+    (uuid be18c9a9-c1ec-464f-b26a-b60259f55cf5)
     (property "Sheetname" "Tampons de niveaux"
       (at 88.9 29.78 0)
       (effects
@@ -57,7 +57,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "3")))))
   (sheet
     (at 152.4 30.48)
@@ -68,7 +68,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 8fa5870e-b0e7-4df3-8cc2-bbd65b19d45b)
+    (uuid 89abbce0-ea90-423a-b873-d67482b2d5aa)
     (property "Sheetname" "FPGA P"
       (at 152.4 29.78 0)
       (effects
@@ -83,7 +83,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "4")))))
   (sheet
     (at 215.9 30.48)
@@ -94,7 +94,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 6970c1ac-40a6-4239-bf2e-bdf0f6d90e1b)
+    (uuid a81dccd1-5de3-4ea8-bcf2-126a5beff50e)
     (property "Sheetname" "SDRAM P"
       (at 215.9 29.78 0)
       (effects
@@ -109,7 +109,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "5")))))
   (sheet
     (at 25.4 68.58)
@@ -120,7 +120,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid fd07142d-efbc-4dca-ba4b-1cd8281ff84b)
+    (uuid 256651aa-b25e-4fe0-aab3-2fd5dd19eb96)
     (property "Sheetname" "FPGA V"
       (at 25.4 67.88 0)
       (effects
@@ -135,7 +135,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "6")))))
   (sheet
     (at 88.9 68.58)
@@ -146,7 +146,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid fbd40e6d-9067-4b9e-b588-537a90cb836c)
+    (uuid 12f6b176-4f33-4ce9-96ed-dce8186308fd)
     (property "Sheetname" "SDRAM V"
       (at 88.9 67.88 0)
       (effects
@@ -161,7 +161,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "7")))))
   (sheet
     (at 152.4 68.58)
@@ -172,7 +172,7 @@
       (type solid))
     (fill
       (color 0 0 0 0.0000))
-    (uuid 1c05fe67-ad73-4d5e-9ba2-5b8f778208d5)
+    (uuid 9a7804af-a5b0-4198-b89f-5d1e62ee7ec5)
     (property "Sheetname" "RP2350, carte SD, bouton"
       (at 152.4 67.88 0)
       (effects
@@ -187,7 +187,7 @@
         (justify left top) hide))
     (instances
       (project "prog"
-        (path "/3a034faf-f518-4ff2-b4c3-d71a1132e6ac"
+        (path "/97051d04-c840-42b8-9556-1b88607b8ed7"
           (page "8")))))
   (sheet_instances
     (path "/"
