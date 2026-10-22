@@ -109,6 +109,23 @@ python3 tools/neotool.py info jeu.neo
 | 7 | erreur de lecture de la carte SD |
 | 8 | configuration refusée (CDONE bas) |
 
+## ROM de test
+
+`make sdaes_test.neo` (avec `SECURITY_FROM=` comme pour le menu) produit
+`build/sdaes_test.neo`, un petit « jeu » libre (testrom/68k) à copier sur
+la carte SD pour valider une cartouche montée. Couche fixe uniquement
+(pas de ROM C ni V) ; il affiche :
+
+* la somme de contrôle de la ROM P relue depuis la SDRAM, comparée à celle
+  que `neotool.py romsum` inscrit en 0x13A à la construction (OK / ERREUR) ;
+* un test de la RAM de travail 0x101000-0x10EFFF (motifs puis adresses) ;
+* des barres de couleur (palettes 4 à 11, tuile pleine 0x7F de la ROM S,
+  générée par `neotool.py font --solid 0x7F`), dont une qui défile ;
+* un compteur d'images, la manette 1 et START/SELECT, un texte défilant.
+
+Pas de division 32 bits dans ce programme : le `__modsi3` de la libgcc
+m68k-linux n'est pas exécutable par un 68000 (erreur d'adresse).
+
 ## Vidéo de démonstration
 
-`python3 tools/menu_demo.py -o demo.mp4` (ffmpeg, machine68k, gcc-m68k) : le binaire réel du menu tourne dans l'émulateur 68000 des tests, face à un RP2350 imité (carte SD fictive, chargement avec progression) ; la couche fixe visible (lignes 2 à 29) est filmée image par image.
+`python3 tools/menu_demo.py -o demo.mp4` (ffmpeg, machine68k, gcc-m68k) : le binaire réel du menu tourne dans l'émulateur 68000 des tests, face à un RP2350 imité (carte SD fictive, chargement avec progression). Après la bascule, la ROM de test démarre comme après le reset matériel (le logo du BIOS n'est pas émulé). La couche fixe visible (lignes 2 à 29) est filmée image par image avec les vraies ROM S.

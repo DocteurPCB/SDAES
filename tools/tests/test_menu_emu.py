@@ -185,7 +185,11 @@ class NeoGeoSim:
     def run_frames(self, n, pad=0):
         target = self.frames + n
         self.pad = pad
+        budget = 2000 * (n + 10)                          # ~40 M cycles par image : bloqué
         while self.frames < target and self.switched is None:
+            budget -= 1
+            if budget < 0:
+                raise RuntimeError(f"68000 bloqué en 0x{self.mc.cpu.r_pc():X}")
             self.mc.execute(20000)
             if self.doorbell:
                 self.doorbell = False
@@ -264,6 +268,49 @@ class MenuEmulationTest(unittest.TestCase):
         self.assertIn("#", scr[16])
         for y in (0, 1, 30, 31):
             self.assertEqual(scr[y], "", f"ligne {y} invisible utilisée : {scr[y]!r}")
+
+
+
+@unittest.skipUnless(m68k, "paquet machine68k absent (pip install machine68k)")
+@unittest.skipUnless(shutil.which("m68k-linux-gnu-gcc"), "gcc-m68k-linux-gnu absent")
+class TestRomEmulationTest(unittest.TestCase):
+    """ROM de test (testrom/68k) : démarrage par le BIOS, contrôles affichés."""
+
+    @classmethod
+    def setUpClass(cls):
+        subprocess.run(["make", "-s", "-C", os.path.join(ROOT, "testrom", "68k")], check=True,
+                       stdout=subprocess.DEVNULL)
+        with open(os.path.join(ROOT, "testrom", "68k", "test_p.bin"), "rb") as f:
+            cls.rom = f.read()
+
+    def boot(self, rom):
+        sim = NeoGeoSim(rom)
+        sim.run_frames(30)
+        return sim
+
+    def test_checks_pass(self):
+        sim = self.boot(self.rom)
+        scr = sim.screen()
+        self.assertIn("ROM DE TEST", scr[3])
+        self.assertTrue(scr[11].rstrip().endswith("OK"), scr[11])
+        self.assertTrue(scr[13].rstrip().endswith("OK"), scr[13])
+        n1 = int(scr[16].split()[1])
+        sim.run_frames(10)
+        self.assertGreater(int(sim.screen()[16].split()[1]), n1)
+        # manette : la touche pressée change de palette (2 = allumée, 3 = éteinte)
+        a = 0x7000 + (14 + 4 * 3) * 32 + 21                  # colonne du « A »
+        self.assertEqual(sim.vram[a] >> 12, 3)
+        sim.run_frames(2, J_A)
+        sim.pad = J_A
+        sim.run_frames(1, J_A)
+        self.assertEqual(sim.vram[a] >> 12, 2)
+
+    def test_corrupted_rom_detected(self):
+        rom = bytearray(self.rom)
+        i = rom.index(b"LE JEU A DEMARRE")                   # texte : le code reste intact
+        rom[i] ^= 0x01                                       # un bit de la ROM P faux
+        scr = self.boot(bytes(rom)).screen()
+        self.assertIn("ERREUR", scr[11])
 
 
 if __name__ == "__main__":

@@ -6,12 +6,13 @@
 Le vrai binaire du menu (menu/68k/menu_p.bin) tourne dans l'émulateur
 68000 des tests (tools/tests/test_menu_emu.py) ; un RP2350 imité répond
 avec une carte SD fictive (attente de la carte, liste paginée, dossier,
-chargement avec progression). Chaque image de la couche fixe (lignes
-visibles 2 à 29) est dessinée avec une police VGA 8x8, la touche pressée
-est rappelée sous l'écran.
+chargement avec progression). Après la bascule, la ROM de test
+(testrom/68k) démarre comme après le reset matériel (le logo du BIOS
+n'est pas émulé). Chaque image de la couche fixe (lignes visibles 2 à
+29) est dessinée avec la ROM S réelle (build/menu_s.bin, build/test_s.bin),
+la touche pressée est rappelée sous l'écran.
 """
 import argparse
-import gzip
 import os
 import struct
 import subprocess
@@ -28,13 +29,12 @@ MB = emu.MB
 J_UP, J_DOWN, J_LEFT, J_RIGHT, J_A, J_B = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
 KEYS = {J_UP: "HAUT", J_DOWN: "BAS", J_LEFT: "GAUCHE", J_RIGHT: "DROITE", J_A: "A", J_B: "B"}
 SCALE, STRIP, FPS = 3, 72, 60
-FONT = "/usr/share/consolefonts/Lat15-VGA8.psf.gz"
 LABEL_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 GAMES = ["aof", "aof2", "blazstar", "garou", "kof94", "kof95", "kof96", "kof97",
          "kof98", "kof2000", "lastblad", "lastbld2", "magdrop3", "matrim",
          "mslug", "mslug2", "mslug3", "mslugx", "neobombe", "ninjamas", "pulstar",
-         "rbff2", "samsho2", "samsho4", "shocktro", "sengoku3", "twinspri", "wakuwak7"]
+         "rbff2", "samsho2", "samsho4", "sdaes_test", "shocktro", "sengoku3", "twinspri", "wakuwak7"]
 
 
 class DemoRP2350(emu.FakeRP2350):
@@ -78,33 +78,17 @@ class DemoRP2350(emu.FakeRP2350):
                 self.w16(MB["MB_RSP_SEQ"], seq)
 
 
-def psf_ascii(path):
-    """Police PSF -> {code ASCII: 8 octets} (table Unicode si présente)."""
-    raw = open(path, "rb").read()
-    if raw[:2] == b"\x1f\x8b":
-        raw = gzip.decompress(raw)
-    if raw[:2] == b"\x36\x04":
-        mode, size = raw[2], raw[3]
-        n, off, uni = (512 if mode & 1 else 256), 4, mode & 2
-    else:
-        _, _, off, flags, n, size, _, _ = struct.unpack_from("<8I", raw)
-        uni = flags & 1
-    glyphs = [raw[off + i * size: off + (i + 1) * size] for i in range(n)]
-    table = {c: glyphs[c] for c in range(min(n, 128))}
-    if uni and raw[:2] == b"\x36\x04":
-        p = off + n * size
-        for i in range(n):
-            while True:
-                (u,) = struct.unpack_from("<H", raw, p)
-                p += 2
-                if u == 0xFFFF:
-                    break
-                if u == 0xFFFE:
-                    continue
-                if u < 128:
-                    table[u] = glyphs[i]
-    return {c: (g[:8] if size == 8 else bytes(g[(y * size) // 8] for y in range(8)))
-            for c, g in table.items()}
+class DemoSim(emu.NeoGeoSim):
+    """Couche fixe figée à chaque écriture du chien de garde (une par image) :
+    l'image filmée ne tombe jamais au milieu d'un rafraîchissement."""
+    def __init__(self, rom):
+        self.snap = None
+        super().__init__(rom)
+
+    def io_w16(self, a, v, byte=0):
+        if a == 0x300001:
+            self.snap = self.vram[0x7000:0x7500]
+        super().io_w16(a, v, byte)
 
 
 def neo_rgb(v):
@@ -116,36 +100,42 @@ def neo_rgb(v):
 
 
 class Renderer:
-    def __init__(self, sim):
+    def __init__(self, sim, srom):
         self.sim = sim
-        self.font = psf_ascii(FONT)
+        self.srom = srom
         self.cache = {}
         self.label = ImageFont.truetype(LABEL_FONT, 30)
 
-    def glyph(self, ch, rgb):
-        k = (ch, rgb)
+    def tile(self, code, colors):
+        """Tuile 8x8 de la ROM S (format de tools/neotool.py fix_tile)."""
+        k = (id(self.srom), code, colors)
         if k not in self.cache:
-            im = Image.new("RGB", (8, 8))
-            rows = self.font.get(ch, bytes(8))
+            im = Image.new("RGBA", (8, 8))
             px = im.load()
-            for y in range(8):
-                for x in range(8):
-                    if rows[y] & (0x80 >> x):
-                        px[x, y] = rgb
+            t = self.srom[code * 32: code * 32 + 32]
+            for blk, col in enumerate((4, 6, 0, 2)):
+                for y in range(8):
+                    v = t[blk * 8 + y]
+                    for dx, c in ((0, v & 15), (1, v >> 4)):
+                        if c:
+                            px[col + dx, y] = colors[c] + (255,)
             self.cache[k] = im
         return self.cache[k]
 
     def frame(self, caption):
         s = self.sim
         im = Image.new("RGB", (320, 224), neo_rgb(s.pal.get(0x400000 + 0xFFF * 2, 0x8000)))
+        pals = {}
         for x in range(40):
             for y in range(2, 30):
-                v = s.vram[0x7000 + x * 32 + y]
-                ch = v & 0xFF
-                if ch in (0, 0x20):
+                v = (s.snap or s.vram[0x7000:0x7500])[x * 32 + y]
+                if (v & 0xFF) == 0x20:
                     continue
-                rgb = neo_rgb(s.pal.get(0x400000 + ((v >> 12) * 16 + 1) * 2, 0x7FFF))
-                im.paste(self.glyph(ch, rgb), (x * 8, (y - 2) * 8))
+                p = v >> 12
+                if p not in pals:
+                    pals[p] = tuple(neo_rgb(s.pal.get(0x400000 + (p * 16 + c) * 2, 0)) for c in range(16))
+                g = self.tile(v & 0xFF, pals[p])
+                im.paste(g, (x * 8, (y - 2) * 8), g)
         out = Image.new("RGB", (320 * SCALE, 224 * SCALE + STRIP), (24, 24, 28))
         out.paste(im.resize((320 * SCALE, 224 * SCALE), Image.NEAREST), (0, 0))
         if caption:
@@ -157,12 +147,15 @@ class Renderer:
 
 class Demo:
     def __init__(self, out):
-        subprocess.run(["make", "-s", "-C", os.path.join(ROOT, "menu", "68k")], check=True,
-                       stdout=subprocess.DEVNULL)
-        rom = open(os.path.join(ROOT, "menu", "68k", "menu_p.bin"), "rb").read()
-        self.sim = emu.NeoGeoSim(rom)
+        subprocess.run(["make", "-s", "-C", ROOT, "menu/68k/menu_p.bin", "testrom/68k/test_p.bin",
+                        "build/menu_s.bin", "build/test_s.bin"], check=True, stdout=subprocess.DEVNULL)
+
+        def rd(*p):
+            return open(os.path.join(ROOT, *p), "rb").read()
+        self.test_p, self.test_s = rd("testrom", "68k", "test_p.bin"), rd("build", "test_s.bin")
+        self.sim = DemoSim(rd("menu", "68k", "menu_p.bin"))
         self.sim.rp = DemoRP2350(self.sim.rsp)
-        self.r = Renderer(self.sim)
+        self.r = Renderer(self.sim, rd("build", "menu_s.bin"))
         self.caption = ""
         self.done = 0
         w, h = 320 * SCALE, 224 * SCALE + STRIP
@@ -197,6 +190,25 @@ class Demo:
         self.frames(after)
         self.caption = ""
 
+    def cursor(self):
+        """Entrée sous le curseur, lue dans le compteur « n/total » du menu."""
+        return int(emu.NeoGeoSim.screen(self.sim)[26].split("/")[0]) - 1
+
+    def start_game(self):
+        """Reset matériel après la bascule : les ROM P et S du jeu remplacent
+        celles du menu, puis le BIOS appelle USER (requête 2)."""
+        s = self.sim
+        s.mem.w_block(0, self.test_p)
+        s.vram = [0x20] * 0x10000
+        s.snap = None
+        s.pal = {}
+        s.switched = None
+        s.mem.w8(0x10FDAE, 2)
+        s.mc.cpu.w_pc(0x122)
+        s.mc.cpu.w_sp(0x10F300)
+        s.mc.cpu.w_sr(0x2700)
+        self.r.srom = self.test_s
+
     def run(self):
         self.caption = "Mise sous tension : le RP2350 lit la carte SD"
         self.frames(150)
@@ -211,20 +223,37 @@ class Demo:
         self.press(J_A, after=60)               # dossier "Shoot'em up"
         self.press(J_DOWN, after=20)
         self.press(J_B, after=50)               # retour
-        for _ in range(16):
-            self.press(J_DOWN, hold=4, after=8)
+        self.press(J_RIGHT, after=30)          # page 2 (entrée 20)
+        while self.sim.rp.TREE["/"][self.cursor()][1] != "sdaes_test":
+            self.press(J_DOWN, after=12)
         self.frames(30)
         self.caption = "Chargement du jeu dans la SDRAM"
         self.frames(6, J_A)
         while self.sim.switched is None and self.done < 4000:
             self.frames(1)
-        self.caption = "Bascule vers le jeu (code 0x5A5A)"
+        self.caption = "Bascule : la cartouche passe en mode jeu"
         last = self.r.frame(self.caption)
-        for _ in range(90):
+        for _ in range(45):
             self.emit(last)
         black = Image.new("RGB", last.size)
+        for i in range(20):
+            self.emit(Image.blend(last, black, (i + 1) / 20))
+        self.caption = "Reset matériel, le BIOS démarre le jeu"
+        cap = self.r.frame(self.caption)
+        blank = Image.new("RGB", last.size)
+        blank.paste(cap.crop((0, 224 * SCALE, cap.width, cap.height)), (0, 224 * SCALE))
+        for _ in range(40):
+            self.emit(blank)
+        self.start_game()
+        self.caption = "ROM de test SDAES : le jeu tourne"
+        self.frames(150)
+        for k in (J_UP, J_DOWN, J_LEFT, J_RIGHT, J_A, J_B):
+            self.press(k, hold=14, after=10)
+        self.caption = "ROM de test SDAES : le jeu tourne"
+        self.frames(120)
+        end = self.r.frame("")
         for i in range(30):
-            self.emit(Image.blend(last, black, (i + 1) / 30))
+            self.emit(Image.blend(end, black, (i + 1) / 30))
         self.ff.stdin.close()
         self.ff.wait()
         print(f"{self.done} images ({self.done / FPS:.1f} s), jeu chargé : {self.sim.rp.loaded}")

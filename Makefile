@@ -3,6 +3,8 @@
 #   make            : menu (ROM P/S/M1) + fichiers d'init BRAM pour les FPGA
 #   make test       : tests Python (outils + firmware sur PC) et simulations HDL
 #   make menu.neo   : menu empaqueté en .neo (essai dans un émulateur)
+#   make sdaes_test.neo : ROM de test (ROM P, RAM, palettes, manette) à copier
+#                     sur la carte SD pour valider une cartouche
 #
 # Variables :
 #   FONT=...            police PSF 8x8 (défaut : police console Lat15-VGA8)
@@ -46,6 +48,25 @@ menu.neo: $(BUILD)/menu_p.bin $(BUILD)/menu_s.bin $(BUILD)/menu_m1.bin
 	$(NEOTOOL) build -o $(BUILD)/$@ --p $(BUILD)/menu_p.bin --p-swap --s $(BUILD)/menu_s.bin \
 	    --m $(BUILD)/menu_m1.bin --name "SDAES MENU" --manu "SDAES" --ngh 0xFFE
 
+$(BUILD)/test_s.bin: tools/neotool.py | $(BUILD)
+	$(NEOTOOL) font $(FONT) --solid 0x7F -o $@
+
+testrom/68k/test_p.bin: FORCE
+	$(MAKE) -C testrom/68k
+
+# somme de contrôle inscrite après le code de sécurité, qui modifie la ROM
+$(BUILD)/test_p.bin: testrom/68k/test_p.bin | $(BUILD)
+ifeq ($(SECURITY_FROM),)
+	cp $< $@
+else
+	$(NEOTOOL) security $< $(SECURITY_FROM) -o $@
+endif
+	$(NEOTOOL) romsum $@ -o $@
+
+sdaes_test.neo: $(BUILD)/test_p.bin $(BUILD)/test_s.bin $(BUILD)/menu_m1.bin
+	$(NEOTOOL) build -o $(BUILD)/$@ --p $(BUILD)/test_p.bin --p-swap --s $(BUILD)/test_s.bin \
+	    --m $(BUILD)/menu_m1.bin --name "SDAES TEST" --manu "SDAES" --ngh 0xFFD
+
 test:
 	$(PYTHON) -m unittest discover -s tools/tests -v
 	$(MAKE) -C hdl sim
@@ -53,6 +74,7 @@ test:
 clean:
 	rm -rf $(BUILD)
 	$(MAKE) -C menu/68k clean
+	$(MAKE) -C testrom/68k clean
 	$(MAKE) -C hdl clean
 
 .PHONY: all bram test clean FORCE

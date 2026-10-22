@@ -51,6 +51,7 @@ Dépendances (Ubuntu/Debian) : `iverilog`, `gcc-m68k-linux-gnu`, `z80asm`,
 make                               # menu + fichiers d'init BRAM (hdl/build/*.hex)
 make SECURITY_FROM=un_jeu.neo      # idem, avec le code de sécurité requis par le BIOS
 make test                          # tous les tests (Python + simulations HDL)
+make sdaes_test.neo                # ROM de test à copier sur la carte SD
 make -C hdl lint pnr YOSYS=yowasp-yosys NEXTPNR=yowasp-nextpnr-ice40   # synthèse + placement-routage des 4 FPGA
 python3 tools/neotool.py info jeu.neo
 ```

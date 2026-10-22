@@ -6,7 +6,9 @@ Commandes :
   info      FICHIER.neo                     affiche l'en-tête et le plan mémoire
   build     -o JEU.neo --p ... --c ...      assemble un .neo depuis des ROM séparées
   font      POLICE.psf[.gz] -o menu_s.bin   génère la ROM S du menu (police 8x8)
+            [--solid 0x7F]                  ... avec une tuile pleine à ce code
   security  MENU.bin JEU.neo -o MENU.bin    recopie le code de sécurité d'un jeu
+  romsum    TEST.bin -o TEST.bin            inscrit en 0x13A la somme de la ROM de test
   bramhex   FICHIER.bin -o X.hex --size N   fichier $readmemh 8 bits
   bramhex16 MENU.bin --hi H.hex --lo L.hex  sépare un binaire 68000 en octets pairs/impairs
   mapper    FICHIER.map|MAPPERS.TXT [--game NOM] [--ngh N]
@@ -312,7 +314,7 @@ def cmd_font(args):
     for code in range(256):
         g = glyphs[code] if code < len(glyphs) else b""
         rows = list(g[:8]) if h == 8 else [g[(y * h) // 8] for y in range(8)]
-        rom += fix_tile(rows)
+        rom += fix_tile([0xFF] * 8 if code == args.solid else rows)
     with open(args.output, "wb") as f:
         f.write(rom)
     print(f"{args.output} : {len(rom)} octets (256 tuiles)")
@@ -340,6 +342,26 @@ def cmd_security(args):
     with open(args.output, "wb") as f:
         f.write(menu)
     print(f"{args.output} : code de sécurité recopié depuis {h.name!r}")
+    return 0
+
+
+ROMSUM_AT = 0x13A                       # zone libre de l'en-tête (0x13A-0x181)
+
+
+def rom_sum(p):
+    """Somme des mots 68000 (grand-boutistes), sans le mot en ROMSUM_AT."""
+    s = sum(struct.unpack(f">{len(p) // 2}H", p[:len(p) & ~1])) - struct.unpack_from(">H", p, ROMSUM_AT)[0]
+    return s & 0xFFFF
+
+
+def cmd_romsum(args):
+    p = bytearray(readb(args.file))
+    if len(p) & 1:
+        p.append(0)
+    struct.pack_into(">H", p, ROMSUM_AT, rom_sum(p))
+    with open(args.output, "wb") as f:
+        f.write(p)
+    print(f"{args.output} : somme 0x{rom_sum(p):04X} en 0x{ROMSUM_AT:X}")
     return 0
 
 
@@ -630,7 +652,13 @@ def main(argv=None):
     s = sub.add_parser("font")
     s.add_argument("font")
     s.add_argument("-o", "--output", required=True)
+    s.add_argument("--solid", type=lambda x: int(x, 0), default=-1)
     s.set_defaults(fn=cmd_font)
+
+    s = sub.add_parser("romsum")
+    s.add_argument("file")
+    s.add_argument("-o", "--output", required=True)
+    s.set_defaults(fn=cmd_romsum)
 
     s = sub.add_parser("security")
     s.add_argument("menu")
