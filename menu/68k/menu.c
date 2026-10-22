@@ -98,13 +98,15 @@ static void put_line(uint8_t y, uint8_t pal, const char *s)
     fix_put(SCREEN_X0, y, pal, s);
 }
 
-static void put_num(uint8_t x, uint8_t y, uint8_t pal, uint16_t v)
+/* écrit v en décimal ; renvoie la colonne qui suit le dernier chiffre */
+static uint8_t put_num(uint8_t x, uint8_t y, uint8_t pal, uint16_t v)
 {
     char buf[6];
     int i = 5;
     buf[5] = 0;
     do { buf[--i] = '0' + v % 10; v /= 10; } while (v && i);
     fix_put(x, y, pal, &buf[i]);
+    return x + 5 - i;
 }
 
 /* copie une chaîne de la boîte aux lettres (octets) */
@@ -168,8 +170,7 @@ static uint16_t mb_wait(uint16_t timeout_frames, uint8_t show_progress)
             REG_VRAMMOD  = 32;
             for (uint8_t i = 0; i < 30; i++)
                 REG_VRAMRW = ((uint16_t)(i < bar ? PAL_SEL : PAL_DIM) << 12) | (i < bar ? '#' : '-');
-            put_num(SCREEN_X0 + 16, 18, PAL_TEXT, p / 10);
-            fix_put(SCREEN_X0 + 19, 18, PAL_TEXT, "%  ");
+            fix_put(put_num(SCREEN_X0 + 16, 18, PAL_TEXT, p / 10), 18, PAL_TEXT, "%  ");
         }
         if (timeout_frames && ++n >= timeout_frames)
             return 0xFFFF;
@@ -227,9 +228,9 @@ static void draw_list(void)
     }
     put_line(LIST_Y0 + LIST_ROWS, PAL_DIM, "");
     if (total) {
-        put_num(SCREEN_X0, LIST_Y0 + LIST_ROWS, PAL_DIM, cursor + 1);
-        fix_put(SCREEN_X0 + 5, LIST_Y0 + LIST_ROWS, PAL_DIM, "/");
-        put_num(SCREEN_X0 + 6, LIST_Y0 + LIST_ROWS, PAL_DIM, total);
+        uint8_t x = put_num(SCREEN_X0, LIST_Y0 + LIST_ROWS, PAL_DIM, cursor + 1);
+        fix_put(x, LIST_Y0 + LIST_ROWS, PAL_DIM, "/");
+        put_num(x + 1, LIST_Y0 + LIST_ROWS, PAL_DIM, total);
     } else {
         fix_put(SCREEN_X0, LIST_Y0 + LIST_ROWS, PAL_DIM, "(DOSSIER VIDE)");
     }
@@ -284,6 +285,14 @@ static void launch(void)
 static void open_entry(void)
 {
     if (!total) return;
+    if (MB8(MB_RSP_ENTRIES + (cursor - top) * MB_ENTRY_SIZE) != ENT_DIR) {
+        /* jeu : la liste laisse place au nom et à la barre de progression */
+        char name[MB_NAME_MAX + 2];
+        mb_str(MB_RSP_ENTRIES + (cursor - top) * MB_ENTRY_SIZE + 1, name, sizeof(name));
+        for (uint8_t y = LIST_Y0; y < LIST_Y0 + LIST_ROWS; y++)
+            fix_fill(SCREEN_X0, y, SCREEN_W);
+        fix_put(SCREEN_X0 + 4, 14, PAL_TITLE, name);
+    }
     put_line(LIST_Y0 + LIST_ROWS + 2, PAL_TEXT, "CHARGEMENT...");
     mb_send(CMD_OPEN, cursor);
     uint16_t st = mb_wait(0, 1);   /* un gros jeu peut prendre ~20 s */

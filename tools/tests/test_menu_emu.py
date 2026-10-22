@@ -44,6 +44,7 @@ class FakeRP2350:
         self.rsp = rsp
         self.cwd = "/"
         self.loaded = None
+        self.slow = False
 
     def w16(self, off, v):
         struct.pack_into(">H", self.rsp, off, v)
@@ -72,6 +73,9 @@ class FakeRP2350:
             if t == 1:
                 self.cwd = "/" + n
                 kind = MB["KIND_DIR_CHANGED"]
+            elif self.slow:                     # chargement long : réponse jamais publiée
+                self.w16(MB["MB_RSP_PROGRESS"], 400)
+                return
             else:
                 self.loaded = n
                 self.w16(MB["MB_RSP_PROGRESS"], 1000)
@@ -218,7 +222,11 @@ class MenuEmulationTest(unittest.TestCase):
         self.assertTrue(scr[6].startswith(" >/Jeux"), scr[6])
         self.assertIn("aof", scr[7])
         self.assertIn("kof98", scr[8])
-        self.assertIn("1/3", scr[30].replace(" ", "").replace("/", "/"))
+        self.assertIn("1/3", scr[26].replace(" ", ""))
+        self.assertIn("A:LANCER", scr[27])
+        # une Neo Geo n'affiche que les lignes 2 à 29 de la couche fixe
+        for y in (0, 1, 30, 31):
+            self.assertEqual(scr[y], "", f"ligne {y} invisible utilisée : {scr[y]!r}")
         self.assertEqual(sim.pal.get(0x400002), 0x7FFF)        # palette 0, couleur 1 : blanc
 
         # entre dans le dossier puis revient
@@ -242,6 +250,20 @@ class MenuEmulationTest(unittest.TestCase):
         self.assertTrue(0x101000 <= sim.switched < 0x101100,
                         f"bascule exécutée depuis 0x{sim.switched:X}, pas depuis la RAM")
         self.assertIn("AOF", "\n".join(sim.screen()))
+
+    def test_messages_visible(self):
+        """CHARGEMENT... et la barre de progression restent dans les lignes 2..29."""
+        sim = NeoGeoSim(self.rom)
+        sim.run_frames(20)
+        sim.press(J_DOWN)
+        sim.rp.slow = True                      # chargement en cours, pas de réponse
+        sim.run_frames(3, J_A)
+        sim.run_frames(10)
+        scr = sim.screen()
+        self.assertIn("CHARGEMENT", scr[28])
+        self.assertIn("#", scr[16])
+        for y in (0, 1, 30, 31):
+            self.assertEqual(scr[y], "", f"ligne {y} invisible utilisée : {scr[y]!r}")
 
 
 if __name__ == "__main__":

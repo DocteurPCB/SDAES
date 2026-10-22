@@ -40,7 +40,7 @@ Définie dans `protocol/sdaes_mailbox.h` (partagé menu/firmware).
 | 0x000-0x00B | 68000 | commande, numéro de séquence, arguments |
 | 0x100-0x10F | RP2350 | séquence de réponse, statut, progression, nombres d'entrées, nature |
 | 0x110 / 0x150 | RP2350 | chemin courant / message (64 octets chacun) |
-| 0x200-0x4FF | RP2350 | 24 entrées de 32 octets (type + nom) |
+| 0x200-0x47F | RP2350 | 20 entrées de 32 octets (type + nom) |
 
 Déroulement : le 68000 écrit la commande puis la sonnette (0x2FFFE0) ; le
 FPGA lève `LK_IRQ` ; le RP2350 lit la commande, acquitte, écrit
@@ -108,3 +108,7 @@ python3 tools/neotool.py info jeu.neo
 | 6 | fichier de taille incohérente |
 | 7 | erreur de lecture de la carte SD |
 | 8 | configuration refusée (CDONE bas) |
+
+## Vidéo de démonstration
+
+`python3 tools/menu_demo.py -o demo.mp4` (ffmpeg, machine68k, gcc-m68k) : le binaire réel du menu tourne dans l'émulateur 68000 des tests, face à un RP2350 imité (carte SD fictive, chargement avec progression) ; la couche fixe visible (lignes 2 à 29) est filmée image par image.

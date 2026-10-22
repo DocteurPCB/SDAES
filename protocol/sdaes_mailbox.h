@@ -43,7 +43,7 @@
 #define MB_RSP_FPGAVER     0x190   /* 4 x u16 : versions des bitstreams P, V, C, SM */
 #define MB_RSP_ENTRIES     0x200   /* MB_PAGE_SIZE entrées de 32 octets */
 #define MB_ENTRY_SIZE      32      /* [0] type, [1..31] nom terminé par 0 */
-#define MB_PAGE_SIZE       24
+#define MB_PAGE_SIZE       20   /* lignes 6..25 : le pied de page tient dans les lignes visibles 2..29 */
 #define MB_NAME_MAX        30
 
 /* commandes */
